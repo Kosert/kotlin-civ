@@ -1,0 +1,28 @@
+{
+  "name": "phaserapp",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "dev": "webpack --mode development",
+    "build": "webpack --mode production && webpack-dev-server --mode production",
+    "start": "npm run dev && node index.js"
+  },
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "devDependencies": {
+    "expose-loader": "5.0.1",
+    "ts-loader": "9.5.2",
+    "typescript": "5.8.3",
+    "webpack": "^5.0.0",
+    "webpack-cli": "^5.0.1",
+    "webpack-dev-server": "^4.11.1"
+  },
+  "dependencies": {
+    "body-parser": "2.2.0",
+    "express": "5.0.1",
+    "hexcore-js": "file:../output",
+    "morgan": "^1.9.1",
+    "phaser": "3.90.0"
+  }
+}
