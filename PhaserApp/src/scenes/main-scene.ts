@@ -20,6 +20,7 @@ export class MainScene extends Phaser.Scene {
 
     private tiles: Tile[]
     private gameApi = civ.GameApi.Companion.fromGameState(TestData.gameState1)
+    private playersMap = new Map<String, civ.Player>()
 
     private test: Phaser.GameObjects.Arc
 
@@ -34,23 +35,27 @@ export class MainScene extends Phaser.Scene {
         this.upKey = new MultiKey(this, W, UP)
         this.downKey = new MultiKey(this, S, DOWN)
 
+        TestData.gameState1.players.asJsReadonlyArrayView().forEach(it => {
+            this.playersMap.set(it.playerId, it)
+        })
+
+        const self = this
+        // this.input.on(Phaser.Input.Events.POINTER_DOWN, function() {
+        //     if (!self.input.mouse.locked) {
+        //         self.input.mouse.requestPointerLock()
+        //     }
+        // })
+
         const player1 = TestData.gameState1.players.asJsReadonlyArrayView()[0]
         this.tiles = this.gameApi.tilesForPlayer(player1.playerId).asJsReadonlyArrayView().map(it => {
-            return new Tile(this, it.coordinates.q, it.coordinates.r)
+            return new Tile(this, it, this.playersMap)
         })
 
         this.tiles.forEach(it =>
             this.add.existing(it)
         )
 
-        this.test = this.add.circle(0, 0, 16, 0xff0000)
-
-        this.input.on(Phaser.Input.Events.POINTER_MOVE, function (pointer, localX, localY, event) {
-            this.test.x = this.input.activePointer.worldX
-            this.test.y = this.input.activePointer.worldY
-
-            //todo mark 
-        })
+        // this.test = this.add.circle(0, 0, 16, 0xff0000).setDepth(10)
     }
 
     update(time: number, delta: number): void {
@@ -58,6 +63,17 @@ export class MainScene extends Phaser.Scene {
         const gameH: number = this.sys.game.config.height as number
 
         let horizontalMove = 0
+
+        //todo
+        const mouseX = Phaser.Math.Clamp(this.input.activePointer.x, 0, gameW)
+        // console.log(this.input.activePointer.x, this.input.activePointer.x)
+        const mouseScrollThreshold = 25
+        if (/*this.input.activePointer.locked && */mouseX - mouseScrollThreshold < 0) {
+            horizontalMove = -5
+        } else if (/*this.input.activePointer.locked &&*/ this.input.activePointer.x + mouseScrollThreshold > gameW) {
+            horizontalMove = 5
+        }
+
         if (this.rightKey.isDown()) {
             horizontalMove = 5
         } else if (this.leftKey.isDown()) {
@@ -73,15 +89,22 @@ export class MainScene extends Phaser.Scene {
 
         this.cameras.main.scrollX += horizontalMove
         this.cameras.main.scrollY += verticalMove
+        this.input.activePointer.updateWorldPoint(this.cameras.main)
 
-        // this.input.activePointer.updateWorldPoint(this.cameras.main)
         // this.test.x = this.input.activePointer.worldX
         // this.test.y = this.input.activePointer.worldY
 
-        // const scrollX = (-gameW / 2 + this.player.x).coerceIn(this.cameraBounds.left, this.cameraBounds.right)
-        // const scrollY = (-gameH / 2 + this.player.y).coerceIn(this.cameraBounds.top, this.cameraBounds.bottom)
 
-        // this.cameras.main.setScroll(scrollX, scrollY)
+        const x = (this.input.activePointer.worldX - Tile.HEX_OFFSET) / Tile.HEX_SIZE
+        const y = (this.input.activePointer.worldY - Tile.HEX_OFFSET) / Tile.HEX_SIZE
+        const q = (Tile.SQRT3/3 * x - 1.0/3 * y)
+        const r = (2.0/3.0 * y)
+        const s = -q-r
+        const hovered = hexcore.Coordinates.Companion.fromDoubles(q, r, s)
+        this.tiles.forEach(it => {
+            it.markHovered(it.coordinates.equals(hovered))
+        })
+
     }
 
 }
