@@ -2,6 +2,8 @@ package civ
 
 import hexcore.Coordinates
 import kotlin.uuid.Uuid
+import kotlin.js.ExperimentalJsExport
+import kotlin.js.JsExport
 
 @OptIn(ExperimentalJsExport::class)
 @JsExport

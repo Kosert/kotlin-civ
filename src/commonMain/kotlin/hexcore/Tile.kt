@@ -6,6 +6,8 @@ import civ.Building
 import civ.City
 import civ.CivUnit
 import civ.OverrideMovementCost
+import kotlin.js.ExperimentalJsExport
+import kotlin.js.JsExport
 
 @JsExport
 sealed class Tile {

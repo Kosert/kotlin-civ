@@ -3,6 +3,8 @@
 package civ
 
 import hexcore.Coordinates
+import kotlin.js.ExperimentalJsExport
+import kotlin.js.JsExport
 
 @JsExport
 sealed interface Action

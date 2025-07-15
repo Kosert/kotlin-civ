@@ -3,6 +3,8 @@ package civ
 import hexcore.Grass
 import hexcore.HexMap
 import hexcore.Tile
+import kotlin.js.ExperimentalJsExport
+import kotlin.js.JsExport
 
 @OptIn(ExperimentalJsExport::class)
 @JsExport

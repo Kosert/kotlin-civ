@@ -2,6 +2,7 @@ package hexcore
 
 import civ.Building
 import civ.require
+import kotlin.collections.buildList
 
 
 class HexMap(
@@ -46,6 +47,7 @@ class HexMap(
 
     // list of possible paths, todo path cost
     fun movementRange(start: Coordinates, movement: Int): List<List<Coordinates>> {
+        println("dijkstra start")
         val frontier = mutableListOf(start to 0)
         val cameFrom = mutableMapOf<Coordinates, Coordinates>()
         val costSoFar = mutableMapOf<Coordinates, Int>(start to 0)
@@ -69,28 +71,43 @@ class HexMap(
             }
         }
 
+        println("costSoFar: $costSoFar")
+        println("cameFrom: ${cameFrom.keys}")
+
+        costSoFar.remove(start)
         //todo populate paths from maps
-
-        // paths associates by movement cost
-        val costToPaths = mutableMapOf<Int, List<List<Coordinates>>>(
-            0 to mutableListOf(listOf(start))
-        )
-
-        for (i in 1..movement) {
-            val paths = costToPaths.getValue(i - 1)
-            val existingPathEnds = paths.map { it.last() }
-
-            costToPaths[i] = paths.map { path ->
-                val possibleTargets = path.last()
-                    .neighbors()
-                    .filter { tiles[it]?.canGoThrough() == true && !existingPathEnds.contains(it) && it != start }
-
-                possibleTargets.map { path + it }
-            }.flatten()
+        return costSoFar.keys.map { target ->
+            var pointer = target
+            buildList {
+                while (pointer != start) {
+                    add(pointer)
+                    pointer = cameFrom.getValue(pointer)
+                }
+            }
         }
 
-        costToPaths.remove(0)
-        return costToPaths.values.flatten()
+        // paths associates by movement cost
+//        val costToPaths = mutableMapOf<Int, List<List<Coordinates>>>(
+//            0 to mutableListOf(listOf(start))
+//        )
+//
+//        for (i in 1..movement) {
+//            val paths = costToPaths.getValue(i - 1)
+//            val existingPathEnds = paths.map { it.last() }
+//
+//            costToPaths[i] = paths.map { path ->
+//                val possibleTargets = path.last()
+//                    .neighbors()
+//                    .filter { tiles[it]?.canGoThrough() == true && !existingPathEnds.contains(it) && it != start }
+//
+//                possibleTargets.map { path + it }
+//            }.flatten()
+//        }
+//
+//        println("breadth first done")
+//
+//        costToPaths.remove(0)
+//        return costToPaths.values.flatten()
     }
 
     fun line(from: Coordinates, to: Coordinates): List<Coordinates> {

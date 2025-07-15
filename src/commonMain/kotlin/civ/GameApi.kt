@@ -4,6 +4,8 @@ import hexcore.HexMap
 import hexcore.PlayerTileData
 import hexcore.Tile
 import hexcore.distanceTo
+import kotlin.js.ExperimentalJsExport
+import kotlin.js.JsExport
 
 @OptIn(ExperimentalJsExport::class)
 @JsExport
@@ -35,6 +37,7 @@ class GameApi private constructor(
     fun stocksFor(playerId: String) = stocksManager.getFor(playerId)
 
     private fun recalculateVision() {
+        println("start vision")
         turns.forEach {
             visionCalculator.recalculate(
                 it.playerId,
@@ -42,6 +45,7 @@ class GameApi private constructor(
                 citiesFor(it.playerId),
             )
         }
+        println("end vision")
     }
 
     init {
@@ -68,6 +72,10 @@ class GameApi private constructor(
         }
     }
 
+    fun testCrash()  {
+        throw IllegalStateException("chuj")
+    }
+
     fun execute(action: Action) {
         when (action) {
             is Move -> {
@@ -75,14 +83,21 @@ class GameApi private constructor(
                     ?.takeIf { it.playerId == currentPlayer.playerId }
                     ?: TODO()
 
+                println("start movementRange")
                 val paths = hexMap.movementRange(unit.coordinates, unit.movementLeft)
+
+                println("Paths: $paths")
+
                 val path = paths.find { it.last() == action.destination } ?: TODO()
 
+                println("got path")
+
                 //todo
-                if (path.first() == unit.coordinates)
-                    error("first is same")
+//                if (path.first() == unit.coordinates)
+//                    error("first is same")
 
                 path.forEach {
+                    println("step to $it")
                     val current = unit.coordinates
                     val nextTile = hexMap.get(it).require()
 
@@ -92,7 +107,7 @@ class GameApi private constructor(
                     units.remove(current)
                     units.put(nextTile.coords, unit.copy(
                         coordinates = nextTile.coords,
-                        movementLeft = unit.movementLeft - 1
+                        movementLeft = unit.movementLeft - 1//TODO STEP COST
                     ))
 
                     //todo on move -> check triggers

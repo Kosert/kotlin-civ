@@ -2,6 +2,8 @@ package civ
 
 import hexcore.Grass
 import hexcore.Tile
+import kotlin.js.ExperimentalJsExport
+import kotlin.js.JsExport
 
 
 sealed interface TileBonus

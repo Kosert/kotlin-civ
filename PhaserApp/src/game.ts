@@ -1,7 +1,6 @@
 import "phaser"
 import { MainScene } from "./scenes/main-scene"
 import "hexcore-js"
-import { CharacterImpl } from "hexcore-js"
 
 // main game configuration
 const config: Phaser.Types.Core.GameConfig = {

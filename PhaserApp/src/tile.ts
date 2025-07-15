@@ -11,6 +11,9 @@ export class Tile extends Phaser.GameObjects.Polygon {
 
     readonly coordinates: hexcore.Coordinates
 
+    private isHovered: boolean = false
+    private isSelected: boolean = false
+
     private unit: Phaser.GameObjects.Arc
 
     constructor(
@@ -34,7 +37,7 @@ export class Tile extends Phaser.GameObjects.Polygon {
 
         this.unit = scene.add.circle(this.x, this.y, 16).setDepth(5)
 
-        this.markHovered(false)
+        this.setHovered(false)
         this.updateTileData(tileData)
     } 
 
@@ -71,8 +74,21 @@ export class Tile extends Phaser.GameObjects.Polygon {
         }
     }
 
-    markHovered(hovered: boolean) {
-        if (hovered) {
+    setSelected(selected: boolean) {
+        this.isSelected = selected
+        this.refreshState()
+    }
+
+    setHovered(hovered: boolean) {
+        this.isHovered = hovered
+        this.refreshState()
+    }
+
+    private refreshState() {
+        if (this.isSelected) {
+            this.setStrokeStyle(4, 0xffffff, 1);
+            this.setDepth(3)
+        } else if (this.isHovered) {
             this.setStrokeStyle(4, 0xffffff, 0.4);
             this.setDepth(3)
         } else {

@@ -1,7 +1,8 @@
 package civ
 
 import hexcore.Tile
-
+import kotlin.js.ExperimentalJsExport
+import kotlin.js.JsExport
 
 //TODO kotlin serialization json/protobuf?
 // todo check if all types will serialize properly

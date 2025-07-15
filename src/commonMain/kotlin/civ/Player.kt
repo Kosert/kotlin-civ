@@ -3,6 +3,8 @@
 package civ
 
 import kotlin.uuid.Uuid
+import kotlin.js.ExperimentalJsExport
+import kotlin.js.JsExport
 
 @JsExport
 data class Player(

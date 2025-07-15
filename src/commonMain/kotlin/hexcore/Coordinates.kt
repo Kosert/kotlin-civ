@@ -2,6 +2,8 @@ package hexcore
 
 import kotlin.math.abs
 import kotlin.math.roundToInt
+import kotlin.js.ExperimentalJsExport
+import kotlin.js.JsExport
 
 @OptIn(ExperimentalJsExport::class)
 @JsExport
