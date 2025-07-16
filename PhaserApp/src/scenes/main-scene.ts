@@ -1,4 +1,6 @@
 import { Tile } from "../tile"
+import FpsText from "../ui/fpsText"
+import { Ui } from "../ui/ui"
 import MultiKey from "../util/multi-key"
 import { civ } from "kotlin-civ"
 
@@ -16,7 +18,6 @@ export class MainScene extends Phaser.Scene {
     private upKey: MultiKey
     private downKey: MultiKey
 
-    private tiles = new Map<civ.hex.Coordinates, Tile>()
     private gameApi = civ.core.GameApi.Companion.fromGameState(civ.TestData.gameState1)
     private playersMap = new Map<String, civ.model.Player>()
     private player: civ.model.Player
@@ -25,13 +26,23 @@ export class MainScene extends Phaser.Scene {
     private selected?: civ.model.PlayerTileData //sleect unit or tile
     private moveHighlights: civ.hex.Coordinates[] = []
 
-    private test: Phaser.GameObjects.Arc
+    private tiles = new Map<civ.hex.Coordinates, Tile>()
+    private ui: Ui
+    private fpsText: FpsText
 
     preload(): void {
-
+        this.load.image("attack", "assets/icons/attack.png")
+        this.load.image("attack_range", "assets/icons/attack_range.png")
+        this.load.image("gold_coin", "assets/icons/gold_coin.png")
+        this.load.image("heart", "assets/icons/heart.png")
+        this.load.image("placeholder", "assets/icons/placeholder.png")
+        this.load.image("speed", "assets/icons/speed.png")
+        this.load.image("locked", "assets/icons/locked.png")
     }
 
     create(): void {
+        this.fpsText = new FpsText(this)
+        this.ui = new Ui(this)
         const { LEFT, RIGHT, UP, DOWN, S, A, D, W } = Phaser.Input.Keyboard.KeyCodes
         this.leftKey = new MultiKey(this, LEFT, A)
         this.rightKey = new MultiKey(this, RIGHT, D)
@@ -46,9 +57,6 @@ export class MainScene extends Phaser.Scene {
 
         const self = this
         this.input.on(Phaser.Input.Events.POINTER_DOWN, function(pointer: Phaser.Input.Pointer) {
-            // if (!self.input.mouse.locked) {
-            //     self.input.mouse.requestPointerLock()
-            // }
 
             if (pointer.leftButtonDown()) {
                 if (self.selected) {
@@ -100,13 +108,10 @@ export class MainScene extends Phaser.Scene {
         this.tiles.forEach(it =>
             this.add.existing(it)
         )
-
-
-
-        // this.test = this.add.circle(0, 0, 16, 0xff0000).setDepth(10)
     }
 
     update(time: number, delta: number): void {
+        this.fpsText.update()
         const gameW: number = this.sys.game.config.width as number
         const gameH: number = this.sys.game.config.height as number
 
@@ -145,15 +150,13 @@ export class MainScene extends Phaser.Scene {
         this.cameras.main.scrollY += verticalMove
         this.input.activePointer.updateWorldPoint(this.cameras.main)
 
-        // this.test.x = this.input.activePointer.worldX
-        // this.test.y = this.input.activePointer.worldY
-
 
         const x = (this.input.activePointer.worldX - Tile.HEX_OFFSET) / Tile.HEX_SIZE
         const y = (this.input.activePointer.worldY - Tile.HEX_OFFSET) / Tile.HEX_SIZE
         const q = (Tile.SQRT3/3 * x - 1.0/3 * y)
         const r = (2.0/3.0 * y)
         const s = -q-r
+        //todo null if pointer is over UI
         const hoveredCoordinates = civ.hex.Coordinates.Companion.fromDoubles(q, r, s)
 
         this.hovered = null

@@ -8,6 +8,8 @@ import civ.model.OverrideMovementCost
 import kotlin.js.ExperimentalJsExport
 import kotlin.js.JsExport
 
+private const val IMPASSABLE_COST = 100_000
+
 @JsExport
 sealed class Tile {
     abstract val coords: Coordinates
@@ -18,7 +20,7 @@ sealed class Tile {
     protected abstract val baseMovementCost: Int
     fun movementCost(): Int {
         return if (isBusy)
-            Int.MAX_VALUE
+            IMPASSABLE_COST
         else {
             buildings.flatMap { it.bonuses }
                 .filterIsInstance<OverrideMovementCost>()
@@ -39,7 +41,7 @@ data class Water(
     override val coords: Coordinates,
     override val buildings: Set<Building> = setOf(),
 ) : Tile() {
-    override val baseMovementCost: Int = Int.MAX_VALUE
+    override val baseMovementCost: Int = IMPASSABLE_COST
     override fun updated(isBusy: Boolean, buildings: Set<Building>) = copy(buildings = buildings)
 }
 

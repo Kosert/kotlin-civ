@@ -43,8 +43,8 @@ export class Tile extends Phaser.GameObjects.Polygon {
         this.overlay = scene.add.polygon(centerX, centerY, polygonPoints)
             .setDepth(5)
             .setFillStyle(0x000000, 0)
-        this.highlight = scene.add.circle(this.x, this.y, 12)
-            .setStrokeStyle(6, 0x00ffff, 0.5)
+        this.highlight = scene.add.circle(this.x, this.y, 37)
+            .setStrokeStyle(8, 0x00ffff, 0.5)
             .setDepth(6)
 
         this.setStates(false, false)
@@ -59,7 +59,7 @@ export class Tile extends Phaser.GameObjects.Polygon {
             return
         }
         if (data.tile instanceof civ.tile.Grass) {
-            this.setFillStyle(0x7BB369)
+            this.setFillStyle(0x489030)
         } else if (data.tile instanceof civ.tile.Water) {
             this.setFillStyle(0x0000ff)
         } else if (data.tile instanceof civ.tile.Mountains) {
@@ -132,5 +132,9 @@ export class Tile extends Phaser.GameObjects.Polygon {
             this.overlay.setStrokeStyle(1, 0xffffff, 0.2)
             this.overlay.setDepth(5)
         }
+    }
+
+    destroy(): void {
+        //todo
     }
 }

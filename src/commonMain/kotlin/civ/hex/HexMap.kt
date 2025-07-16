@@ -92,7 +92,7 @@ class HexMap(
             current.neighbors()
                 .mapNotNull { tiles[it] }
                 .forEach { nextTile ->
-                    val newCost = (totalCosts.getValue(current) + nextTile.movementCost()).coerceAtMost(Int.MAX_VALUE)
+                    val newCost = totalCosts.getValue(current) + nextTile.movementCost()
                     if (newCost > movement) {
                         return@forEach
                     }
