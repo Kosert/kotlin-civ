@@ -1,9 +1,41 @@
-package hexcore
+@file:OptIn(ExperimentalJsExport::class)
 
-import civ.Building
-import civ.require
+package civ.hex
+
+import civ.model.Building
+import civ.core.require
+import civ.tile.Grass
+import civ.tile.Tile
 import kotlin.collections.buildList
+import kotlin.js.ExperimentalJsExport
+import kotlin.js.JsExport
 
+@JsExport
+data class Paths(
+    val start: Coordinates,
+    private val cameFrom: Map<Coordinates, Coordinates>,
+    private val costs: Map<Coordinates, Int>,
+) {
+    val possibleTargets: Set<Coordinates>
+        get() = costs.keys
+
+    fun getPath(target: Coordinates): List<PathSegment>? {
+        if (target !in possibleTargets) {
+            return null
+        }
+
+        var pointer = target
+        return buildList<PathSegment> {
+            while (pointer != start) {
+                add(PathSegment(pointer, costs.getValue(pointer)))
+                pointer = cameFrom.getValue(pointer)
+            }
+        }.reversed()
+    }
+}
+
+@JsExport
+data class PathSegment(val coordinates: Coordinates, val cost: Int)
 
 class HexMap(
     tileList: Collection<Tile>,
@@ -45,12 +77,13 @@ class HexMap(
         TODO() //is it needed at all?
     }
 
-    // list of possible paths, todo path cost
-    fun movementRange(start: Coordinates, movement: Int): List<List<Coordinates>> {
-        println("dijkstra start")
+    // list of possible paths
+    fun movementRange(start: Coordinates, movement: Int): Paths {
+        println(start.toString() + " " + movement.toString())
         val frontier = mutableListOf(start to 0)
         val cameFrom = mutableMapOf<Coordinates, Coordinates>()
-        val costSoFar = mutableMapOf<Coordinates, Int>(start to 0)
+        val totalCosts = mutableMapOf<Coordinates, Int>(start to 0)
+        val costPerTile = mutableMapOf<Coordinates, Int>()
 
         while (frontier.isNotEmpty()) {
             frontier.sortBy { it.second }
@@ -59,56 +92,21 @@ class HexMap(
             current.neighbors()
                 .mapNotNull { tiles[it] }
                 .forEach { nextTile ->
-                    val newCost = costSoFar.getValue(current) + nextTile.movementCost()
+                    val newCost = (totalCosts.getValue(current) + nextTile.movementCost()).coerceAtMost(Int.MAX_VALUE)
                     if (newCost > movement) {
                         return@forEach
                     }
-                    if (costSoFar[nextTile.coords]?.let { it > newCost } != false) {
-                        costSoFar[nextTile.coords] = newCost
+                    if (totalCosts[nextTile.coords]?.let { it > newCost } != false) {
+                        costPerTile[nextTile.coords] = nextTile.movementCost()
+                        totalCosts[nextTile.coords] = newCost
                         frontier.add(nextTile.coords to newCost)
                         cameFrom[nextTile.coords] = current
                     }
             }
         }
-
-        println("costSoFar: $costSoFar")
-        println("cameFrom: ${cameFrom.keys}")
-
-        costSoFar.remove(start)
-        //todo populate paths from maps
-        return costSoFar.keys.map { target ->
-            var pointer = target
-            buildList {
-                while (pointer != start) {
-                    add(pointer)
-                    pointer = cameFrom.getValue(pointer)
-                }
-            }
-        }
-
-        // paths associates by movement cost
-//        val costToPaths = mutableMapOf<Int, List<List<Coordinates>>>(
-//            0 to mutableListOf(listOf(start))
-//        )
-//
-//        for (i in 1..movement) {
-//            val paths = costToPaths.getValue(i - 1)
-//            val existingPathEnds = paths.map { it.last() }
-//
-//            costToPaths[i] = paths.map { path ->
-//                val possibleTargets = path.last()
-//                    .neighbors()
-//                    .filter { tiles[it]?.canGoThrough() == true && !existingPathEnds.contains(it) && it != start }
-//
-//                possibleTargets.map { path + it }
-//            }.flatten()
-//        }
-//
-//        println("breadth first done")
-//
-//        costToPaths.remove(0)
-//        return costToPaths.values.flatten()
+        return Paths(start, cameFrom, costPerTile)
     }
+
 
     fun line(from: Coordinates, to: Coordinates): List<Coordinates> {
         return from.lineTo(to)

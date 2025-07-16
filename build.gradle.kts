@@ -6,7 +6,7 @@ plugins {
     kotlin("multiplatform") version "2.1.21"
 }
 
-group = "me.kosert.js"
+group = "me.kosert.civ"
 version = "1.0-SNAPSHOT"
 
 repositories {

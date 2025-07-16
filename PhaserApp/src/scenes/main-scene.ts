@@ -1,8 +1,6 @@
 import { Tile } from "../tile"
 import MultiKey from "../util/multi-key"
-import { civ } from "hexcore-js"
-import { hexcore } from "hexcore-js"
-import { TestData } from "hexcore-js"
+import { civ } from "kotlin-civ"
 
 export class MainScene extends Phaser.Scene {
     private myFirstSprite: Phaser.GameObjects.Sprite
@@ -18,13 +16,14 @@ export class MainScene extends Phaser.Scene {
     private upKey: MultiKey
     private downKey: MultiKey
 
-    private tiles = new Map<hexcore.Coordinates, Tile>()
-    private gameApi = civ.GameApi.Companion.fromGameState(TestData.gameState1)
-    private playersMap = new Map<String, civ.Player>()
-    private player: civ.Player
+    private tiles = new Map<civ.hex.Coordinates, Tile>()
+    private gameApi = civ.core.GameApi.Companion.fromGameState(civ.TestData.gameState1)
+    private playersMap = new Map<String, civ.model.Player>()
+    private player: civ.model.Player
 
-    private hovered?: hexcore.PlayerTileData
-    private selected?: hexcore.PlayerTileData
+    private hovered?: civ.model.PlayerTileData
+    private selected?: civ.model.PlayerTileData //sleect unit or tile
+    private moveHighlights: civ.hex.Coordinates[] = []
 
     private test: Phaser.GameObjects.Arc
 
@@ -41,7 +40,7 @@ export class MainScene extends Phaser.Scene {
 
         this.input.mouse.disableContextMenu()
 
-        TestData.gameState1.players.asJsReadonlyArrayView().forEach(it => {
+        civ.TestData.gameState1.players.asJsReadonlyArrayView().forEach(it => {
             this.playersMap.set(it.playerId, it)
         })
 
@@ -53,11 +52,17 @@ export class MainScene extends Phaser.Scene {
 
             if (pointer.leftButtonDown()) {
                 if (self.selected) {
-                    self.tiles.get(self.selected.coordinates).setSelected(false)
+                    // self.tiles.get(self.selected.coordinates).setSelected(false)
                 }
                 self.selected = self.hovered
-                if (self.hovered) {
-                    self.tiles.get(self.hovered.coordinates).setSelected(true)
+                self.moveHighlights = []
+                if (self.selected) {
+                    // self.tiles.get(self.selected.coordinates).setSelected(true)
+                    if (self.selected.unit?.playerId == self.player.playerId) {
+                        const paths = self.gameApi.movementRangeFor(self.selected.unit.unitId)
+                        self.moveHighlights = Array.from(paths.possibleTargets.asJsReadonlySetView())
+                        console.log(self.moveHighlights)
+                    }
                 }
 
                 console.log("Selected: ", self.selected)
@@ -70,18 +75,24 @@ export class MainScene extends Phaser.Scene {
                 const selectedUnit = self.selected?.unit
                 if (selectedUnit) {
 
-                    if (target.unit) {
-                        //todo attack
+                    if (selectedUnit.playerId == self.player.playerId) {
+                        if (target.unit) {
+                            //todo attack
+                        } else {
+                            //todo move
+                            self.gameApi.execute(new civ.action.Move(selectedUnit.unitId, target.coordinates))
+                            self.selected = null
+                            self.moveHighlights = []
+                        }
                     } else {
-                        //todo move
-                        self.gameApi.execute(new civ.Move(selectedUnit.unitId, target.coordinates))
+                        //selected enemy unit
                     }
                     
                 }
             }
         })
 
-        this.player = TestData.gameState1.players.asJsReadonlyArrayView()[0]
+        this.player = civ.TestData.gameState1.players.asJsReadonlyArrayView()[0]
         this.gameApi.tilesForPlayer(this.player.playerId).asJsReadonlyArrayView().map(it => {
             this.tiles.set(it.coordinates, new Tile(this, it, this.playersMap))
         })
@@ -105,7 +116,7 @@ export class MainScene extends Phaser.Scene {
         const mouseX = Phaser.Math.Clamp(this.input.activePointer.x, 0, gameW)
         const mouseY = Phaser.Math.Clamp(this.input.activePointer.y, 0, gameH)
 
-        const mouseScrollThreshold = 25
+        const mouseScrollThreshold = NaN//25
         if (mouseX - mouseScrollThreshold < 0) {
             horizontalMove = -5
         } else if (mouseX + mouseScrollThreshold > gameW) {
@@ -143,16 +154,21 @@ export class MainScene extends Phaser.Scene {
         const q = (Tile.SQRT3/3 * x - 1.0/3 * y)
         const r = (2.0/3.0 * y)
         const s = -q-r
-        const hoveredCoordinates = hexcore.Coordinates.Companion.fromDoubles(q, r, s)
+        const hoveredCoordinates = civ.hex.Coordinates.Companion.fromDoubles(q, r, s)
 
         this.hovered = null
-        this.gameApi.tilesForPlayer(this.player.playerId).asJsReadonlyArrayView().forEach(it => {
-            const tile = this.tiles.get(it.coordinates)
-            tile.updateTileData(it)
-            const isThisHovered = tile.coordinates.equals(hoveredCoordinates)
-            tile.setHovered(isThisHovered)
-            if (isThisHovered) {
-                this.hovered = it
+        this.gameApi.tilesForPlayer(this.player.playerId).asJsReadonlyArrayView().forEach(data => {
+            const tile = this.tiles.get(data.coordinates)
+            tile.updateTileData(data)
+            tile.setHighlight(
+                this.moveHighlights.some(it => it.equals(data.coordinates)),
+                false,
+            )
+            const isHovered = tile.coordinates.equals(hoveredCoordinates)
+            const isSelected = tile.coordinates.equals(this.selected?.coordinates)
+            tile.setStates(isHovered, isSelected)
+            if (isHovered) {
+                this.hovered = data
             }
         })
 

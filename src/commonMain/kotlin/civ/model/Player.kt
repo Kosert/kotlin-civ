@@ -1,6 +1,6 @@
 @file:OptIn(ExperimentalJsExport::class)
 
-package civ
+package civ.model
 
 import kotlin.uuid.Uuid
 import kotlin.js.ExperimentalJsExport

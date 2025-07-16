@@ -1,7 +1,9 @@
-package civ
+package civ.core
 
-import hexcore.Coordinates
-import hexcore.HexMap
+import civ.model.City
+import civ.model.CivUnit
+import civ.hex.Coordinates
+import civ.hex.HexMap
 import kotlin.collections.emptySet
 
 

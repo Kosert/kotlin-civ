@@ -1,4 +1,4 @@
-package hexcore
+package civ.hex
 
 import kotlin.math.abs
 import kotlin.math.roundToInt

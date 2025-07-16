@@ -1,12 +1,10 @@
-import civ.CivUnit
-import civ.GameState
-import civ.Player
-import civ.PlayerColor
-import civ.Stockpiles
-import civ.UnitType
-import hexcore.Coordinates
-import hexcore.Grass
-import hexcore.HexLayouts
+package civ
+
+import civ.core.GameState
+import civ.hex.Coordinates
+import civ.tile.Grass
+import civ.hex.HexLayouts
+import civ.model.*
 import kotlin.js.ExperimentalJsExport
 import kotlin.js.JsExport
 

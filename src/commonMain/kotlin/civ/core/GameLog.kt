@@ -1,4 +1,4 @@
-package civ
+package civ.core
 
 interface GameLog {
 

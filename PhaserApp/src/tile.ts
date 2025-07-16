@@ -1,4 +1,4 @@
-import { hexcore, civ } from "hexcore-js"
+import { civ } from "kotlin-civ"
 import { Scene } from "phaser"
 
 export class Tile extends Phaser.GameObjects.Polygon {
@@ -9,17 +9,20 @@ export class Tile extends Phaser.GameObjects.Polygon {
     static readonly HEX_HEIGHT = this.HEX_SIZE * 2
     static readonly HEX_WIDTH = this.HEX_SIZE * this.SQRT3
 
-    readonly coordinates: hexcore.Coordinates
+    readonly coordinates: civ.hex.Coordinates
 
     private isHovered: boolean = false
     private isSelected: boolean = false
+    private highlightMode: ("move" | "attack" | "none") = "none"
 
     private unit: Phaser.GameObjects.Arc
+    private overlay: Phaser.GameObjects.Polygon
+    private highlight: Phaser.GameObjects.Arc
 
     constructor(
         readonly scene: Scene,
-        private tileData: hexcore.PlayerTileData,
-        private playersMap: Map<String, civ.Player>
+        private tileData: civ.model.PlayerTileData,
+        private playersMap: Map<String, civ.model.Player>
     ) {
         const weirdOffsetFix = { x: Tile.HEX_WIDTH / 2, y: Tile.HEX_SIZE }
         const centerX = (Tile.SQRT3 * tileData.coordinates.q + Tile.SQRT3/2 * tileData.coordinates.r) * Tile.HEX_SIZE + Tile.HEX_OFFSET
@@ -35,65 +38,99 @@ export class Tile extends Phaser.GameObjects.Polygon {
         super(scene, centerX, centerY, polygonPoints, 0x00ff00)
         this.coordinates = tileData.coordinates
 
-        this.unit = scene.add.circle(this.x, this.y, 16).setDepth(5)
+        this.unit = scene.add.circle(this.x, this.y, 16)
+            .setDepth(5)
+        this.overlay = scene.add.polygon(centerX, centerY, polygonPoints)
+            .setDepth(5)
+            .setFillStyle(0x000000, 0)
+        this.highlight = scene.add.circle(this.x, this.y, 12)
+            .setStrokeStyle(6, 0x00ffff, 0.5)
+            .setDepth(6)
 
-        this.setHovered(false)
+        this.setStates(false, false)
         this.updateTileData(tileData)
     } 
 
-    updateTileData(data: hexcore.PlayerTileData) {
+    updateTileData(data: civ.model.PlayerTileData) {
         if (!data.tile) {
             this.unit.setVisible(false)
+            this.overlay.fillAlpha = 1
             this.setFillStyle(0x888888)
             return
         }
-        if (data.tile instanceof hexcore.Grass) {
-            this.setFillStyle(0x00ff00)
-        } else if (data.tile instanceof hexcore.Water) {
+        if (data.tile instanceof civ.tile.Grass) {
+            this.setFillStyle(0x7BB369)
+        } else if (data.tile instanceof civ.tile.Water) {
             this.setFillStyle(0x0000ff)
-        } else if (data.tile instanceof hexcore.Mountains) {
+        } else if (data.tile instanceof civ.tile.Mountains) {
             this.setFillStyle(0x888888)
+        }
+
+        if (data.isVisible) {
+            this.overlay.fillAlpha = 0
+        } else {
+            this.overlay.fillAlpha = 0.5
         }
 
         if (data.unit) {
             this.unit.setVisible(true)
             const color = this.playersMap.get(data.unit.playerId).color
             switch (color) {
-                case civ.PlayerColor.BLUE:
+                case civ.model.PlayerColor.BLUE:
                     this.unit.setFillStyle(0x0000ff)
                     break
-                case civ.PlayerColor.RED:
+                case civ.model.PlayerColor.RED:
                     this.unit.setFillStyle(0xff0000)
                     break
-                case civ.PlayerColor.GREEN:
+                case civ.model.PlayerColor.GREEN:
                     this.unit.setFillStyle(0x6666ff)
                     break;
                 default:
                     break;
             }
+        } else {
+            this.unit.setVisible(false)
         }
     }
 
-    setSelected(selected: boolean) {
+    setStates(hovered: boolean, selected: boolean) {
+        this.isHovered = hovered
         this.isSelected = selected
         this.refreshState()
     }
 
-    setHovered(hovered: boolean) {
-        this.isHovered = hovered
-        this.refreshState()
+    setHighlight(move: boolean, attack: boolean) {
+        if (attack) {
+            this.highlightMode = "attack"
+        } else if (move) {
+            this.highlightMode = "move"
+        } else {
+            this.highlightMode = "none"
+        }
     }
 
     private refreshState() {
+        switch (this.highlightMode) {
+            case "move":
+                this.highlight.setVisible(true)
+                break
+            case "attack":
+                this.highlight.setVisible(true)
+                break
+            case "none":
+                this.highlight.setVisible(false)
+                break
+        }
+
         if (this.isSelected) {
-            this.setStrokeStyle(4, 0xffffff, 1);
-            this.setDepth(3)
+            this.overlay.setStrokeStyle(4, 0xffffff, 1)
+            this.overlay.setDepth(6)
         } else if (this.isHovered) {
-            this.setStrokeStyle(4, 0xffffff, 0.4);
-            this.setDepth(3)
+            this.overlay.setStrokeStyle(4, 0xffffff, 0.4)
+            this.overlay.setDepth(6)
         } else {
-            this.setStrokeStyle(2, 0x000000, 0.2)
-            this.setDepth(2)
+            this.overlay.setStrokeStyle(1, 0xffffff, 0.2)
+            this.overlay.setDepth(5)
         }
     }
 }

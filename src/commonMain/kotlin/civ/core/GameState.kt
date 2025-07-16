@@ -1,6 +1,10 @@
-package civ
+package civ.core
 
-import hexcore.Tile
+import civ.model.City
+import civ.model.CivUnit
+import civ.model.Player
+import civ.model.Stockpiles
+import civ.tile.Tile
 import kotlin.js.ExperimentalJsExport
 import kotlin.js.JsExport
 

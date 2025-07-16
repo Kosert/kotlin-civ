@@ -1,29 +1,9 @@
-package civ
+package civ.core
 
-import hexcore.Grass
-import hexcore.HexMap
-import hexcore.Tile
-import kotlin.js.ExperimentalJsExport
-import kotlin.js.JsExport
-
-@OptIn(ExperimentalJsExport::class)
-@JsExport
-data class Stockpiles(
-    val food: Int = 0,
-    val wood: Int = 0,
-    val gold: Int = 0,
-) {
-    operator fun plus(other: Stockpiles) = Stockpiles(
-        food = food + other.food,
-        wood = wood + other.wood,
-        gold = gold + other.gold,
-    )
-    operator fun minus(other: Stockpiles) = Stockpiles(
-        food = food - other.food,
-        wood = wood - other.wood,
-        gold = gold - other.gold,
-    )
-}
+import civ.hex.HexMap
+import civ.model.*
+import civ.tile.Grass
+import civ.tile.Tile
 
 class StockpilesManager(
     private val hexMap: HexMap,

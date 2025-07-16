@@ -1,11 +1,10 @@
 @file:OptIn(ExperimentalJsExport::class)
 
-package hexcore
+package civ.tile
 
-import civ.Building
-import civ.City
-import civ.CivUnit
-import civ.OverrideMovementCost
+import civ.hex.Coordinates
+import civ.model.Building
+import civ.model.OverrideMovementCost
 import kotlin.js.ExperimentalJsExport
 import kotlin.js.JsExport
 
@@ -33,9 +32,6 @@ sealed class Tile {
         isBusy: Boolean = this.isBusy,
         buildings: Set<Building> = this.buildings,
     ): Tile
-
-    @Deprecated("use movementCost()")
-    open fun canGoThrough(): Boolean = !isBusy
 }
 
 @JsExport
@@ -85,15 +81,3 @@ data class Mountains(
     ) = copy(isBusy = isBusy, buildings = buildings)
 }
 
-@JsExport
-data class PlayerTileData(
-    val coordinates: Coordinates,
-    val isVisible: Boolean,
-
-    /**
-     * null means Tile is not yet discovered
-     */
-    val tile: Tile?,
-    val unit: CivUnit?,
-    val city: City?,
-)

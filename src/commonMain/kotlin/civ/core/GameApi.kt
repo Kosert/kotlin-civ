@@ -1,9 +1,14 @@
-package civ
+package civ.core
 
-import hexcore.HexMap
-import hexcore.PlayerTileData
-import hexcore.Tile
-import hexcore.distanceTo
+import civ.action.Action
+import civ.action.Attack
+import civ.action.Move
+import civ.action.Settle
+import civ.hex.HexMap
+import civ.hex.Paths
+import civ.hex.distanceTo
+import civ.model.*
+import civ.tile.Tile
 import kotlin.js.ExperimentalJsExport
 import kotlin.js.JsExport
 
@@ -37,7 +42,6 @@ class GameApi private constructor(
     fun stocksFor(playerId: String) = stocksManager.getFor(playerId)
 
     private fun recalculateVision() {
-        println("start vision")
         turns.forEach {
             visionCalculator.recalculate(
                 it.playerId,
@@ -45,7 +49,6 @@ class GameApi private constructor(
                 citiesFor(it.playerId),
             )
         }
-        println("end vision")
     }
 
     init {
@@ -72,8 +75,14 @@ class GameApi private constructor(
         }
     }
 
-    fun testCrash()  {
-        throw IllegalStateException("chuj")
+    //todo what if target is not visible obstacle
+    // limit movement to visible tiles?
+    fun movementRangeFor(unitId: String): Paths {
+        val unit = units.values.firstOrNull { it.unitId == unitId }
+            ?.takeIf { it.playerId == currentPlayer.playerId }
+            ?: error("Unit $unitId not found for current player")
+
+        return hexMap.movementRange(unit.coordinates, unit.movementLeft)
     }
 
     fun execute(action: Action) {
@@ -81,34 +90,27 @@ class GameApi private constructor(
             is Move -> {
                 val unit = units.values.firstOrNull { it.unitId == action.unitId }
                     ?.takeIf { it.playerId == currentPlayer.playerId }
-                    ?: TODO()
+                    ?: error("Unit ${action.unitId} not found for current player")
 
-                println("start movementRange")
                 val paths = hexMap.movementRange(unit.coordinates, unit.movementLeft)
-
                 println("Paths: $paths")
 
-                val path = paths.find { it.last() == action.destination } ?: TODO()
-
-                println("got path")
-
-                //todo
-//                if (path.first() == unit.coordinates)
-//                    error("first is same")
+                val path = paths.getPath(action.destination) ?: error("Path to ${action.destination} not found")
 
                 path.forEach {
                     println("step to $it")
+                    val unit = units.values.first { it.unitId == action.unitId }
                     val current = unit.coordinates
-                    val nextTile = hexMap.get(it).require()
+                    val nextTile = hexMap.get(it.coordinates).require()
 
                     hexMap.markBusy(current, false)
                     hexMap.markBusy(nextTile.coords, true)
 
                     units.remove(current)
-                    units.put(nextTile.coords, unit.copy(
+                    units[nextTile.coords] = unit.copy(
                         coordinates = nextTile.coords,
-                        movementLeft = unit.movementLeft - 1//TODO STEP COST
-                    ))
+                        movementLeft = unit.movementLeft - it.cost
+                    )
 
                     //todo on move -> check triggers
                     recalculateVision()
@@ -133,7 +135,8 @@ class GameApi private constructor(
                 cities.put(unit.coordinates, City(
                     coordinates = unit.coordinates,
                     playerId = unit.playerId
-                ))
+                )
+                )
             }
         }
     }
@@ -154,6 +157,26 @@ class GameApi private constructor(
 
         //todo other triggers turn start
         // run ai if player is ai
+    }
+
+    fun verifyIntegrity() {
+        val reports = mutableListOf<String>()
+
+        units.values.groupingBy { it.unitId }.eachCount()
+            .filter { it.value > 1 }
+            .forEach {
+                reports.add("Duplicated unit ${it.key}")
+            }
+
+        cities.values.groupingBy { it.cityId }.eachCount()
+            .filter { it.value > 1 }
+            .forEach {
+                reports.add("Duplicated city ${it.key}")
+            }
+
+        if (reports.isNotEmpty()) {
+            throw IllegalStateException("Integrity check failed, found ${reports.size} issues: ${reports.joinToString { it }}")
+        }
     }
 
     fun generateGameState(): GameState {

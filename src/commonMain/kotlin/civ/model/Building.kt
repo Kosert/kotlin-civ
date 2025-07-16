@@ -1,7 +1,7 @@
-package civ
+package civ.model
 
-import hexcore.Grass
-import hexcore.Tile
+import civ.tile.Grass
+import civ.tile.Tile
 import kotlin.js.ExperimentalJsExport
 import kotlin.js.JsExport
 
@@ -19,7 +19,6 @@ enum class Building(
     val cost: Stockpiles,
     val bonuses: List<TileBonus>,
     val replaces: Building? = null,
-    //todo replaces
 ) {
     // CITIES
     VILLAGE_HALL(

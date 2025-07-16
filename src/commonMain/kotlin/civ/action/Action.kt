@@ -1,8 +1,8 @@
 @file:OptIn(ExperimentalJsExport::class)
 
-package civ
+package civ.action
 
-import hexcore.Coordinates
+import civ.hex.Coordinates
 import kotlin.js.ExperimentalJsExport
 import kotlin.js.JsExport
 

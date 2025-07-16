@@ -1,4 +1,4 @@
-package hexcore
+package civ.hex
 
 object HexLayouts {
 

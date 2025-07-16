@@ -1,6 +1,6 @@
-package civ
+package civ.model
 
-import hexcore.Coordinates
+import civ.hex.Coordinates
 import kotlin.uuid.Uuid
 import kotlin.js.ExperimentalJsExport
 import kotlin.js.JsExport
