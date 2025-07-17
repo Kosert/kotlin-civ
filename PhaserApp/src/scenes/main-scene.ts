@@ -13,6 +13,7 @@ export class MainScene extends Phaser.Scene {
         })
     }
 
+    private escKey: MultiKey
     private leftKey: MultiKey
     private rightKey: MultiKey
     private upKey: MultiKey
@@ -23,7 +24,7 @@ export class MainScene extends Phaser.Scene {
     private player: civ.model.Player
 
     private hovered?: civ.model.PlayerTileData
-    private selected?: civ.model.PlayerTileData //sleect unit or tile
+    private selected?: civ.model.PlayerTileData | civ.model.CivUnit
     private moveHighlights: civ.hex.Coordinates[] = []
 
     private tiles = new Map<civ.hex.Coordinates, Tile>()
@@ -41,9 +42,14 @@ export class MainScene extends Phaser.Scene {
     }
 
     create(): void {
+        const self = this
+
         this.fpsText = new FpsText(this)
-        this.ui = new Ui(this)
-        const { LEFT, RIGHT, UP, DOWN, S, A, D, W } = Phaser.Input.Keyboard.KeyCodes
+        this.ui = new Ui(this, function() {
+            self.gameApi.endTurn()
+        })
+        const { LEFT, RIGHT, UP, DOWN, S, A, D, W, ESC } = Phaser.Input.Keyboard.KeyCodes
+        this.escKey = new MultiKey(this, ESC)
         this.leftKey = new MultiKey(this, LEFT, A)
         this.rightKey = new MultiKey(this, RIGHT, D)
         this.upKey = new MultiKey(this, W, UP)
@@ -55,24 +61,15 @@ export class MainScene extends Phaser.Scene {
             this.playersMap.set(it.playerId, it)
         })
 
-        const self = this
         this.input.on(Phaser.Input.Events.POINTER_DOWN, function(pointer: Phaser.Input.Pointer) {
 
             if (pointer.leftButtonDown()) {
-                if (self.selected) {
-                    // self.tiles.get(self.selected.coordinates).setSelected(false)
-                }
-                self.selected = self.hovered
-                self.moveHighlights = []
-                if (self.selected) {
-                    // self.tiles.get(self.selected.coordinates).setSelected(true)
-                    if (self.selected.unit?.playerId == self.player.playerId) {
-                        const paths = self.gameApi.movementRangeFor(self.selected.unit.unitId)
-                        self.moveHighlights = Array.from(paths.possibleTargets.asJsReadonlySetView())
-                        console.log(self.moveHighlights)
-                    }
-                }
 
+                if (self.selected instanceof civ.model.CivUnit && self.selected.coordinates.equals(self.hovered?.coordinates)) {
+                    self.select(self.hovered)
+                } else if (self.hovered?.unit) {
+                    self.select(self.hovered.unit)
+                }
                 console.log("Selected: ", self.selected)
             }
             
@@ -80,17 +77,16 @@ export class MainScene extends Phaser.Scene {
                 const target = self.hovered
                 const targetTile = self.tiles.get(self.hovered?.coordinates)
 
-                const selectedUnit = self.selected?.unit
-                if (selectedUnit) {
+                if (self.selected instanceof civ.model.CivUnit) {
 
-                    if (selectedUnit.playerId == self.player.playerId) {
+                    if (self.selected.playerId == self.player.playerId) {
                         if (target.unit) {
                             //todo attack
                         } else {
-                            //todo move
-                            self.gameApi.execute(new civ.action.Move(selectedUnit.unitId, target.coordinates))
-                            self.selected = null
-                            self.moveHighlights = []
+                            const selectedUnitId = self.selected.unitId
+                            self.gameApi.execute(new civ.action.Move(selectedUnitId, target.coordinates))
+                            const updatedUnit = self.gameApi.unitsFor(self.player.playerId).asJsReadonlyArrayView().find(it => it.unitId == selectedUnitId)
+                            self.select(updatedUnit)
                         }
                     } else {
                         //selected enemy unit
@@ -108,6 +104,23 @@ export class MainScene extends Phaser.Scene {
         this.tiles.forEach(it =>
             this.add.existing(it)
         )
+    }
+
+    select(entity: civ.model.PlayerTileData | civ.model.CivUnit) {
+        this.selected = entity
+        this.moveHighlights = []
+        this.ui.setSelection(entity)
+
+        if (entity instanceof civ.model.CivUnit) {
+            if (entity.playerId == this.player.playerId) {
+                const paths = this.gameApi.movementRangeFor(entity.unitId)
+                this.moveHighlights = Array.from(paths.possibleTargets.asJsReadonlySetView())
+            }
+        } else if (entity instanceof civ.model.PlayerTileData) {
+
+        } else {
+
+        }
     }
 
     update(time: number, delta: number): void {
@@ -150,6 +163,9 @@ export class MainScene extends Phaser.Scene {
         this.cameras.main.scrollY += verticalMove
         this.input.activePointer.updateWorldPoint(this.cameras.main)
 
+        if (this.escKey.isDown()) {
+            this.select(null)
+        }
 
         const x = (this.input.activePointer.worldX - Tile.HEX_OFFSET) / Tile.HEX_SIZE
         const y = (this.input.activePointer.worldY - Tile.HEX_OFFSET) / Tile.HEX_SIZE

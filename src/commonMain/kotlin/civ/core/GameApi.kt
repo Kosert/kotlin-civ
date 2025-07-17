@@ -141,6 +141,7 @@ class GameApi private constructor(
         }
     }
 
+    //todo end turn for playerId
     fun endTurn() {
         val removed = turns.removeAt(0)
         turns.add(removed)
