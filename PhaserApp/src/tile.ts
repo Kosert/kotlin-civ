@@ -61,7 +61,7 @@ export class Tile extends Phaser.GameObjects.Polygon {
         if (data.tile instanceof civ.tile.Grass) {
             this.setFillStyle(0x489030)
         } else if (data.tile instanceof civ.tile.Water) {
-            this.setFillStyle(0x0000ff)
+            this.setFillStyle(0x184d72)
         } else if (data.tile instanceof civ.tile.Mountains) {
             this.setFillStyle(0x888888)
         }
