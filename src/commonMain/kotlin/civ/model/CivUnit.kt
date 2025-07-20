@@ -48,13 +48,21 @@ data class CivUnit(
     val playerId: String,
     val coordinates: Coordinates,
     val hp: Int = unitType.maxHp,
-    val movementLeft: Int = unitType.speed * 10,
+    val movementLeft: Int = speedToMovement(unitType.speed),
     //todo attackAction: Boolean
 ) {
     val attack: Int = unitType.attack
     val maxHp: Int = unitType.maxHp
     val speed: Int = unitType.speed
     val visionRange: Int = unitType.visionRange
+
+    companion object {
+        fun speedToMovement(speed: Int): Int {
+            if (speed == 1)
+                return 11
+            return speed * 10
+        }
+    }
 }
 
 //sealed class CivUnit(

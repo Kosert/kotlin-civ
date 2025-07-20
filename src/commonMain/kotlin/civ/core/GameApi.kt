@@ -93,23 +93,21 @@ class GameApi private constructor(
                     ?: error("Unit ${action.unitId} not found for current player")
 
                 val paths = hexMap.movementRange(unit.coordinates, unit.movementLeft)
-                println("Paths: $paths")
 
                 val path = paths.getPath(action.destination) ?: error("Path to ${action.destination} not found")
 
                 path.forEach {
-                    println("step to $it")
-                    val unit = units.values.first { it.unitId == action.unitId }
-                    val current = unit.coordinates
+                    val updatedUnit = units.values.first { it.unitId == action.unitId }
+                    val current = updatedUnit.coordinates
                     val nextTile = hexMap.get(it.coordinates).require()
 
                     hexMap.markBusy(current, false)
                     hexMap.markBusy(nextTile.coords, true)
 
                     units.remove(current)
-                    units[nextTile.coords] = unit.copy(
+                    units[nextTile.coords] = updatedUnit.copy(
                         coordinates = nextTile.coords,
-                        movementLeft = unit.movementLeft - it.cost
+                        movementLeft = updatedUnit.movementLeft - it.cost
                     )
 
                     //todo on move -> check triggers
@@ -125,7 +123,7 @@ class GameApi private constructor(
 
                 if (cities.keys.any { it.distanceTo(unit.coordinates) < 4 }) {
                     //todo cannot build
-                    TODO()
+                    error("Too close to another city")
                 }
 
                 hexMap.markBusy(unit.coordinates, false)
@@ -135,20 +133,22 @@ class GameApi private constructor(
                 cities.put(unit.coordinates, City(
                     coordinates = unit.coordinates,
                     playerId = unit.playerId
-                )
-                )
+                ))
             }
         }
     }
 
-    //todo end turn for playerId
-    fun endTurn() {
+    fun endTurn(playerId: String) {
+        if (turns.first().playerId != playerId) {
+            error("Not your turn")
+        }
+
         val removed = turns.removeAt(0)
         turns.add(removed)
 
         unitsFor(currentPlayer.playerId)
             .forEach {
-                units.put(it.coordinates, it.copy(movementLeft = it.speed * 10))
+                units.put(it.coordinates, it.copy(movementLeft = CivUnit.speedToMovement(it.speed)))
             }
 
         stocksManager.collect(

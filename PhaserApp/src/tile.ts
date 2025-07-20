@@ -15,6 +15,8 @@ export class Tile extends Phaser.GameObjects.Polygon {
     private isSelected: boolean = false
     private highlightMode: ("move" | "attack" | "none") = "none"
 
+    private terrainGraphics: Phaser.GameObjects.Image
+    private cityGraphics: Phaser.GameObjects.Image
     private unit: Phaser.GameObjects.Arc
     private overlay: Phaser.GameObjects.Polygon
     private highlight: Phaser.GameObjects.Arc
@@ -58,12 +60,58 @@ export class Tile extends Phaser.GameObjects.Polygon {
             this.setFillStyle(0x888888)
             return
         }
-        if (data.tile instanceof civ.tile.Grass) {
+
+        let terrainTextureName: string
+        if (data.tile instanceof civ.tile.Water) {
+            this.setFillStyle(0x2389da)
+        } else {
             this.setFillStyle(0x489030)
-        } else if (data.tile instanceof civ.tile.Water) {
-            this.setFillStyle(0x184d72)
-        } else if (data.tile instanceof civ.tile.Mountains) {
-            this.setFillStyle(0x888888)
+
+            if (data.tile instanceof civ.tile.Grass) {
+                if (data.tile.forest && data.tile.animals) {
+                    terrainTextureName = "forest_animals"
+                } else if (data.tile.forest) {
+                    terrainTextureName = "forest"
+                } else if (data.tile.animals) {
+                    terrainTextureName = "animals"
+                }
+            } else if (data.tile instanceof civ.tile.Mountains) {
+                if (data.tile.gold) {
+                    terrainTextureName = "mountains_gold"
+                } else {
+                    terrainTextureName = "mountains"
+                }
+            }
+        }
+        if (terrainTextureName != this.terrainGraphics?.texture?.key) {
+            this.terrainGraphics?.destroy()
+            if (terrainTextureName) {
+                this.terrainGraphics = this.scene.add.image(this.x, this.y, terrainTextureName)
+                .setDepth(2)
+            }
+        } 
+
+        let cityTextureName: string
+        if (data.city) {
+            const cityBuilding = data.tile.getMainCityBuilding()
+            switch (cityBuilding) {
+                case civ.model.Building.VILLAGE_HALL:
+                    cityTextureName = "village"
+                    break;
+                case civ.model.Building.TOWN_HALL:
+                    cityTextureName = "town"
+                    break;            
+               case civ.model.Building.CASTLE:
+                    cityTextureName = "castle"
+                    break;
+            }
+        }
+        if (cityTextureName != this.cityGraphics?.texture?.key) {
+            this.cityGraphics?.destroy()
+            if (cityTextureName) {
+                this.cityGraphics = this.scene.add.image(this.x, this.y, cityTextureName)
+                    .setDepth(3)
+            }
         }
 
         if (data.isVisible) {

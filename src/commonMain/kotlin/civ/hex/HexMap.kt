@@ -27,6 +27,7 @@ data class Paths(
         var pointer = target
         return buildList<PathSegment> {
             while (pointer != start) {
+                println("Pointer: $pointer cost: ${costs.getValue(pointer)}")
                 add(PathSegment(pointer, costs.getValue(pointer)))
                 pointer = cameFrom.getValue(pointer)
             }
@@ -79,7 +80,6 @@ class HexMap(
 
     // list of possible paths
     fun movementRange(start: Coordinates, movement: Int): Paths {
-        println(start.toString() + " " + movement.toString())
         val frontier = mutableListOf(start to 0)
         val cameFrom = mutableMapOf<Coordinates, Coordinates>()
         val totalCosts = mutableMapOf<Coordinates, Int>(start to 0)
@@ -92,6 +92,9 @@ class HexMap(
             current.neighbors()
                 .mapNotNull { tiles[it] }
                 .forEach { nextTile ->
+                    val currentTile = tiles.getValue(current)
+                    //TODO leave cost / penalty
+                    val penalty = currentTile.leaveCost()
                     val newCost = totalCosts.getValue(current) + nextTile.movementCost()
                     if (newCost > movement) {
                         return@forEach
@@ -99,8 +102,8 @@ class HexMap(
                     if (totalCosts[nextTile.coords]?.let { it > newCost } != false) {
                         costPerTile[nextTile.coords] = nextTile.movementCost()
                         totalCosts[nextTile.coords] = newCost
-                        frontier.add(nextTile.coords to newCost)
                         cameFrom[nextTile.coords] = current
+                        frontier.add(nextTile.coords to newCost)
                     }
             }
         }

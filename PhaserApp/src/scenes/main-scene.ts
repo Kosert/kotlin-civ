@@ -19,7 +19,7 @@ export class MainScene extends Phaser.Scene {
     private upKey: MultiKey
     private downKey: MultiKey
 
-    private gameApi = civ.core.GameApi.Companion.fromGameState(civ.TestData.gameState1)
+    private gameApi = civ.core.GameApi.Companion.fromGameState(civ.TestData.gameState2)
     private playersMap = new Map<String, civ.model.Player>()
     private player: civ.model.Player
 
@@ -36,9 +36,16 @@ export class MainScene extends Phaser.Scene {
         this.load.image("attack_range", "assets/icons/attack_range.png")
         this.load.image("gold_coin", "assets/icons/gold_coin.png")
         this.load.image("heart", "assets/icons/heart.png")
-        this.load.image("placeholder", "assets/icons/placeholder.png")
+        this.load.image("placeholder", "assets/icons/placeholder50.png")
         this.load.image("speed", "assets/icons/speed.png")
         this.load.image("locked", "assets/icons/locked.png")
+    
+        this.load.image("forest", "assets/forest.png")
+        this.load.image("animals", "assets/animals.png")
+        this.load.image("forest_animals", "assets/forest_animals.png")
+        this.load.image("mountains", "assets/mountains.png")
+        this.load.image("mountains_gold", "assets/mountains_gold.png")
+        this.load.image("village", "assets/village.png")
     }
 
     create(): void {
@@ -46,7 +53,7 @@ export class MainScene extends Phaser.Scene {
 
         this.fpsText = new FpsText(this)
         this.ui = new Ui(this, function() {
-            self.gameApi.endTurn()
+            self.gameApi.endTurn(self.player.playerId)
         })
         const { LEFT, RIGHT, UP, DOWN, S, A, D, W, ESC } = Phaser.Input.Keyboard.KeyCodes
         this.escKey = new MultiKey(this, ESC)
@@ -57,11 +64,14 @@ export class MainScene extends Phaser.Scene {
 
         this.input.mouse.disableContextMenu()
 
-        civ.TestData.gameState1.players.asJsReadonlyArrayView().forEach(it => {
+        civ.TestData.gameState2.players.asJsReadonlyArrayView().forEach(it => {
             this.playersMap.set(it.playerId, it)
         })
 
         this.input.on(Phaser.Input.Events.POINTER_DOWN, function(pointer: Phaser.Input.Pointer) {
+            if (self.ui.isPointerInside(pointer)) {
+                return
+            }
 
             if (pointer.leftButtonDown()) {
 
@@ -69,6 +79,8 @@ export class MainScene extends Phaser.Scene {
                     self.select(self.hovered)
                 } else if (self.hovered?.unit) {
                     self.select(self.hovered.unit)
+                } else {
+                    self.select(self.hovered)
                 }
                 console.log("Selected: ", self.selected)
             }
@@ -167,15 +179,19 @@ export class MainScene extends Phaser.Scene {
             this.select(null)
         }
 
-        const x = (this.input.activePointer.worldX - Tile.HEX_OFFSET) / Tile.HEX_SIZE
-        const y = (this.input.activePointer.worldY - Tile.HEX_OFFSET) / Tile.HEX_SIZE
-        const q = (Tile.SQRT3/3 * x - 1.0/3 * y)
-        const r = (2.0/3.0 * y)
-        const s = -q-r
-        //todo null if pointer is over UI
-        const hoveredCoordinates = civ.hex.Coordinates.Companion.fromDoubles(q, r, s)
+        let hoveredCoordinates: civ.hex.Coordinates
+        if (!this.ui.isPointerInside(this.input.activePointer)) {
+            const x = (this.input.activePointer.worldX - Tile.HEX_OFFSET) / Tile.HEX_SIZE
+            const y = (this.input.activePointer.worldY - Tile.HEX_OFFSET) / Tile.HEX_SIZE
+            const q = (Tile.SQRT3/3 * x - 1.0/3 * y)
+            const r = (2.0/3.0 * y)
+            const s = -q-r
+            hoveredCoordinates = civ.hex.Coordinates.Companion.fromDoubles(q, r, s)    
+        }
 
         this.hovered = null
+        this.player = this.gameApi.currentPlayer
+        this.ui.setStockpiles(this.gameApi.stocksFor(this.player.playerId))
         this.gameApi.tilesForPlayer(this.player.playerId).asJsReadonlyArrayView().forEach(data => {
             const tile = this.tiles.get(data.coordinates)
             tile.updateTileData(data)

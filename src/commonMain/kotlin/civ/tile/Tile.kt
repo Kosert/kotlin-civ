@@ -17,7 +17,9 @@ sealed class Tile {
 
     open val isBusy: Boolean = false
 
-    protected abstract val baseMovementCost: Int
+    protected open val baseMovementCost: Int = 10
+    protected open val leaveMovementCost: Int = 0
+
     fun movementCost(): Int {
         return if (isBusy)
             IMPASSABLE_COST
@@ -30,10 +32,22 @@ sealed class Tile {
         }
     }
 
+    fun leaveCost(): Int = buildings.flatMap { it.bonuses }
+        .filterIsInstance<OverrideMovementCost>()
+        .firstOrNull()
+        ?.leaveCost
+        ?: leaveMovementCost
+
     abstract fun updated(
         isBusy: Boolean = this.isBusy,
         buildings: Set<Building> = this.buildings,
     ): Tile
+
+    fun getAllPossibleBuildings(): List<Building> = buildings
+        .plus(Building.values().filter { it.tileRequirement(this) })
+        .sortedBy { it.ordinal }
+
+    fun getMainCityBuilding(): Building? = buildings.firstOrNull { it in Building.cityMainBuildings }
 }
 
 @JsExport
@@ -55,10 +69,15 @@ data class Grass(
     val river: Boolean = false,
     override val buildings: Set<Building> = setOf(),
 ) : Tile() {
-    override val baseMovementCost: Int
+    override val baseMovementCost: Int// = 10
         get() = when {
-            river || forest -> 15
+            river || forest -> 11
             else -> 10
+        }
+    override val leaveMovementCost: Int
+        get() = when {
+            river || forest -> 5
+            else -> 0
         }
 
     override fun updated(
@@ -75,7 +94,9 @@ data class Mountains(
     val gold: Boolean = false,
 ) : Tile() {
     override val baseMovementCost: Int
-        get() = 15
+        get() = 11
+    override val leaveMovementCost: Int
+        get() = 5
 
     override fun updated(
         isBusy: Boolean,

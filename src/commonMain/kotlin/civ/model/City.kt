@@ -7,7 +7,7 @@ import kotlin.js.JsExport
 
 @OptIn(ExperimentalJsExport::class)
 @JsExport
-enum class CityLevel(
+enum class CityLevel( //todo city level vs main building
     val borderRange: Int,
     val visionRange: Int,
     val attack: Int,

@@ -1,12 +1,12 @@
 import { civ } from "kotlin-civ"
 import { Scene } from "phaser"
-import { Tile } from "../tile"
+// import { Tile } from "../tile"
 
 export class UiTile extends Phaser.GameObjects.Polygon {
 
     static readonly SQRT3 = Math.sqrt(3.0)
     static readonly HEX_OFFSET = 0//250
-    static readonly HEX_SIZE = 50
+    static readonly HEX_SIZE = 30
     static readonly HEX_HEIGHT = this.HEX_SIZE * 2
     static readonly HEX_WIDTH = this.HEX_SIZE * this.SQRT3
 
@@ -22,16 +22,16 @@ export class UiTile extends Phaser.GameObjects.Polygon {
         // private tileData: civ.model.PlayerTileData,
         // private playersMap: Map<String, civ.model.Player>
     ) {
-        const weirdOffsetFix = { x: Tile.HEX_WIDTH / 2, y: Tile.HEX_SIZE }
+        const weirdOffsetFix = { x: UiTile.HEX_WIDTH / 2, y: UiTile.HEX_SIZE }
         const centerX = x//(Tile.SQRT3 * tileData.coordinates.q + Tile.SQRT3/2 * tileData.coordinates.r) * Tile.HEX_SIZE + Tile.HEX_OFFSET
         const centerY = y//(1.5 * tileData.coordinates.r) * Tile.HEX_SIZE + Tile.HEX_OFFSET
         const polygonPoints = [
-            0 + weirdOffsetFix.x, -Tile.HEX_SIZE + weirdOffsetFix.y,
-            Tile.HEX_WIDTH / 2 + weirdOffsetFix.x, -Tile.HEX_SIZE / 2 + weirdOffsetFix.y,
-            Tile.HEX_WIDTH / 2 + weirdOffsetFix.x, Tile.HEX_SIZE / 2 + weirdOffsetFix.y,
-            0 + weirdOffsetFix.x,  Tile.HEX_SIZE + weirdOffsetFix.y,
-            - Tile.HEX_WIDTH / 2 + weirdOffsetFix.x, Tile.HEX_SIZE / 2 + weirdOffsetFix.y,
-            - Tile.HEX_WIDTH / 2 + weirdOffsetFix.x, -Tile.HEX_SIZE / 2 + weirdOffsetFix.y,
+            0 + weirdOffsetFix.x, -UiTile.HEX_SIZE + weirdOffsetFix.y,
+            UiTile.HEX_WIDTH / 2 + weirdOffsetFix.x, -UiTile.HEX_SIZE / 2 + weirdOffsetFix.y,
+            UiTile.HEX_WIDTH / 2 + weirdOffsetFix.x, UiTile.HEX_SIZE / 2 + weirdOffsetFix.y,
+            0 + weirdOffsetFix.x,  UiTile.HEX_SIZE + weirdOffsetFix.y,
+            - UiTile.HEX_WIDTH / 2 + weirdOffsetFix.x, UiTile.HEX_SIZE / 2 + weirdOffsetFix.y,
+            - UiTile.HEX_WIDTH / 2 + weirdOffsetFix.x, -UiTile.HEX_SIZE / 2 + weirdOffsetFix.y,
         ]
         super(scene, centerX, centerY, polygonPoints)
 
