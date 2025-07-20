@@ -3,6 +3,7 @@ import { UiTile } from "./ui-tile"
 import { civ } from "kotlin-civ"
 import { Button } from "./button"
 import { BuildingButton } from "./building-button"
+import { Tooltip } from "./building-tooltip"
 
 export class Ui {
 
@@ -12,6 +13,7 @@ export class Ui {
     static colorLight = 0x02006c
     static colorLightest = 0x090088
     static colorAccent = Phaser.Display.Color.ValueToColor(0xffd700)
+    static colorAccentDark = Phaser.Display.Color.ValueToColor(0x998100)
     static colorText = Phaser.Display.Color.ValueToColor(0xffffff)
 
     static uiHeight = 200
@@ -38,6 +40,7 @@ export class Ui {
     private selectedTitle: Phaser.GameObjects.Text
     private selectedText: Phaser.GameObjects.Text
     private buildingButtons = new Map<civ.model.Building, BuildingButton>()
+    private tooltip: Tooltip
 
     private belowMap = new Map<civ.model.Building, civ.model.Building>()
         .set(civ.model.Building.SAWMILL, civ.model.Building.LUMBERCAMP)
@@ -65,10 +68,10 @@ export class Ui {
             .setDepth(90)
             .setScrollFactor(0)
 
-        this.foodIcon = scene.add.image(stockX + 10, stockY + 10, "gold_coin").setOrigin(0, 0).setDepth(91).setScrollFactor(0)
+        this.foodIcon = scene.add.image(stockX + 10, stockY + 10, "food_icon").setOrigin(0, 0).setDepth(91).setScrollFactor(0)
         this.foodText = scene.add.text(stockX + 45, stockY + 12, "1234", { font: "bold 20px Arial", color: Ui.colorText.rgba }).setDepth(91).setScrollFactor(0)
 
-        this.woodIcon = scene.add.image(stockX + 10, stockY + 50, "gold_coin").setOrigin(0, 0).setDepth(91).setScrollFactor(0)
+        this.woodIcon = scene.add.image(stockX + 10, stockY + 50, "wood_icon").setOrigin(0, 0).setDepth(91).setScrollFactor(0)
         this.woodText = scene.add.text(stockX + 45, stockY + 52, "0", { font: "bold 20px Arial", color: "#FFFFFF" }).setDepth(91).setScrollFactor(0)
 
         this.goldIcon = scene.add.image(stockX + 10, stockY + 90, "gold_coin").setOrigin(0, 0).setDepth(91).setScrollFactor(0)
@@ -92,8 +95,11 @@ export class Ui {
         this.selectedTitle = scene.add.text(Ui.uiMainStart + this.selectedTile.width + 32, stockY + 16, "", { font: "bold 20px Arial", color: "#FFFFFF" }).setDepth(91).setScrollFactor(0)
         this.selectedText = scene.add.text(Ui.uiMainStart + this.selectedTile.width + 32, stockY + 16 + this.selectedTitle.height + 8, "", { font: "bold 16px Arial", color: "#FFFFFF" }).setDepth(91).setScrollFactor(0)
 
+        this.tooltip = new Tooltip(scene, 0, 0)
+        this.tooltip.show(null)
+
         civ.model.Building.values().forEach(it => {
-            const button = new BuildingButton(scene, 0, 0, 91, it)
+            const button = new BuildingButton(scene, 0, 0, 91, it, this.tooltip)
             button.hide()
             this.buildingButtons.set(it, button)
         })
@@ -166,13 +172,23 @@ export class Ui {
             entity.tile.getAllPossibleBuildings().asJsReadonlyArrayView().forEach(it => {
                 console.log(it)
                 const button = this.buildingButtons.get(it)
-                const isLocked = !it.unlockRequirement(entity.tile)
+
+                let state: "locked" | "built" | "clickable"
+                 //todo if not in range -> locked
+                if (entity.tile.buildings.asJsReadonlySetView().has(it)) {
+                    state = "built"
+                } else if (it.unlockRequirement(entity.tile)) {
+                    state = "clickable"
+                } else {
+                    state = "locked"
+                }
+
                 if (this.belowMap.has(it)) {
                     const placeBelow = this.buildingButtons.get(this.belowMap.get(it))
-                    button.setup(placeBelow.x, placeBelow.y + placeBelow.height + 2, isLocked)
+                    button.setup(placeBelow.x, placeBelow.y + placeBelow.height + 5, state)
                 } else {
-                    button.setup(xCounter, building1RowY, isLocked)
-                    xCounter = xCounter + 2 + button.width
+                    button.setup(xCounter, building1RowY, state)
+                    xCounter = xCounter + 5 + button.width
                 }
             })
 

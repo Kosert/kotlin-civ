@@ -35,6 +35,8 @@ export class MainScene extends Phaser.Scene {
         this.load.image("attack", "assets/icons/attack.png")
         this.load.image("attack_range", "assets/icons/attack_range.png")
         this.load.image("gold_coin", "assets/icons/gold_coin.png")
+        this.load.image("food_icon", "assets/icons/food_icon.png")
+        this.load.image("wood_icon", "assets/icons/wood_icon.png")
         this.load.image("heart", "assets/icons/heart.png")
         this.load.image("placeholder", "assets/icons/placeholder50.png")
         this.load.image("speed", "assets/icons/speed.png")
@@ -82,7 +84,7 @@ export class MainScene extends Phaser.Scene {
                 } else {
                     self.select(self.hovered)
                 }
-                console.log("Selected: ", self.selected)
+                console.log("Selected: ", self.selected?.coordinates, self.selected)
             }
             
             if (pointer.rightButtonDown()) {

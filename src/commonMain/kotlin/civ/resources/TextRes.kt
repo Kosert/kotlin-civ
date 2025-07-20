@@ -12,6 +12,10 @@ enum class Text {
     FOREST,
     WATER,
     MOUNTAINS,
+
+    VILLAGE_HALL,
+    VILLAGE_HALL_DESCRIPTION,
+
     ;
 
     override fun toString(): String = Res.get(this)
@@ -25,5 +29,7 @@ object Res {
         Text.FOREST -> "Forest"
         Text.WATER -> "Water"
         Text.MOUNTAINS -> "Mountains"
+        Text.VILLAGE_HALL -> TODO()
+        Text.VILLAGE_HALL_DESCRIPTION -> TODO()
     }
 }
