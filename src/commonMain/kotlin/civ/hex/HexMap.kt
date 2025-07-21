@@ -27,7 +27,6 @@ data class Paths(
         var pointer = target
         return buildList<PathSegment> {
             while (pointer != start) {
-                println("Pointer: $pointer cost: ${costs.getValue(pointer)}")
                 add(PathSegment(pointer, costs.getValue(pointer)))
                 pointer = cameFrom.getValue(pointer)
             }

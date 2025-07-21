@@ -25,6 +25,8 @@ export class MainScene extends Phaser.Scene {
 
     private hovered?: civ.model.PlayerTileData
     private selected?: civ.model.PlayerTileData | civ.model.CivUnit
+    private selectedUnitPaths?: civ.hex.Paths
+    private pathHighlights: civ.hex.Coordinates[] = []
     private moveHighlights: civ.hex.Coordinates[] = []
 
     private tiles = new Map<civ.hex.Coordinates, Tile>()
@@ -34,7 +36,7 @@ export class MainScene extends Phaser.Scene {
     preload(): void {
         this.load.image("attack", "assets/icons/attack.png")
         this.load.image("attack_range", "assets/icons/attack_range.png")
-        this.load.image("gold_coin", "assets/icons/gold_coin.png")
+        this.load.image("gold_coin", "assets/icons/gold_icon2.png")
         this.load.image("food_icon", "assets/icons/food_icon.png")
         this.load.image("wood_icon", "assets/icons/wood_icon.png")
         this.load.image("heart", "assets/icons/heart.png")
@@ -42,6 +44,11 @@ export class MainScene extends Phaser.Scene {
         this.load.image("speed", "assets/icons/speed.png")
         this.load.image("locked", "assets/icons/locked.png")
     
+        this.load.image("road", "assets/icons/buildings/road.png")
+        this.load.image("village_hall", "assets/icons/buildings/village_hall2.png")
+        this.load.image("town_hall", "assets/icons/buildings/town_hall.png")
+        this.load.image("windmill", "assets/icons/buildings/windmill.png")
+
         this.load.image("forest", "assets/forest.png")
         this.load.image("animals", "assets/animals.png")
         this.load.image("forest_animals", "assets/forest_animals.png")
@@ -54,9 +61,7 @@ export class MainScene extends Phaser.Scene {
         const self = this
 
         this.fpsText = new FpsText(this)
-        this.ui = new Ui(this, function() {
-            self.gameApi.endTurn(self.player.playerId)
-        })
+        this.ui = new Ui(this, this.gameApi)
         const { LEFT, RIGHT, UP, DOWN, S, A, D, W, ESC } = Phaser.Input.Keyboard.KeyCodes
         this.escKey = new MultiKey(this, ESC)
         this.leftKey = new MultiKey(this, LEFT, A)
@@ -76,7 +81,6 @@ export class MainScene extends Phaser.Scene {
             }
 
             if (pointer.leftButtonDown()) {
-
                 if (self.selected instanceof civ.model.CivUnit && self.selected.coordinates.equals(self.hovered?.coordinates)) {
                     self.select(self.hovered)
                 } else if (self.hovered?.unit) {
@@ -122,13 +126,15 @@ export class MainScene extends Phaser.Scene {
 
     select(entity: civ.model.PlayerTileData | civ.model.CivUnit) {
         this.selected = entity
+        this.selectedUnitPaths = null
         this.moveHighlights = []
+        this.pathHighlights = []
         this.ui.setSelection(entity)
 
         if (entity instanceof civ.model.CivUnit) {
             if (entity.playerId == this.player.playerId) {
-                const paths = this.gameApi.movementRangeFor(entity.unitId)
-                this.moveHighlights = Array.from(paths.possibleTargets.asJsReadonlySetView())
+                this.selectedUnitPaths = this.gameApi.movementRangeFor(entity.unitId)
+                this.moveHighlights = Array.from(this.selectedUnitPaths.possibleTargets.asJsReadonlySetView())
             }
         } else if (entity instanceof civ.model.PlayerTileData) {
 
@@ -191,6 +197,20 @@ export class MainScene extends Phaser.Scene {
             hoveredCoordinates = civ.hex.Coordinates.Companion.fromDoubles(q, r, s)    
         }
 
+        let hoverChanged = false
+        if (!this.hovered?.coordinates.equals(hoveredCoordinates)) {
+            hoverChanged = true
+        }
+
+        if (hoverChanged && this.selectedUnitPaths && hoveredCoordinates) {
+            const path = this.selectedUnitPaths.getPath(hoveredCoordinates)
+            if (path) {
+                this.pathHighlights = path.asJsReadonlyArrayView().map(segment => segment.coordinates)
+            } else {
+                this.pathHighlights = []
+            }
+        }
+
         this.hovered = null
         this.player = this.gameApi.currentPlayer
         this.ui.setStockpiles(this.gameApi.stocksFor(this.player.playerId))
@@ -199,6 +219,7 @@ export class MainScene extends Phaser.Scene {
             tile.updateTileData(data)
             tile.setHighlight(
                 this.moveHighlights.some(it => it.equals(data.coordinates)),
+                this.pathHighlights.some(it => it.equals(data.coordinates)),
                 false,
             )
             const isHovered = tile.coordinates.equals(hoveredCoordinates)
@@ -208,7 +229,6 @@ export class MainScene extends Phaser.Scene {
                 this.hovered = data
             }
         })
-
     }
 
 }

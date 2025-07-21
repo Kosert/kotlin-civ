@@ -4,6 +4,7 @@ import { civ } from "kotlin-civ"
 import { Button } from "./button"
 import { BuildingButton } from "./building-button"
 import { Tooltip } from "./building-tooltip"
+import { MainScene } from "../scenes/main-scene"
 
 export class Ui {
 
@@ -42,6 +43,10 @@ export class Ui {
     private buildingButtons = new Map<civ.model.Building, BuildingButton>()
     private tooltip: Tooltip
 
+    private buttonSettle: Button
+    private buttonConquer: Button
+    private buttonDisband: Button
+
     private belowMap = new Map<civ.model.Building, civ.model.Building>()
         .set(civ.model.Building.SAWMILL, civ.model.Building.LUMBERCAMP)
         .set(civ.model.Building.WATERMILL, civ.model.Building.RIVERLAND_FARM)
@@ -58,9 +63,10 @@ export class Ui {
     private stocks: civ.model.Stockpiles
 
     constructor(
-        scene: Scene,
-        onEndTurnClicked: () => void
+        private scene: Scene,
+        private gameApi: civ.core.GameApi
     ) {
+        const self = this
         const stockX = Ui.stockX
         const stockY = scene.cameras.main.height - Ui.uiHeight
         this.stockBackground = scene.add.rectangle(stockX, stockY, Ui.stocksWidth, Ui.uiHeight, Ui.colorMedium, 0.99)
@@ -77,7 +83,7 @@ export class Ui {
         this.goldIcon = scene.add.image(stockX + 10, stockY + 90, "gold_coin").setOrigin(0, 0).setDepth(91).setScrollFactor(0)
         this.goldText = scene.add.text(stockX + 45, stockY + 92, "0", { font: "bold 20px Arial", color: "#FFFFFF" }).setDepth(91).setScrollFactor(0)
 
-        this.endTurnButton = new Button(scene, 0, 0, "End turn", onEndTurnClicked)
+        this.endTurnButton = new Button(scene, 0, 0, "End turn", function() { self.onEndTurnClicked() })
         this.endTurnButton.setPosition(stockX + 10, stockY + Ui.uiHeight - this.endTurnButton.height() - 16)
 
         const selectedY = stockY
@@ -94,6 +100,10 @@ export class Ui {
 
         this.selectedTitle = scene.add.text(Ui.uiMainStart + this.selectedTile.width + 32, stockY + 16, "", { font: "bold 20px Arial", color: "#FFFFFF" }).setDepth(91).setScrollFactor(0)
         this.selectedText = scene.add.text(Ui.uiMainStart + this.selectedTile.width + 32, stockY + 16 + this.selectedTitle.height + 8, "", { font: "bold 16px Arial", color: "#FFFFFF" }).setDepth(91).setScrollFactor(0)
+
+        this.buttonSettle = new Button(scene, Ui.uiMainEnd - 110, stockY + 16, "Settle", self.onSettleClicked).setFixedWidth(100)
+        this.buttonConquer = new Button(scene, Ui.uiMainEnd - 110, stockY + 16, "Conquer", self.onSettleClicked).setFixedWidth(100)
+        this.buttonDisband = new Button(scene, Ui.uiMainEnd - 110, stockY + 16, "Disband", self.onSettleClicked).setFixedWidth(100)
 
         this.tooltip = new Tooltip(scene, 0, 0)
         this.tooltip.show(null)
@@ -130,6 +140,9 @@ export class Ui {
             this.selectedTitle.setVisible(true)
             this.selectedText.setVisible(true)
             this.selectedTile.updateTileData(entity)
+            this.buttonSettle.setVisible(false)
+            this.buttonConquer.setVisible(false)
+            this.buttonDisband.setVisible(false)
 
             if (!entity.tile) {
                 this.selectedTitle.setText("Unknown")
@@ -206,12 +219,22 @@ export class Ui {
             }
             this.selectedText.setText(description)
 
+            this.buttonSettle.setVisible(entity.unitType == civ.model.UnitType.SETTLERS)
+            //todo determine if can conquer
+            this.buttonConquer.setPosition(this.buttonSettle.x(), this.buttonSettle.y() + this.buttonSettle.height() + 5)
+            this.buttonConquer.setVisible(true)
+            this.buttonDisband.setPosition(this.buttonConquer.x(), this.buttonConquer.y() + this.buttonConquer.height() + 5)
+            this.buttonDisband.setVisible(true)
+
         } else {
             this.selectedBackground.setVisible(false)
             this.selectedTile.setVisible(false)
             this.selectedTitle.setVisible(false)
             this.selectedText.setVisible(false)
             this.selectedText.setVisible(false)
+            this.buttonSettle.setVisible(false)
+            this.buttonConquer.setVisible(false)
+            this.buttonDisband.setVisible(false)
         }
     }
 
@@ -223,5 +246,19 @@ export class Ui {
         this.foodText.setText(newStocks.food.toString())
         this.woodText.setText(newStocks.wood.toString())
         this.goldText.setText(newStocks.gold.toString())
+    }
+
+    onEndTurnClicked() {
+        //todo const playerId
+        console.log(this)
+        const playerId = this.gameApi.currentPlayer.playerId
+        this.gameApi.endTurn(playerId)
+    }
+
+    onSettleClicked() {
+        //todo settlersId from selected entity
+        //todo post click action events to main scene
+        // const playerId = (this.scene as MainScene).player.playerId
+        // this.gameApi.execute(new civ.action.Settle(settlersId))
     }
 }

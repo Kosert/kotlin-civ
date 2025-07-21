@@ -74,22 +74,53 @@ export class Button {
         });
     }
 
+    x(): number {
+        return this.background.x;
+    }
+
+    y(): number {
+        return this.background.y;
+    }
+
     width(): number {
-        return this.background.width;
+        if (this.background.visible)
+            return this.background.width;
+        else 
+            return 0
     }
 
     height(): number {
-        return this.background.height;
+        if (this.background.visible)
+            return this.background.height
+        else
+            return 0
     }
 
-    setPosition(x: number, y: number) {
+    setFixedWidth(width: number): Button {
+        this.background.setSize(width, this.background.height)
+        this.text.setPosition(this.background.x + this.background.width / 2, this.background.y + this.background.height / 2)
+        this.frontLines[0].setTo(0, this.background.height, this.background.width, this.background.height)
+        this.frontLines[1].setTo(this.background.width, 0, this.background.width, this.background.height)
+        return this
+    }
+
+    setPosition(x: number, y: number): Button {
         this.background.setPosition(x, y)
         this.text.setPosition(x + this.background.width / 2, y + this.background.height / 2)
         this.frontLines.forEach(it => it.setPosition(x, y))
+        return this
     }
 
-    setText(textContent: string) {
+    setText(textContent: string): Button {
         this.text.setText(textContent)
+        return this
+    }
+
+    setVisible(value: boolean): Button {
+        this.background.setVisible(value)
+        this.text.setVisible(value)
+        this.frontLines.forEach(it => it.setVisible(value))
+        return this
     }
 
     destroy() {

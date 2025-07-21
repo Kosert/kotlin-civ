@@ -61,7 +61,7 @@ object TestData {
             Player(name = "Drugi", color = PlayerColor.RED),
         )
 
-        val randomCoords = mutableListOf(
+        val unitCoords = mutableListOf(
             Coordinates(1, 2),
             Coordinates(2, 1),
             Coordinates(3, 3),
@@ -70,7 +70,7 @@ object TestData {
 
         GameState(
             players = playerList,
-            tileList = map1,
+            tileList = map1.map { if (it.coords in unitCoords) it.updated(isBusy = true) else it }.toSet(),
             cities = setOf(
                 City(
                     coordinates = cityCoords,
@@ -82,12 +82,12 @@ object TestData {
                     CivUnit(
                         unitType = UnitType.SETTLERS,
                         playerId = it.playerId,
-                        coordinates = randomCoords.removeFirst(),
+                        coordinates = unitCoords.removeFirst(),
                     ),
                     CivUnit(
                         unitType = UnitType.SCOUT,
                         playerId = it.playerId,
-                        coordinates = randomCoords.removeFirst(),
+                        coordinates = unitCoords.removeFirst(),
                     )
                 )
             },
@@ -102,7 +102,7 @@ object TestData {
             Player(name = "Drugi", color = PlayerColor.RED),
         )
 
-        val randomCoords = mutableListOf(
+        val unitCoords = mutableListOf(
             Coordinates(1, 2),
             Coordinates(2, 1),
             Coordinates(3, 3),
@@ -111,7 +111,7 @@ object TestData {
 
         GameState(
             players = playerList,
-            tileList = differentTerrainsMap,
+            tileList = differentTerrainsMap.map { if (it.coords in unitCoords) it.updated(isBusy = true) else it }.toSet(),
             cities = setOf(
                 City(
                     coordinates = cityCoords,
@@ -123,12 +123,12 @@ object TestData {
                     CivUnit(
                         unitType = UnitType.SETTLERS,
                         playerId = it.playerId,
-                        coordinates = randomCoords.removeFirst(),
+                        coordinates = unitCoords.removeFirst(),
                     ),
                     CivUnit(
                         unitType = UnitType.SCOUT,
                         playerId = it.playerId,
-                        coordinates = randomCoords.removeFirst(),
+                        coordinates = unitCoords.removeFirst(),
                     )
                 )
             },

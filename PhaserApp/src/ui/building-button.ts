@@ -2,10 +2,11 @@ import { Scene } from "phaser"
 import { civ } from "kotlin-civ"
 import { Tooltip, TooltipContent } from "./building-tooltip"
 import { Ui } from "./ui"
+import { BuildingIcons } from "./building-icons"
 
 export class BuildingButton {
     private image: Phaser.GameObjects.Image
-    private lock: Phaser.GameObjects.Image
+    private lock: Phaser.GameObjects.Rectangle
     private button: Phaser.GameObjects.Rectangle
     private frontLines: Phaser.GameObjects.Line[] = []
 
@@ -31,20 +32,18 @@ export class BuildingButton {
     ) {
         const self = this
         this.image = scene.add
-            .image(this.x, this.y, "placeholder") //todo building icons
+            .image(this.x, this.y, BuildingIcons.get(building))
             .setOrigin(0, 0)
             .setScrollFactor(0)
             .setDepth(depth)
             .on(Phaser.Input.Events.POINTER_OVER, function () {
                 tooltip.show(self.generateTooltip())
             })
-            .on("pointerout", function () {
+            .on(Phaser.Input.Events.POINTER_OUT, function () {
                 self.tooltip.show(null)
-                // Tooltip.show(this.scene, null)
             })
-            .on("pointerdown", function () {
+            .on(Phaser.Input.Events.POINTER_DOWN, function () {
                 console.log(building)
-                // manager.chooseOption(option)
             })
 
         this.button = scene.add.rectangle(x, y, this.image.width, this.image.height)
@@ -70,11 +69,16 @@ export class BuildingButton {
             .setScrollFactor(0)
         )
 
-        this.lock = scene.add.image(this.x, this.y, "locked")
+        this.lock = scene.add.rectangle(this.x, this.y, 53, 53, 0x000000, 0.5)
             .setScrollFactor(0)
-            .setDisplaySize(53, 53)
             .setOrigin(0, 0)
             .setDepth(depth + 3)
+
+        // this.lock = scene.add.image(this.x, this.y, "locked")
+        //     .setScrollFactor(0)
+        //     .setDisplaySize(53, 53)
+        //     .setOrigin(0, 0)
+        //     .setDepth(depth + 3)
     }
 
     setup(x: number, y: number, state: "locked" | "clickable" | "built") {

@@ -13,6 +13,8 @@ class StockpilesManager(
 
     fun getFor(playerId: String) = stocks[playerId].require()
 
+    //todo getCollectCalculation with sources to display
+
     fun collect(playerCities: Collection<City>, allUnits: Collection<CivUnit>) {
         val playerId = playerCities.firstOrNull()?.playerId ?: return
 

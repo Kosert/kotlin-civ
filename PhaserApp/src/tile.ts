@@ -13,13 +13,14 @@ export class Tile extends Phaser.GameObjects.Polygon {
 
     private isHovered: boolean = false
     private isSelected: boolean = false
-    private highlightMode: ("move" | "attack" | "none") = "none"
+    private highlightMode: ("move" | "path" | "attack" | "none") = "none"
 
     private terrainGraphics: Phaser.GameObjects.Image
     private cityGraphics: Phaser.GameObjects.Image
     private unit: Phaser.GameObjects.Arc
     private overlay: Phaser.GameObjects.Polygon
     private highlight: Phaser.GameObjects.Arc
+    private pathHighlight: Phaser.GameObjects.Arc
 
     constructor(
         readonly scene: Scene,
@@ -47,6 +48,9 @@ export class Tile extends Phaser.GameObjects.Polygon {
             .setFillStyle(0x000000, 0)
         this.highlight = scene.add.circle(this.x, this.y, 37)
             .setStrokeStyle(8, 0x00ffff, 0.5)
+            .setDepth(6)
+        this.pathHighlight = scene.add.circle(this.x, this.y, 20)
+            .setFillStyle(0x00ffff, 0.5)
             .setDepth(6)
 
         this.setStates(false, false)
@@ -147,9 +151,11 @@ export class Tile extends Phaser.GameObjects.Polygon {
         this.refreshState()
     }
 
-    setHighlight(move: boolean, attack: boolean) {
+    setHighlight(move: boolean, path: boolean, attack: boolean) {
         if (attack) {
             this.highlightMode = "attack"
+        } else if (path) {
+            this.highlightMode = "path"
         } else if (move) {
             this.highlightMode = "move"
         } else {
@@ -159,13 +165,20 @@ export class Tile extends Phaser.GameObjects.Polygon {
 
     private refreshState() {
         switch (this.highlightMode) {
+            case "path":
+                this.pathHighlight.setVisible(true)
+                this.highlight.setVisible(true).fillColor = 0x00ffff
+                break
             case "move":
-                this.highlight.setVisible(true)
+                this.pathHighlight.setVisible(false)
+                this.highlight.setVisible(true).fillColor = 0x00ffff
                 break
             case "attack":
-                this.highlight.setVisible(true)
+                this.pathHighlight.setVisible(false)
+                this.highlight.setVisible(true).fillColor = 0xff0000
                 break
             case "none":
+                this.pathHighlight.setVisible(false)
                 this.highlight.setVisible(false)
                 break
         }
