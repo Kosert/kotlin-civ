@@ -28,7 +28,7 @@ enum class CityLevel( //todo city level vs main building
     ),
 
     CITY(
-        borderRange = 2,
+        borderRange = 1, //todo 2, need to implement handling border range overlaps
         visionRange = 4,
         attack = 4,
         attackRange = 3,

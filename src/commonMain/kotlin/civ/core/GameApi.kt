@@ -1,16 +1,13 @@
 package civ.core
 
-import civ.action.Action
-import civ.action.Attack
-import civ.action.Move
-import civ.action.Settle
-import civ.hex.HexMap
-import civ.hex.Paths
-import civ.hex.distanceTo
+import civ.action.*
+import civ.hex.*
 import civ.model.*
+import civ.tile.Grass
 import civ.tile.Tile
 import kotlin.js.ExperimentalJsExport
 import kotlin.js.JsExport
+
 
 @OptIn(ExperimentalJsExport::class)
 @JsExport
@@ -26,13 +23,10 @@ class GameApi private constructor(
 
     private val hexMap = HexMap(tileList)
     private val visionCalculator = VisionCalculator(hexMap)
+    private val borderCalculator = BorderCalculator(hexMap)
+    private val combatCalculator = CombatCalculator()
 
-    //todo resources controller or something?
     private val stocksManager = StockpilesManager(hexMap, stocks)
-
-    //todo map vs set
-//    private val cities = cities.toMutableSet()
-//    private val units = units.toMutableSet()
 
     private val cities = cities.associateBy { it.coordinates }.toMutableMap()
     private val units = units.associateBy { it.coordinates }.toMutableMap()
@@ -42,13 +36,14 @@ class GameApi private constructor(
     fun stocksFor(playerId: String) = stocksManager.getFor(playerId)
 
     private fun recalculateVision() {
-        turns.forEach {
+        turns.forEach { player ->
             visionCalculator.recalculate(
-                it.playerId,
-                unitsFor(it.playerId),
-                citiesFor(it.playerId),
+                player.playerId,
+                unitsFor(player.playerId),
+                citiesFor(player.playerId),
             )
         }
+        borderCalculator.recalculate(turns, cities.values)
     }
 
     init {
@@ -71,21 +66,49 @@ class GameApi private constructor(
                 tile = it.takeIf { isDiscovered },
                 unit = units[it.coords].takeIf { isVisible },
                 city = cities[it.coords].takeIf { isDiscovered },
+                cityRange = borderCalculator.forTile(it.coords).takeIf { isVisible }
             )
         }
     }
 
-    //todo what if target is not visible obstacle
-    // limit movement to visible tiles?
-    fun movementRangeFor(unitId: String): Paths {
-        val unit = units.values.firstOrNull { it.unitId == unitId }
-            ?.takeIf { it.playerId == currentPlayer.playerId }
-            ?: error("Unit $unitId not found for current player")
+    fun canBuild(coordinates: Coordinates, playerId: String): Boolean {
+        val cityRange = borderCalculator.forTile(coordinates)
+        val occupyingUnit = units[coordinates]
 
-        return hexMap.movementRange(unit.coordinates, unit.movementLeft)
+        val isEnemyCity = cityRange?.playerId?.let { it != playerId } ?: false
+        val isEnemyUnit = occupyingUnit?.playerId?.let { it != playerId } ?: false
+        if (isEnemyCity || isEnemyUnit) {
+            return false
+        }
+
+        return occupyingUnit?.let { it.playerId == playerId } ?: (cityRange?.playerId == playerId)
     }
 
-    fun execute(action: Action) {
+    fun getTileIncome(coordinates: Coordinates, playerId: String): Stockpiles? {
+        val vision = visionCalculator.getVisionFor(playerId)
+        val isVisible = vision.visible.contains(coordinates)
+        return hexMap.get(coordinates)?.takeIf { isVisible }?.getIncome()
+    }
+
+    //todo what if target is not visible obstacle
+    fun actionsForUnit(playerId: String, unitId: String): Paths {
+        val unit = units.values.firstOrNull { it.unitId == unitId }
+            ?.takeIf { it.playerId == playerId }
+            ?: error("Unit $unitId not found for current player")
+
+        val attackTargets = hexMap.range(unit.coordinates, unit.attackRange)
+            .mapNotNull { units[it] }
+            .filter { it.playerId != playerId }
+            .map { it.coordinates }
+
+        return hexMap.movementRange(unit.coordinates, unit.movementLeft).copy(attackTargets = attackTargets)
+    }
+
+    //todo result?
+    fun execute(playerId: String, action: Action) {
+        if (playerId != currentPlayer.playerId) {
+            error("Not your turn")
+        }
         when (action) {
             is Move -> {
                 val unit = units.values.firstOrNull { it.unitId == action.unitId }
@@ -109,31 +132,120 @@ class GameApi private constructor(
                         coordinates = nextTile.coords,
                         movementLeft = updatedUnit.movementLeft - it.cost
                     )
-
-                    //todo on move -> check triggers
                     recalculateVision()
                 }
             }
-            is Attack -> TODO()
             is Settle -> {
                 val unit = units.values.firstOrNull { it.unitId == action.settlersId }
                     ?.takeIf { it.playerId == currentPlayer.playerId }
                     ?.takeIf { it.unitType == UnitType.SETTLERS }
-                    ?: TODO()
+                    ?: error("Settlers ${action.settlersId} not found for current player")
+
+                val tile = hexMap.get(unit.coordinates).require()
+                if (tile !is Grass) {
+                    error("Cannot create villages on this tile type")
+                }
 
                 if (cities.keys.any { it.distanceTo(unit.coordinates) < 4 }) {
-                    //todo cannot build
-                    error("Too close to another city")
+                    error("Cannot create village, too close to another settlement")
                 }
 
                 hexMap.markBusy(unit.coordinates, false)
                 hexMap.build(unit.coordinates, Building.VILLAGE_HALL)
 
                 units.remove(unit.coordinates)
-                cities.put(unit.coordinates, City(
+                cities[unit.coordinates] = City(
                     coordinates = unit.coordinates,
                     playerId = unit.playerId
-                ))
+                )
+                recalculateVision()
+            }
+            is Build -> {
+                if (!canBuild(action.coordinates, currentPlayer.playerId)) {
+                    error("Cannot build on this tile")
+                }
+
+                val tile = hexMap.get(action.coordinates).require()
+                if (tile.buildings.contains(action.building)) {
+                    error("Cannot build ${action.building}, it is already built")
+                }
+                if (!action.building.tileRequirement(tile) || !action.building.unlockRequirement(tile)) {
+                    error("Cannot build ${action.building}, requirements not met")
+                }
+
+                val stocks = stocksManager.getFor(currentPlayer.playerId)
+                if (!stocks.canSubstract(action.building.cost)) {
+                    error("Cannot build ${action.building}, not enough resources")
+                }
+
+                stocksManager.substract(currentPlayer.playerId, action.building.cost)
+                hexMap.build(action.coordinates, action.building)
+
+                when (action.building) {
+                    Building.TOWN_HALL -> CityLevel.TOWN
+                    Building.CASTLE -> CityLevel.CITY
+                    else -> null
+                }?.let { newCityLevel ->
+                    val city = cities.getValue(action.coordinates)
+                    cities[action.coordinates] = city.copy(level = newCityLevel)
+                    recalculateVision()
+                }
+            }
+            is Recruit -> {
+                val tile = hexMap.get(action.coordinates).require()
+                if (!action.unitType.buildingRequirement(tile.buildings)) {
+                    error("Cannot recruit ${action.unitType}, requirements not met")
+                }
+
+                if (tile.isBusy) {
+                    error("Cannot recruit ${action.unitType}, tile is occupied")
+                }
+
+                val stocks = stocksManager.getFor(currentPlayer.playerId)
+                if (!stocks.canSubstract(action.unitType.cost)) {
+                    error("Cannot build ${action.unitType}, not enough resources")
+                }
+
+                stocksManager.substract(currentPlayer.playerId, action.unitType.cost)
+                val newUnit = CivUnit(
+                    unitType = action.unitType,
+                    playerId = currentPlayer.playerId,
+                    coordinates = action.coordinates,
+                    movementLeft = 0,
+                    actionPoint = false,
+                )
+                units[action.coordinates] = newUnit
+                hexMap.markBusy(action.coordinates, true)
+
+                recalculateVision()
+            }
+            is Attack -> {
+                val attacker = units.values.firstOrNull { it.unitId == action.unitId }
+                    ?.takeIf { it.playerId == currentPlayer.playerId }
+                    ?: error("Unit ${action.unitId} not found for current player")
+
+                val defender = units.values.firstOrNull { it.unitId == action.targetUnitId }
+                    ?: error("Target unit ${action.targetUnitId} not found")
+
+                val (updatedAttacker, updatedDefender) = combatCalculator.calculate(
+                    attacker = attacker,
+                    defender = defender,
+                    defenseBonus = hexMap.get(defender.coordinates).require().defenseBonus()
+                )
+
+                if (updatedAttacker.hp <= 0) {
+                    hexMap
+                    units.remove(updatedAttacker.coordinates)
+                } else {
+                    units[updatedAttacker.coordinates] = updatedAttacker
+                }
+
+                if (updatedDefender.hp <= 0) {
+                    units.remove(updatedDefender.coordinates)
+                } else {
+                    units[updatedDefender.coordinates] = updatedDefender
+                }
+                recalculateVision()
             }
         }
     }
@@ -148,7 +260,10 @@ class GameApi private constructor(
 
         unitsFor(currentPlayer.playerId)
             .forEach {
-                units.put(it.coordinates, it.copy(movementLeft = CivUnit.speedToMovement(it.speed)))
+                units.put(it.coordinates, it.copy(
+                    movementLeft = CivUnit.speedToMovement(it.speed),
+                    actionPoint = true,
+                ))
             }
 
         stocksManager.collect(

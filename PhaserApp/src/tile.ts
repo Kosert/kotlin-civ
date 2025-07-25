@@ -13,18 +13,21 @@ export class Tile extends Phaser.GameObjects.Polygon {
 
     private isHovered: boolean = false
     private isSelected: boolean = false
-    private highlightMode: ("move" | "path" | "attack" | "none") = "none"
+    private highlightMode: ("move" | "path" | "none") = "none"
+    private isHighlightAttack: boolean
 
     private terrainGraphics: Phaser.GameObjects.Image
     private cityGraphics: Phaser.GameObjects.Image
     private unit: Phaser.GameObjects.Arc
-    private overlay: Phaser.GameObjects.Polygon
+    private mainOverlay: Phaser.GameObjects.Polygon
+    private cityRangeOverlay: Phaser.GameObjects.Polygon
     private highlight: Phaser.GameObjects.Arc
     private pathHighlight: Phaser.GameObjects.Arc
+    private borderLines = new Map<civ.hex.HexEdge, Phaser.GameObjects.Line>()
 
     constructor(
         readonly scene: Scene,
-        private tileData: civ.model.PlayerTileData,
+        tileData: civ.model.PlayerTileData,
         private playersMap: Map<String, civ.model.Player>
     ) {
         const weirdOffsetFix = { x: Tile.HEX_WIDTH / 2, y: Tile.HEX_SIZE }
@@ -41,17 +44,32 @@ export class Tile extends Phaser.GameObjects.Polygon {
         super(scene, centerX, centerY, polygonPoints, 0x00ff00)
         this.coordinates = tileData.coordinates
 
+        civ.hex.HexEdge.values().forEach((it, index) => {
+            const startX = polygonPoints[index * 2] - weirdOffsetFix.x
+            const startY = polygonPoints[index * 2 + 1] - weirdOffsetFix.y
+            let nextIndex = index + 1
+            if (nextIndex > civ.hex.HexEdge.values().length - 1) {
+                nextIndex = 0
+            }
+            const endX = polygonPoints[nextIndex * 2] - weirdOffsetFix.x
+            const endY = polygonPoints[nextIndex * 2 + 1] - weirdOffsetFix.y
+            this.borderLines.set(it, scene.add.line(this.x, this.y, startX, startY, endX, endY).setDepth(6).setOrigin(0, 0))
+        })
+
+        this.cityRangeOverlay = scene.add.polygon(centerX, centerY, polygonPoints)
+            .setDepth(5)
+            .setFillStyle(0x000000, 0)
         this.unit = scene.add.circle(this.x, this.y, 16)
-            .setDepth(5)
-        this.overlay = scene.add.polygon(centerX, centerY, polygonPoints)
-            .setDepth(5)
+            .setDepth(6)
+        this.mainOverlay = scene.add.polygon(centerX, centerY, polygonPoints)
+            .setDepth(7)
             .setFillStyle(0x000000, 0)
         this.highlight = scene.add.circle(this.x, this.y, 37)
             .setStrokeStyle(8, 0x00ffff, 0.5)
-            .setDepth(6)
+            .setDepth(8)
         this.pathHighlight = scene.add.circle(this.x, this.y, 20)
             .setFillStyle(0x00ffff, 0.5)
-            .setDepth(6)
+            .setDepth(8)
 
         this.setStates(false, false)
         this.updateTileData(tileData)
@@ -60,7 +78,9 @@ export class Tile extends Phaser.GameObjects.Polygon {
     updateTileData(data: civ.model.PlayerTileData) {
         if (!data.tile) {
             this.unit.setVisible(false)
-            this.overlay.fillAlpha = 1
+            this.mainOverlay.fillAlpha = 1
+            this.borderLines.forEach(it => it.setVisible(false))
+            this.cityRangeOverlay.setFillStyle(0x000000, 0)
             this.setFillStyle(0x888888)
             return
         }
@@ -119,9 +139,34 @@ export class Tile extends Phaser.GameObjects.Polygon {
         }
 
         if (data.isVisible) {
-            this.overlay.fillAlpha = 0
+            this.mainOverlay.setFillStyle(0x000000, 0)
         } else {
-            this.overlay.fillAlpha = 0.5
+            this.mainOverlay.setFillStyle(0x000000, 0.5)
+        }
+        
+        this.borderLines.forEach(it => it.setVisible(false))
+        if (data.cityRange) {
+            const colorType = this.playersMap.get(data.cityRange.playerId).color
+            let color = 0x000000
+            switch (colorType) {
+                case civ.model.PlayerColor.BLUE:
+                    color = 0x0000ff
+                    break
+                case civ.model.PlayerColor.RED:
+                    color = 0x8B0000
+                    break
+                case civ.model.PlayerColor.GREEN:
+                    color = 0x6666ff
+                    break;
+                default:
+                    break;
+            }
+            this.cityRangeOverlay.setFillStyle(color, 0.1)
+            data.cityRange.borders.asJsReadonlyArrayView().forEach(edge => {
+                this.borderLines.get(edge).setVisible(true).setStrokeStyle(2, color, 1).setLineWidth(2)
+            })
+        } else {
+            this.cityRangeOverlay.setFillStyle(0x000000, 0)
         }
 
         if (data.unit) {
@@ -132,7 +177,7 @@ export class Tile extends Phaser.GameObjects.Polygon {
                     this.unit.setFillStyle(0x0000ff)
                     break
                 case civ.model.PlayerColor.RED:
-                    this.unit.setFillStyle(0xff0000)
+                    this.unit.setFillStyle(0x8B0000)
                     break
                 case civ.model.PlayerColor.GREEN:
                     this.unit.setFillStyle(0x6666ff)
@@ -152,9 +197,8 @@ export class Tile extends Phaser.GameObjects.Polygon {
     }
 
     setHighlight(move: boolean, path: boolean, attack: boolean) {
-        if (attack) {
-            this.highlightMode = "attack"
-        } else if (path) {
+        this.isHighlightAttack = attack
+        if (path) {
             this.highlightMode = "path"
         } else if (move) {
             this.highlightMode = "move"
@@ -167,15 +211,11 @@ export class Tile extends Phaser.GameObjects.Polygon {
         switch (this.highlightMode) {
             case "path":
                 this.pathHighlight.setVisible(true)
-                this.highlight.setVisible(true).fillColor = 0x00ffff
+                this.highlight.setVisible(true)
                 break
             case "move":
                 this.pathHighlight.setVisible(false)
-                this.highlight.setVisible(true).fillColor = 0x00ffff
-                break
-            case "attack":
-                this.pathHighlight.setVisible(false)
-                this.highlight.setVisible(true).fillColor = 0xff0000
+                this.highlight.setVisible(true)
                 break
             case "none":
                 this.pathHighlight.setVisible(false)
@@ -183,15 +223,23 @@ export class Tile extends Phaser.GameObjects.Polygon {
                 break
         }
 
-        if (this.isSelected) {
-            this.overlay.setStrokeStyle(4, 0xffffff, 1)
-            this.overlay.setDepth(6)
-        } else if (this.isHovered) {
-            this.overlay.setStrokeStyle(4, 0xffffff, 0.4)
-            this.overlay.setDepth(6)
+        if (this.isHighlightAttack) {
+            this.pathHighlight.fillColor = 0xff0000
+            this.highlight.strokeColor = 0xff0000
         } else {
-            this.overlay.setStrokeStyle(1, 0xffffff, 0.2)
-            this.overlay.setDepth(5)
+            this.pathHighlight.fillColor = 0x00ffff
+            this.highlight.strokeColor = 0x00ffff
+        }
+
+        if (this.isSelected) {
+            this.mainOverlay.setStrokeStyle(4, 0xffffff, 1)
+            this.mainOverlay.setDepth(7)
+        } else if (this.isHovered) {
+            this.mainOverlay.setStrokeStyle(4, 0xffffff, 0.4)
+            this.mainOverlay.setDepth(7)
+        } else {
+            this.mainOverlay.setStrokeStyle(1, 0xffffff, 0.2)
+            this.mainOverlay.setDepth(6)
         }
     }
 

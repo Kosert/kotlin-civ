@@ -1,5 +1,6 @@
 package civ.model
 
+import civ.contains
 import civ.hex.Coordinates
 import kotlin.uuid.Uuid
 import kotlin.js.ExperimentalJsExport
@@ -10,15 +11,20 @@ import kotlin.js.JsExport
 enum class UnitType(
     val value: String,
     val attack: Int, //todo attack range? actions?
+    val range: Int,
+    val defense: Int,
     val maxHp: Int,
     val speed: Int,
     val visionRange: Int,
     val cost: Stockpiles,
+    val buildingRequirement: (Set<Building>) -> Boolean = { true }
 ) {
     SETTLERS(
         value = "settlers",
         attack = 0,
-        maxHp = 10,
+        range = 0,
+        defense = 0,
+        maxHp = 5,
         speed = 1,
         visionRange = 1,
         cost = Stockpiles(food = 30)
@@ -27,11 +33,98 @@ enum class UnitType(
     SCOUT(
         value = "scout",
         attack = 1,
+        range = 1,
+        defense = 1,
         maxHp = 10,
         speed = 2,
         visionRange = 2,
-        cost = Stockpiles(food = 5)
+        cost = Stockpiles(food = 10),
+        buildingRequirement = { it.contains(Building.STABLE) }
     ),
+
+    WARRIOR(
+        value = "warrior",
+        attack = 2,
+        range = 1,
+        defense = 1,
+        maxHp = 15,
+        speed = 1,
+        visionRange = 1,
+        cost = Stockpiles(food = 10),
+        buildingRequirement = { it.contains(Building.BARRACKS) }
+    ),
+
+    ARCHER(
+        value = "archer",
+        attack = 2,
+        range = 2,
+        defense = 1,
+        maxHp = 10,
+        speed = 1,
+        visionRange = 2,
+        cost = Stockpiles(food = 10, wood = 5),
+        buildingRequirement = { it.contains(Building.ARCHERY_RANGE) }
+    ),
+
+    SWORDSMAN(
+        value = "swordsman",
+        attack = 3,
+        range = 1,
+        defense = 1,
+        maxHp = 15,
+        speed = 1,
+        visionRange = 1,
+        cost = Stockpiles(food = 10, gold = 10),
+        buildingRequirement = { it.contains(Building.BARRACKS, Building.BLACKSMITH) }
+    ),
+
+    KNIGHT(
+        value = "knight",
+        attack = 3,
+        range = 1,
+        defense = 1,
+        maxHp = 20,
+        speed = 2,
+        visionRange = 2,
+        cost = Stockpiles(food = 20, gold = 20),
+        buildingRequirement = { it.contains(Building.STABLE, Building.BLACKSMITH) }
+    ),
+
+    HEAVY_PIKEMAN(
+        value = "heavy_pikemen",
+        attack = 2,
+        range = 1,
+        defense = 3,
+        maxHp = 15,
+        speed = 1,
+        visionRange = 1,
+        cost = Stockpiles(food = 20, gold = 20),
+        buildingRequirement = { it.contains(Building.BARRACKS, Building.ARMORERS_WORKSHOP) }
+    ),
+
+    HEAVY_SWORDSMAN(
+        value = "heavy_swordsman",
+        attack = 4,
+        range = 1,
+        defense = 4,
+        maxHp = 30,
+        speed = 1,
+        visionRange = 1,
+        cost = Stockpiles(food = 20, gold = 50),
+        buildingRequirement = { it.contains(Building.BARRACKS, Building.BLACKSMITH, civ.model.Building.ARMORERS_WORKSHOP) }
+    ),
+
+    TREBUCHET(
+        value = "trebuchet",
+        attack = 10,
+        range = 3,
+        defense = 0,
+        maxHp = 20,
+        speed = 1,
+        visionRange = 3,
+        cost = Stockpiles(wood = 50, gold = 50),
+        buildingRequirement = { it.contains(Building.SIEGE_WORKSHOP) }
+    )
 
     ;
 
@@ -49,9 +142,11 @@ data class CivUnit(
     val coordinates: Coordinates,
     val hp: Int = unitType.maxHp,
     val movementLeft: Int = speedToMovement(unitType.speed),
-    //todo attackAction: Boolean
+    val actionPoint: Boolean = true,
 ) {
     val attack: Int = unitType.attack
+    val defense: Int = unitType.defense
+    val attackRange: Int = unitType.range
     val maxHp: Int = unitType.maxHp
     val speed: Int = unitType.speed
     val visionRange: Int = unitType.visionRange

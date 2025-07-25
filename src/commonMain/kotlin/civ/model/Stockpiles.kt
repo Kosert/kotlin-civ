@@ -20,4 +20,9 @@ data class Stockpiles(
         wood = wood - other.wood,
         gold = gold - other.gold,
     )
+
+    fun canSubstract(other: Stockpiles): Boolean {
+        val result = this - other
+        return result.food >= 0 && result.wood >= 0 && result.gold >= 0
+    }
 }

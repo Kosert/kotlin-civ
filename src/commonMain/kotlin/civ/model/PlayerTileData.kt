@@ -2,6 +2,7 @@
 
 package civ.model
 
+import civ.core.CityRange
 import civ.hex.Coordinates
 import civ.tile.Tile
 import kotlin.js.ExperimentalJsExport
@@ -18,4 +19,5 @@ data class PlayerTileData(
     val tile: Tile?,
     val unit: CivUnit?,
     val city: City?,
+    val cityRange: CityRange?,
 )

@@ -1,5 +1,9 @@
+@file:OptIn(ExperimentalJsExport::class)
+
 package civ.hex
 
+import kotlin.js.ExperimentalJsExport
+import kotlin.js.JsExport
 import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
@@ -7,6 +11,7 @@ import kotlin.math.min
 fun Pair<Int, Int>.toCoordinates() = Coordinates(first, second)
 
 fun Coordinates.movedBy(q: Int = 0, r: Int = 0): Coordinates = Coordinates(this.q + q, this.r + r)
+fun Coordinates.movedBy(edge: HexEdge): Coordinates = Coordinates(this.q + edge.q, this.r + edge.r)
 
 fun Coordinates.neighbors(): List<Coordinates> = listOf(
     this.movedBy(-1, 0),

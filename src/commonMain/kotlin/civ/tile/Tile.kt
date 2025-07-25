@@ -4,6 +4,7 @@ package civ.tile
 
 import civ.hex.Coordinates
 import civ.model.Building
+import civ.model.DefenseBonus
 import civ.model.OverrideMovementCost
 import kotlin.js.ExperimentalJsExport
 import kotlin.js.JsExport
@@ -18,7 +19,7 @@ sealed class Tile {
     open val isBusy: Boolean = false
 
     protected open val baseMovementCost: Int = 10
-    protected open val leaveMovementCost: Int = 0
+    protected open val baseDefenseBonus: Int = 0
 
     fun movementCost(): Int {
         return if (isBusy)
@@ -32,11 +33,9 @@ sealed class Tile {
         }
     }
 
-    fun leaveCost(): Int = buildings.flatMap { it.bonuses }
-        .filterIsInstance<OverrideMovementCost>()
-        .firstOrNull()
-        ?.leaveCost
-        ?: leaveMovementCost
+    fun defenseBonus(): Int = baseDefenseBonus + buildings.flatMap { it.bonuses }
+        .filterIsInstance<DefenseBonus>()
+        .sumOf { it.amount }
 
     abstract fun updated(
         isBusy: Boolean = this.isBusy,
@@ -74,11 +73,6 @@ data class Grass(
             river || forest -> 11
             else -> 10
         }
-    override val leaveMovementCost: Int
-        get() = when {
-            river || forest -> 5
-            else -> 0
-        }
 
     override fun updated(
         isBusy: Boolean,
@@ -95,8 +89,6 @@ data class Mountains(
 ) : Tile() {
     override val baseMovementCost: Int
         get() = 11
-    override val leaveMovementCost: Int
-        get() = 5
 
     override fun updated(
         isBusy: Boolean,

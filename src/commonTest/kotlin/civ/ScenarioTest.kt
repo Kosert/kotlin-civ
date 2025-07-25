@@ -18,7 +18,7 @@ class MoveTest {
         val unit = gameApi.unitsFor(player.playerId)[1]
 
         val target = unit.coordinates.movedBy(0, 1)
-        gameApi.execute(Move(unit.unitId, target))
+        gameApi.execute(player.playerId, Move(unit.unitId, target))
 
         val updatedTiles = gameApi.tilesForPlayer(player.playerId).filter { it.tile != null }
         val unitAtTarget = updatedTiles.find { it.coordinates == target }?.unit
@@ -27,7 +27,7 @@ class MoveTest {
         gameApi.verifyIntegrity()
         assertEquals(unit.unitId, unitAtTarget?.unitId)
         assertNull(unitAtSource)
-        println(gameApi.movementRangeFor(unit.unitId))
+        println(gameApi.actionsForUnit(player.playerId, unit.unitId))
     }
 
     @Test
@@ -38,7 +38,7 @@ class MoveTest {
 
         val target = unit.coordinates.movedBy(0, 2)
         val passed = unit.coordinates.movedBy(0, 1)
-        gameApi.execute(Move(unit.unitId, target))
+        gameApi.execute(player.playerId, Move(unit.unitId, target))
 
         val updatedTiles = gameApi.tilesForPlayer(player.playerId).filter { it.tile != null }
         val unitAtSource = updatedTiles.find { it.coordinates == unit.coordinates }?.unit
@@ -50,7 +50,7 @@ class MoveTest {
         assertNull(unitAtSource)
         assertEquals(unit.unitId, unitAtTarget?.unitId)
 
-        println(gameApi.movementRangeFor(unit.unitId))
+        println(gameApi.actionsForUnit(player.playerId, unit.unitId))
     }
 
 //    @Test

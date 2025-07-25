@@ -2,17 +2,16 @@ import { Scene } from "phaser"
 import { civ } from "kotlin-civ"
 import { Tooltip, TooltipContent } from "./building-tooltip"
 import { Ui } from "./ui"
-import { BuildingIcons } from "./icons"
+import { UnitIcons } from "./icons"
 import { Texts } from "./texts"
 
-export class BuildingButton {
+export class RecruitButton {
     private image: Phaser.GameObjects.Image
     private lock: Phaser.GameObjects.Rectangle
     private button: Phaser.GameObjects.Rectangle
     private frontLines: Phaser.GameObjects.Line[] = []
 
-    state: "locked" | "clickable" | "built"
-    hideUi: boolean
+    state: "locked" | "clickable"
 
     public get width(): number {
         return this.image.width
@@ -27,13 +26,13 @@ export class BuildingButton {
         public x: number,
         public y: number,
         depth: number,
-        readonly building: civ.model.Building,
+        readonly unitType: civ.model.UnitType,
         private tooltip: Tooltip,
         private clickListener: () => void
     ) {
         const self = this
         this.image = scene.add
-            .image(this.x, this.y, BuildingIcons.get(building))
+            .image(this.x, this.y, UnitIcons.get(unitType))
             .setOrigin(0, 0)
             .setScrollFactor(0)
             .setDepth(depth)
@@ -98,22 +97,16 @@ export class BuildingButton {
             .setScrollFactor(0)
             .setOrigin(0, 0)
             .setDepth(depth + 3)
-
-        // this.lock = scene.add.image(this.x, this.y, "locked")
-        //     .setScrollFactor(0)
-        //     .setDisplaySize(53, 53)
-        //     .setOrigin(0, 0)
-        //     .setDepth(depth + 3)
     }
 
-    setup(x: number, y: number, state: "locked" | "clickable" | "built") {
-        this.x = x
-        this.y = y
+    setup(/*x: number, y: number,*/ state: "locked" | "clickable") {
+        // this.x = x
+        // this.y = y
         this.state = state
-        this.image.setPosition(x, y)
-        this.button.setPosition(x, y)
-        this.frontLines.forEach(it => it.setPosition(x, y))
-        this.lock.setPosition(x, y)
+        // this.image.setPosition(x, y)
+        // this.button.setPosition(x, y)
+        // this.frontLines.forEach(it => it.setPosition(x, y))
+        // this.lock.setPosition(x, y)
         this.image.setInteractive()
 
         switch (state) {
@@ -123,20 +116,10 @@ export class BuildingButton {
                 this.frontLines.forEach(it => it.setVisible(false))
                 this.lock.setVisible(true)
                 break;
-            // case "visible":
-            //     this.image.setVisible(true)
-            //     this.lock.setVisible(false)
-            //     break;
             case "clickable":
                 this.image.setVisible(true)
                 this.button.setVisible(true)
                 this.frontLines.forEach(it => it.setVisible(true))
-                this.lock.setVisible(false)
-                break;
-            case "built":
-                this.button.setVisible(false)
-                this.frontLines.forEach(it => it.setVisible(false))
-                this.image.setVisible(true)
                 this.lock.setVisible(false)
                 break;
             default:
@@ -148,12 +131,12 @@ export class BuildingButton {
         return {
             centerX: this.image.getTopCenter().x, 
             bottomY: this.image.getTopCenter().y,   
-            iconTexture: BuildingIcons.get(this.building),
-            title: Texts.buildingName(this.building),
-            description: Texts.buildingDescription(this.building),
-            costFood: this.building.cost.food > 0 && this.state != "built" ? this.building.cost.food.toString() : "",
-            costWood: this.building.cost.wood > 0 && this.state != "built" ? this.building.cost.wood.toString() : "",
-            costGold: this.building.cost.gold > 0 && this.state != "built" ? this.building.cost.gold.toString() : "",
+            iconTexture: UnitIcons.get(this.unitType),
+            title: Texts.unitName(this.unitType),
+            description: Texts.unitDescription(this.unitType),
+            costFood: this.unitType.cost.food > 0 ? this.unitType.cost.food.toString() : "",
+            costWood: this.unitType.cost.wood > 0 ? this.unitType.cost.wood.toString() : "",
+            costGold: this.unitType.cost.gold > 0 ? this.unitType.cost.gold.toString() : "",
         }
     }
 

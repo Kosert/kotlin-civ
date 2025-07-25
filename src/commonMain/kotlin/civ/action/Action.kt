@@ -3,6 +3,8 @@
 package civ.action
 
 import civ.hex.Coordinates
+import civ.model.Building
+import civ.model.UnitType
 import kotlin.js.ExperimentalJsExport
 import kotlin.js.JsExport
 
@@ -25,5 +27,18 @@ data class Attack(
 data class Settle(
     val settlersId: String
 ): Action
+
+@JsExport
+data class Build(
+    val coordinates: Coordinates,
+    val building: Building
+): Action
+
+@JsExport
+data class Recruit(
+    val coordinates: Coordinates,
+    val unitType: UnitType
+): Action
+
 
 

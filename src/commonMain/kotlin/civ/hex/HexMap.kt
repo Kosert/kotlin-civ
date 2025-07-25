@@ -15,12 +15,17 @@ data class Paths(
     val start: Coordinates,
     private val cameFrom: Map<Coordinates, Coordinates>,
     private val costs: Map<Coordinates, Int>,
+    val attackTargets: List<Coordinates> = listOf(),
 ) {
     val possibleTargets: Set<Coordinates>
-        get() = costs.keys
+        get() = costs.keys + attackTargets
 
     fun getPath(target: Coordinates): List<PathSegment>? {
-        if (target !in possibleTargets) {
+        if (target in attackTargets) {
+            return listOf(PathSegment(target, 0))
+        }
+
+        if (target !in costs.keys) {
             return null
         }
 
@@ -73,10 +78,6 @@ class HexMap(
         tiles[coordinates] = updated
     }
 
-    fun findPath(start: Coordinates, destination: Coordinates): List<Coordinates> {
-        TODO() //is it needed at all?
-    }
-
     // list of possible paths
     fun movementRange(start: Coordinates, movement: Int): Paths {
         val frontier = mutableListOf(start to 0)
@@ -91,9 +92,6 @@ class HexMap(
             current.neighbors()
                 .mapNotNull { tiles[it] }
                 .forEach { nextTile ->
-                    val currentTile = tiles.getValue(current)
-                    //TODO leave cost / penalty
-                    val penalty = currentTile.leaveCost()
                     val newCost = totalCosts.getValue(current) + nextTile.movementCost()
                     if (newCost > movement) {
                         return@forEach
