@@ -91,7 +91,7 @@ object TestData {
                     )
                 )
             },
-            stock = playerList.associate { it.playerId to Stockpiles(0, 0, 0) },
+            stock = playerList.associate { it.playerId to Stockpiles(50, 50, 50) },
         )
     }
 
@@ -132,7 +132,7 @@ object TestData {
                     )
                 )
             },
-            stock = playerList.associate { it.playerId to Stockpiles(0, 0, 0) },
+            stock = playerList.associate { it.playerId to Stockpiles(50, 50, 50) },
         )
     }
 

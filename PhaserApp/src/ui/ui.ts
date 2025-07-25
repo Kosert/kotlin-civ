@@ -49,7 +49,7 @@ export class Ui {
 
     private selectedSeparator: Phaser.GameObjects.Line
     private recruitBackground: Phaser.GameObjects.Rectangle
-    private recruitTitle: Phaser.GameObjects.BitmapText
+    private recruitTitle: Phaser.GameObjects.Text
     private recruitButtons = new Map<civ.model.UnitType, RecruitButton>()
 
     private tooltip: Tooltip
@@ -107,12 +107,12 @@ export class Ui {
             .setDepth(90)
             .setScrollFactor(0)
 
-        this.selectedTile = new UiTile(scene, Ui.uiMainStart + 16, stockY + 16)
+        this.selectedTile = new UiTile(scene, Ui.uiMainStart + 12, stockY + 12)
             .setDepth(91)
         scene.add.existing(this.selectedTile)
 
-        this.selectedTitle = scene.add.text(Ui.uiMainStart + this.selectedTile.width + 32, stockY + 12, "", { font: "bold 20px Arial", color: "#FFFFFF" }).setDepth(91).setScrollFactor(0)
-        this.selectedText = scene.add.bitmapText(Ui.uiMainStart + this.selectedTile.width + 32, stockY + 16 + this.selectedTitle.height + 8, "civ_font", "", 16).setDepth(91).setScrollFactor(0)
+        this.selectedTitle = scene.add.text(Ui.uiMainStart + this.selectedTile.width + 20, stockY + 12, "", { font: "bold 20px Arial", color: "#FFFFFF" }).setDepth(91).setScrollFactor(0)
+        this.selectedText = scene.add.bitmapText(Ui.uiMainStart + this.selectedTile.width + 20, stockY + 16 + this.selectedTitle.height + 8, "civ_font", "", 16).setDepth(91).setScrollFactor(0)
 
         this.buttonSettle = new Button(scene, Ui.uiMainEnd - 110, stockY + 16, "Settle", function() { 
             scene.events.emit(UiActionEvent, UiAction.SETTLE) 
@@ -141,8 +141,7 @@ export class Ui {
             .setDepth(90)
             .setScrollFactor(0)
 
-            //todo normal text? bold?
-        this.recruitTitle = scene.add.bitmapText(Ui.uiMainEnd + 16, selectedY + 16, "civ_font", "", 20).setDepth(91).setScrollFactor(0)
+        this.recruitTitle = scene.add.text(Ui.uiMainEnd + 16, selectedY + 16, "Recruit", { font: "bold 20px Arial", color: "#FFFFFF" }).setDepth(91).setScrollFactor(0)
 
         let xCounter = Ui.uiMainEnd + 8
         let yCounter = selectedY + 15//this.recruitTitle.getBottomLeft().y
@@ -223,7 +222,7 @@ export class Ui {
             if (mainCityBuilding && !entity.tile.isBusy) {
                 this.selectedSeparator.setVisible(true)
                 this.recruitBackground.setVisible(true)
-                this.recruitTitle.setVisible(true)
+                this.recruitTitle.setVisible(false)
                 civ.model.UnitType.values().forEach(it => {
                     const button = this.recruitButtons.get(it)
                     button.setup(it.buildingRequirement(entity.tile.buildings) ? "clickable" : "locked")
@@ -245,7 +244,7 @@ export class Ui {
 
             const canBuild = this.gameApi.canBuild(entity.coordinates, playerId)
             const building1RowY = this.selectedTile.y + this.selectedTile.height
-            let xCounter = Ui.uiMainStart + 16
+            let xCounter = Ui.uiMainStart + 12
             entity.tile.getAllPossibleBuildings().asJsReadonlyArrayView().forEach(it => {
                 const button = this.buildingButtons.get(it)
 
@@ -260,7 +259,7 @@ export class Ui {
 
                 if (this.belowMap.has(it)) {
                     const placeBelow = this.buildingButtons.get(this.belowMap.get(it))
-                    button.setup(placeBelow.x, placeBelow.y + placeBelow.height + 5, state)
+                    button.setup(placeBelow.x, placeBelow.y + placeBelow.height + 9, state)
                 } else {
                     button.setup(xCounter, building1RowY, state)
                     xCounter = xCounter + 5 + button.width

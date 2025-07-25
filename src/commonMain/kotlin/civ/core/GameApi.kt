@@ -96,12 +96,16 @@ class GameApi private constructor(
             ?.takeIf { it.playerId == playerId }
             ?: error("Unit $unitId not found for current player")
 
-        val attackTargets = hexMap.range(unit.coordinates, unit.attackRange)
-            .mapNotNull { units[it] }
-            .filter { it.playerId != playerId }
-            .map { it.coordinates }
-
-        return hexMap.movementRange(unit.coordinates, unit.movementLeft).copy(attackTargets = attackTargets)
+        return hexMap.movementRange(unit.coordinates, unit.movementLeft).run {
+            if (unit.actionPoint) {
+                this.copy(
+                    attackTargets = hexMap.range(unit.coordinates, unit.attackRange)
+                        .mapNotNull { units[it] }
+                        .filter { it.playerId != playerId }
+                        .map { it.coordinates }
+                )
+            } else this
+        }
     }
 
     //todo result?
@@ -227,6 +231,15 @@ class GameApi private constructor(
                 val defender = units.values.firstOrNull { it.unitId == action.targetUnitId }
                     ?: error("Target unit ${action.targetUnitId} not found")
 
+                if (!attacker.actionPoint) {
+                    error("This unit has no action point")
+                }
+                if (attacker.attack == 0) {
+                    error("This unit cannot attack")
+                }
+
+                //todo ranged attack
+
                 val (updatedAttacker, updatedDefender) = combatCalculator.calculate(
                     attacker = attacker,
                     defender = defender,
@@ -234,13 +247,14 @@ class GameApi private constructor(
                 )
 
                 if (updatedAttacker.hp <= 0) {
-                    hexMap
+                    hexMap.markBusy(updatedAttacker.coordinates, false)
                     units.remove(updatedAttacker.coordinates)
                 } else {
-                    units[updatedAttacker.coordinates] = updatedAttacker
+                    units[updatedAttacker.coordinates] = updatedAttacker.copy(actionPoint = false)
                 }
 
                 if (updatedDefender.hp <= 0) {
+                    hexMap.markBusy(updatedDefender.coordinates, false)
                     units.remove(updatedDefender.coordinates)
                 } else {
                     units[updatedDefender.coordinates] = updatedDefender

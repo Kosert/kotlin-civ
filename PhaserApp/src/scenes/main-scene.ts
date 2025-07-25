@@ -173,7 +173,7 @@ export class MainScene extends Phaser.Scene {
             return true
         } catch (error) {
             //todo alert user
-            console.log(error)
+            console.log(error.message, error)
             return false
         }
     }

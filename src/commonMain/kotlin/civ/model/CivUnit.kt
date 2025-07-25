@@ -32,7 +32,7 @@ enum class UnitType(
 
     SCOUT(
         value = "scout",
-        attack = 1,
+        attack = 3,
         range = 1,
         defense = 1,
         maxHp = 10,
@@ -44,7 +44,7 @@ enum class UnitType(
 
     WARRIOR(
         value = "warrior",
-        attack = 2,
+        attack = 4,
         range = 1,
         defense = 1,
         maxHp = 15,
@@ -56,7 +56,7 @@ enum class UnitType(
 
     ARCHER(
         value = "archer",
-        attack = 2,
+        attack = 4,
         range = 2,
         defense = 1,
         maxHp = 10,
@@ -68,9 +68,9 @@ enum class UnitType(
 
     SWORDSMAN(
         value = "swordsman",
-        attack = 3,
+        attack = 6,
         range = 1,
-        defense = 1,
+        defense = 3,
         maxHp = 15,
         speed = 1,
         visionRange = 1,
@@ -80,9 +80,9 @@ enum class UnitType(
 
     KNIGHT(
         value = "knight",
-        attack = 3,
+        attack = 10,
         range = 1,
-        defense = 1,
+        defense = 5,
         maxHp = 20,
         speed = 2,
         visionRange = 2,
@@ -92,9 +92,9 @@ enum class UnitType(
 
     HEAVY_PIKEMAN(
         value = "heavy_pikemen",
-        attack = 2,
+        attack = 4,
         range = 1,
-        defense = 3,
+        defense = 8,
         maxHp = 15,
         speed = 1,
         visionRange = 1,
@@ -104,14 +104,14 @@ enum class UnitType(
 
     HEAVY_SWORDSMAN(
         value = "heavy_swordsman",
-        attack = 4,
+        attack = 10,
         range = 1,
-        defense = 4,
-        maxHp = 30,
+        defense = 10,
+        maxHp = 20,
         speed = 1,
         visionRange = 1,
         cost = Stockpiles(food = 20, gold = 50),
-        buildingRequirement = { it.contains(Building.BARRACKS, Building.BLACKSMITH, civ.model.Building.ARMORERS_WORKSHOP) }
+        buildingRequirement = { it.contains(Building.BARRACKS, Building.BLACKSMITH, Building.ARMORERS_WORKSHOP) }
     ),
 
     TREBUCHET(
@@ -119,7 +119,7 @@ enum class UnitType(
         attack = 10,
         range = 3,
         defense = 0,
-        maxHp = 20,
+        maxHp = 10,
         speed = 1,
         visionRange = 3,
         cost = Stockpiles(wood = 50, gold = 50),
