@@ -8,6 +8,7 @@ import { MainScene } from "../scenes/main-scene"
 import { UiAction, UiActionEvent } from "./ui-actions"
 import { Texts } from "./texts"
 import { RecruitButton } from "./recruit-button"
+import { UnitIcons } from "./icons"
 
 export class Ui {
 
@@ -29,9 +30,6 @@ export class Ui {
     static uiRecruitmentWidth = 170
     static uiRecruitmentEnd = Ui.uiMainEnd + Ui.uiRecruitmentWidth
 
-
-    // private tooltip: Tooltip
-
     private stockBackground: Phaser.GameObjects.Rectangle
     private foodIcon: Phaser.GameObjects.Image
     private foodText: Phaser.GameObjects.Text
@@ -43,6 +41,7 @@ export class Ui {
 
     private selectedBackground: Phaser.GameObjects.Rectangle
     private selectedTile: UiTile
+    private selectedIcon: Phaser.GameObjects.Image
     private selectedTitle: Phaser.GameObjects.Text
     private selectedText: Phaser.GameObjects.BitmapText
     private buildingButtons = new Map<civ.model.Building, BuildingButton>()
@@ -51,6 +50,8 @@ export class Ui {
     private recruitBackground: Phaser.GameObjects.Rectangle
     private recruitTitle: Phaser.GameObjects.Text
     private recruitButtons = new Map<civ.model.UnitType, RecruitButton>()
+
+    private errorAlert: Phaser.GameObjects.Text
 
     private tooltip: Tooltip
 
@@ -111,10 +112,12 @@ export class Ui {
             .setDepth(91)
         scene.add.existing(this.selectedTile)
 
+        this.selectedIcon = scene.add.image(Ui.uiMainStart + 12, stockY + 12, "food_icon").setOrigin(0, 0).setDepth(91).setScrollFactor(0)
+
         this.selectedTitle = scene.add.text(Ui.uiMainStart + this.selectedTile.width + 20, stockY + 12, "", { font: "bold 20px Arial", color: "#FFFFFF" }).setDepth(91).setScrollFactor(0)
         this.selectedText = scene.add.bitmapText(Ui.uiMainStart + this.selectedTile.width + 20, stockY + 16 + this.selectedTitle.height + 8, "civ_font", "", 16).setDepth(91).setScrollFactor(0)
 
-        this.buttonSettle = new Button(scene, Ui.uiMainEnd - 110, stockY + 16, "Settle", function() { 
+        this.buttonSettle = new Button(scene, Ui.uiMainEnd - 110, stockY + 14, "Settle", function() { 
             scene.events.emit(UiActionEvent, UiAction.SETTLE) 
         }).setFixedWidth(100)
         this.buttonConquer = new Button(scene, Ui.uiMainEnd - 110, stockY + 16, "Conquer", function() {
@@ -158,7 +161,23 @@ export class Ui {
             }
         })
 
+        this.errorAlert = scene.add.text(Ui.uiMainStart, stockY - 32, "", { font: "bold 20px Arial", color: "#FF0000" }).setDepth(91)
+        .setScrollFactor(0)
+
         this.setSelection(null)
+    }
+
+    postAlert(alertText: string) {
+        this.errorAlert.setText(alertText).setAlpha(1)
+        this.scene.tweens.add({
+            targets: this.errorAlert,
+            alpha: 0,
+            delay: 3000,
+            ease: 'Linear',       // 'Cubic', 'Elastic', 'Bounce', 'Back'
+            duration: 500,
+            repeat: 0,            // -1: infinity
+            yoyo: false,
+        })
     }
 
     isPointerInside(pointer: { x: number, y: number }): boolean {
@@ -184,6 +203,7 @@ export class Ui {
         if (entity instanceof civ.model.PlayerTileData) {
             this.selectedBackground.setVisible(true)
             this.selectedTile.setVisible(true)
+            this.selectedIcon.setVisible(false)
             this.selectedTitle.setVisible(true)
             this.selectedText.setVisible(true)
             this.selectedTile.updateTileData(entity)
@@ -219,13 +239,14 @@ export class Ui {
             this.selectedText.setText(Texts.tileDescription(income))
 
             const mainCityBuilding = entity.tile.getMainCityBuilding()
-            if (mainCityBuilding && !entity.tile.isBusy) {
+            if (mainCityBuilding) {
                 this.selectedSeparator.setVisible(true)
                 this.recruitBackground.setVisible(true)
                 this.recruitTitle.setVisible(false)
                 civ.model.UnitType.values().forEach(it => {
                     const button = this.recruitButtons.get(it)
-                    button.setup(it.buildingRequirement(entity.tile.buildings) ? "clickable" : "locked")
+                    const canBuy = it.buildingRequirement(entity.tile.buildings) && !entity.tile.isBusy
+                    button.setup(canBuy ? "clickable" : "locked")
                 })
             }
             switch (mainCityBuilding) {
@@ -243,9 +264,9 @@ export class Ui {
             }
 
             const canBuild = this.gameApi.canBuild(entity.coordinates, playerId)
-            const building1RowY = this.selectedTile.y + this.selectedTile.height
+            const building1RowY = this.selectedTile.y + this.selectedTile.height + 5
             let xCounter = Ui.uiMainStart + 12
-            entity.tile.getAllPossibleBuildings().asJsReadonlyArrayView().forEach(it => {
+            entity.tile.getAllPossibleBuildings().asJsReadonlyArrayView().forEach((it, _, possibleBuildings) => {
                 const button = this.buildingButtons.get(it)
 
                 let state: "locked" | "built" | "clickable"
@@ -257,9 +278,9 @@ export class Ui {
                     state = "locked"
                 }
 
-                if (this.belowMap.has(it)) {
+                if (this.belowMap.has(it) && possibleBuildings.includes(this.belowMap.get(it))) {
                     const placeBelow = this.buildingButtons.get(this.belowMap.get(it))
-                    button.setup(placeBelow.x, placeBelow.y + placeBelow.height + 9, state)
+                    button.setup(placeBelow.x, placeBelow.y + placeBelow.height + 4, state)
                 } else {
                     button.setup(xCounter, building1RowY, state)
                     xCounter = xCounter + 5 + button.width
@@ -269,6 +290,7 @@ export class Ui {
         } else if (entity instanceof civ.model.CivUnit) {
             this.selectedBackground.setVisible(true)
             this.selectedTile.setVisible(false)
+            this.selectedIcon.setVisible(true)
             this.selectedTitle.setVisible(true)
             this.selectedText.setVisible(true)
             this.selectedSeparator.setVisible(false)
@@ -277,23 +299,27 @@ export class Ui {
             this.recruitButtons.forEach(it => it.hide())
 
             this.selectedTitle.setText(entity.unitType.name)
+            this.selectedIcon.setTexture(UnitIcons.get(entity.unitType))
 
             let description = `HP: ${entity.hp}/${entity.maxHp}\nAttack: ${entity.attack}\n`
             if (true /*isCurrentPlayer*/) {
-                description += `Movement left: ${(entity.movementLeft / 10).toPrecision(2)}`
+                description += `Movement left: ${(entity.movementLeft / 10).toPrecision(2)}\n`
+                description += `Action points: ${(entity.actionPoint ? "1" : "0")}`
             }
             this.selectedText.setText(description)
 
             this.buttonSettle.setVisible(entity.unitType == civ.model.UnitType.SETTLERS)
-            //todo determine if can conquer
-            this.buttonConquer.setPosition(this.buttonSettle.x(), this.buttonSettle.y() + this.buttonSettle.height() + 5)
-            this.buttonConquer.setVisible(true)
-            this.buttonDisband.setPosition(this.buttonConquer.x(), this.buttonConquer.y() + this.buttonConquer.height() + 5)
+            this.buttonSettle.setDisabled(!entity.actionPoint)
+            this.buttonConquer.setPosition(this.buttonSettle.x(), this.buttonSettle.y() + this.buttonSettle.height() + (this.buttonSettle.height() ? 5 : 0))
+            this.buttonConquer.setVisible(entity.conquerState != civ.model.ConquerState.NONE)
+            this.buttonConquer.setDisabled(!entity.actionPoint || entity.conquerState != civ.model.ConquerState.CAN_CONQUER)
+            this.buttonDisband.setPosition(this.buttonConquer.x(), this.buttonConquer.y() + this.buttonConquer.height() + (this.buttonConquer.height() ? 5 : 0))
             this.buttonDisband.setVisible(true)
 
         } else {
             this.selectedBackground.setVisible(false)
             this.selectedTile.setVisible(false)
+            this.selectedIcon.setVisible(false)
             this.selectedTitle.setVisible(false)
             this.selectedText.setVisible(false)
             this.selectedText.setVisible(false)

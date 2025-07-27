@@ -40,5 +40,8 @@ data class Recruit(
     val unitType: UnitType
 ): Action
 
-
+@JsExport
+data class Conquer(
+    val coordinates: Coordinates,
+): Action
 

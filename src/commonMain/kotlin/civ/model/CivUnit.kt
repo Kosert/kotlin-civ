@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalJsExport::class)
+
 package civ.model
 
 import civ.contains
@@ -6,7 +8,6 @@ import kotlin.uuid.Uuid
 import kotlin.js.ExperimentalJsExport
 import kotlin.js.JsExport
 
-@OptIn(ExperimentalJsExport::class)
 @JsExport
 enum class UnitType(
     val value: String,
@@ -133,7 +134,6 @@ enum class UnitType(
     }
 }
 
-@OptIn(ExperimentalJsExport::class)
 @JsExport
 data class CivUnit(
     val unitId: String = Uuid.random().toHexString(),
@@ -143,6 +143,7 @@ data class CivUnit(
     val hp: Int = unitType.maxHp,
     val movementLeft: Int = speedToMovement(unitType.speed),
     val actionPoint: Boolean = true,
+    val conquerState: ConquerState = ConquerState.NONE,
 ) {
     val attack: Int = unitType.attack
     val defense: Int = unitType.defense
@@ -160,33 +161,7 @@ data class CivUnit(
     }
 }
 
-//sealed class CivUnit(
-//    unitType: UnitType
-//) {
-//    val attack: Int = unitType.attack
-//    val maxHp: Int = unitType.maxHp
-//    val movement: Int = unitType.movement
-//    val visionRange: Int = unitType.visionRange
-//}
-//
-//data class Settlers(
-//    val playerId: String,
-//    val hp: Int = unitType.maxHp,
-//    val movementLeft: Int = unitType.movement
-//) : CivUnit(unitType) {
-//
-//    companion object {
-//        private val unitType = UnitType.SETTLERS
-//    }
-//}
-//
-//class Scout(
-//    val playerId: String,
-//    val hp: Int = unitType.maxHp,
-//    val movementLeft: Int = unitType.movement
-//) : CivUnit(unitType) {
-//
-//    companion object {
-//        private val unitType = UnitType.SCOUT
-//    }
-//}
+@JsExport
+enum class ConquerState {
+    NONE, OCCUPYING, CAN_CONQUER
+}

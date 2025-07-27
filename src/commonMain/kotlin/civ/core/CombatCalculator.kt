@@ -18,17 +18,14 @@ class CombatCalculator {
         val totalNumbers = attacker.hp + defender.hp
         val attackerNumbersRatio = attacker.hp / totalNumbers.toDouble() * 2
         val defenderNumbersRatio = defender.hp / totalNumbers.toDouble() * 2
-        println("numbers ratio: -> $attackerNumbersRatio vs ${defenderNumbersRatio} -> ${attackerNumbersRatio.coerceIn(0.5, 2.0)} vs ${(defenderNumbersRatio).coerceIn(0.5, 2.0)}")
+        //println("numbers ratio: -> $attackerNumbersRatio vs ${defenderNumbersRatio} -> ${attackerNumbersRatio.coerceIn(0.5, 2.0)} vs ${(defenderNumbersRatio).coerceIn(0.5, 2.0)}")
 
         val attackerDamage = attackForce * attackerNumbersRatio.coerceIn(0.5, 2.0)
         val defenderDamage = defenseForce * defenderNumbersRatio.coerceIn(0.5, 2.0)
 
-        println("${attacker.unitType} deals $attackerDamage, ${defender.unitType} deals $defenderDamage")
+        //println("${attacker.unitType} deals $attackerDamage, ${defender.unitType} deals $defenderDamage")
         val updatedAttacker = attacker.copy(hp = attacker.hp - defenderDamage.roundToInt())
         val updatedDefender = defender.copy(hp = defender.hp - attackerDamage.roundToInt())
-
-        if (attackerDamage.roundToInt() == 0 && defenderDamage.roundToInt() == 0)
-            error("chuj")
 
         return updatedAttacker to updatedDefender
     }

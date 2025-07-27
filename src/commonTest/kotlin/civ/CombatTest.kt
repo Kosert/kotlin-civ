@@ -50,17 +50,6 @@ class CombatTest {
         }
     }
 
-    fun bombard(attacker: CivUnit, defender: CivUnit) {
-        println(
-            "Beforemath:\n" +
-                "Attacker: ${attacker.unitType} HP: ${attacker.hp}/${attacker.maxHp}, attack: ${attacker.attack}, defense: ${attacker.defense}\n" +
-                "Defender: ${defender.unitType} HP: ${defender.hp}/${defender.maxHp}, attack: ${defender.attack}, defense: ${defender.defense}"
-        )
-        val updated = calculator.calculate(attacker, defender)
-        println("${updated.first.unitType} HP: ${updated.first.hp}/${updated.first.maxHp}, ${updated.second.unitType} HP: ${updated.second.hp}/${updated.second.maxHp}")
-
-    }
-
     @Test
     fun test() {
         val scout = createUnit(UnitType.SCOUT)
@@ -73,7 +62,6 @@ class CombatTest {
         val heavySwordsman = createUnit(UnitType.HEAVY_SWORDSMAN)
         val trebuchet = createUnit(UnitType.TREBUCHET)
 
-//        calculator.calculate4(scout, settlers)
         oneSidedFight(scout, settlers)
         println("======================")
         oneSidedFight(warrior, settlers)
@@ -117,7 +105,7 @@ class CombatTest {
         println("======================")
 
         println("======================")
-        bombard(archer, settlers)
+        oneSidedFight(archer, settlers)
         println("======================")
         equalFight(archer, scout)
         println("======================")
@@ -132,7 +120,7 @@ class CombatTest {
         equalFight(archer, heavySwordsman)
 
         println("======================")
-        bombard(trebuchet, settlers)
+        oneSidedFight(trebuchet, settlers)
         println("======================")
         equalFight(trebuchet, scout)
         println("======================")

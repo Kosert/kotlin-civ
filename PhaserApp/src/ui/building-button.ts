@@ -94,16 +94,10 @@ export class BuildingButton {
             .setScrollFactor(0)
         )
 
-        this.lock = scene.add.rectangle(this.x, this.y, 53, 53, 0x000000, 0.5)
+        this.lock = scene.add.rectangle(this.x, this.y, 50, 50, 0x000000, 0.5)
             .setScrollFactor(0)
             .setOrigin(0, 0)
             .setDepth(depth + 3)
-
-        // this.lock = scene.add.image(this.x, this.y, "locked")
-        //     .setScrollFactor(0)
-        //     .setDisplaySize(53, 53)
-        //     .setOrigin(0, 0)
-        //     .setDepth(depth + 3)
     }
 
     setup(x: number, y: number, state: "locked" | "clickable" | "built") {

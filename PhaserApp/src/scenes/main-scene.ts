@@ -1,4 +1,5 @@
-import { Tile } from "../tile"
+import { Tile } from "../gameobjects/tile"
+import { Unit } from "../gameobjects/unit"
 import FpsText from "../ui/fpsText"
 import { BuildingIcons, UnitIcons } from "../ui/icons"
 import { Ui } from "../ui/ui"
@@ -18,7 +19,7 @@ export class MainScene extends Phaser.Scene {
     private downKey: MultiKey
 
     private gameApi = civ.core.GameApi.Companion.fromGameState(civ.TestData.gameState2)
-    private playersMap = new Map<String, civ.model.Player>()
+    private playersMap = new Map<string, civ.model.Player>()
     private player: civ.model.Player
 
     private hovered?: civ.model.PlayerTileData
@@ -28,7 +29,8 @@ export class MainScene extends Phaser.Scene {
     private moveHighlights: civ.hex.Coordinates[] = []
     private selectedCityRange: civ.hex.Coordinates[] = []
 
-    private tiles = new Map<civ.hex.Coordinates, Tile>()
+    private tiles: Tile[] = []
+    private units = new Map<string, Unit>()
     private ui: Ui
     private fpsText: FpsText
 
@@ -48,12 +50,15 @@ export class MainScene extends Phaser.Scene {
         this.load.image("town_hall", "assets/icons/buildings/town_hall.png")
         this.load.image("windmill", "assets/icons/buildings/windmill.png")
 
+        this.load.image("settlers", "assets/icons/units/settlers.png")
+
         this.load.image("forest", "assets/forest.png")
         this.load.image("animals", "assets/animals.png")
         this.load.image("forest_animals", "assets/forest_animals.png")
         this.load.image("mountains", "assets/mountains.png")
         this.load.image("mountains_gold", "assets/mountains_gold.png")
         this.load.image("village", "assets/village.png")
+        this.load.image("town", "assets/town.png")
 
         civ.model.Building.values().forEach(it => {
             this.load.image(BuildingIcons.get(it), "assets/icons/placeholder50.png")
@@ -96,12 +101,10 @@ export class MainScene extends Phaser.Scene {
                 } else {
                     self.select(self.hovered)
                 }
-                console.log("Selected: ", self.selected?.coordinates, self.selected)
             }
             
             if (pointer.rightButtonDown()) {
                 const target = self.hovered
-                const targetTile = self.tiles.get(self.hovered?.coordinates)
 
                 if (self.selected instanceof civ.model.CivUnit) {
 
@@ -109,7 +112,11 @@ export class MainScene extends Phaser.Scene {
                         const selectedUnitId = self.selected.unitId
                         if (target.unit) {
                             const targetUnitId = target.unit.unitId
-                            self.gameApi.execute(self.player.playerId, new civ.action.Attack(selectedUnitId, targetUnitId))
+                            const gameAction = new civ.action.Attack(selectedUnitId, targetUnitId)
+                            if (self.tryExecute(gameAction)) {
+                                const updatedTile = self.gameApi.tilesForPlayer(self.player.playerId).asJsReadonlyArrayView().find(it => it.unit?.unitId == selectedUnitId)
+                                self.select(updatedTile?.unit)
+                            }
                             //todo
                         } else {
                             self.gameApi.execute(self.player.playerId, new civ.action.Move(selectedUnitId, target.coordinates))
@@ -126,7 +133,8 @@ export class MainScene extends Phaser.Scene {
 
         this.player = civ.TestData.gameState1.players.asJsReadonlyArrayView()[0]
         this.gameApi.tilesForPlayer(this.player.playerId).asJsReadonlyArrayView().map(it => {
-            this.tiles.set(it.coordinates, new Tile(this, it, this.playersMap))
+            this.tiles.push(new Tile(this, it, this.playersMap))
+            // this.tiles.set(it.coordinates, new Tile(this, it, this.playersMap))
         })
 
         this.tiles.forEach(it =>
@@ -156,6 +164,15 @@ export class MainScene extends Phaser.Scene {
                         self.select(self.gameApi.tilesForPlayer(self.player.playerId).asJsReadonlyArrayView().find(it => it.coordinates.equals(seletedCoordinates)))                    
                     }
                     break
+                case UiAction.CONQUER:
+                    gameAction = new civ.action.Conquer(seletedCoordinates)
+                    if (self.tryExecute(gameAction)) {
+                        self.select(self.gameApi.tilesForPlayer(self.player.playerId).asJsReadonlyArrayView().find(it => it.coordinates.equals(seletedCoordinates)))                    
+                    }
+                    break
+                case UiAction.DISBAND:
+                    //todo
+                    break
                 case UiAction.END_TURN:
                     self.gameApi.endTurn(self.player.playerId)
                     self.select(null)
@@ -168,14 +185,14 @@ export class MainScene extends Phaser.Scene {
     }
 
     private tryExecute(gameAction: civ.action.Action): boolean {
-        try {
-            this.gameApi.execute(this.player.playerId, gameAction)
-            return true
-        } catch (error) {
-            //todo alert user
-            console.log(error.message, error)
-            return false
+        const result = this.gameApi.execute(this.player.playerId, gameAction)
+        if (result.errorAlert) {
+            this.ui.postAlert(result.errorAlert)
         }
+        if (result.exception) {
+            console.log(result.exception.message, result.exception)
+        }
+        return result.isSuccess
     }
 
     select(entity: civ.model.PlayerTileData | civ.model.CivUnit) {
@@ -185,6 +202,7 @@ export class MainScene extends Phaser.Scene {
         this.pathHighlights = []
         this.selectedCityRange = []
         this.ui.setSelection(entity)
+        console.log("Select", entity)
 
         if (entity instanceof civ.model.CivUnit) {
             if (entity.playerId == this.player.playerId) {
@@ -270,8 +288,9 @@ export class MainScene extends Phaser.Scene {
         this.hovered = null
         this.player = this.gameApi.currentPlayer
         this.ui.setStockpiles(this.gameApi.stocksFor(this.player.playerId))
-        this.gameApi.tilesForPlayer(this.player.playerId).asJsReadonlyArrayView().forEach(data => {
-            const tile = this.tiles.get(data.coordinates)
+        const unitsFromApi: civ.model.CivUnit[] = []
+        this.gameApi.tilesForPlayer(this.player.playerId).asJsReadonlyArrayView().forEach((data, index) => {
+            const tile = this.tiles[index]
             tile.updateTileData(data)
             tile.setHighlight(
                 this.moveHighlights.some(it => it.equals(data.coordinates)),
@@ -283,6 +302,29 @@ export class MainScene extends Phaser.Scene {
             tile.setStates(isHovered, isSelected)
             if (isHovered) {
                 this.hovered = data
+            }
+
+            if (data.unit) {
+                unitsFromApi.push(data.unit)
+            }
+        })
+
+        this.units.forEach(it => {
+            const updated = unitsFromApi.find(unit => unit.unitId == it.unitId)
+            if (updated) {
+                const tile = this.tiles.find(tile => tile.coordinates.equals(updated.coordinates))
+                it.updateUnitData(tile.x, tile.y, updated.hp)
+            } else {
+                it.destroy()
+                this.units.delete(it.unitId)
+            }
+        })
+
+        unitsFromApi.forEach(it => {
+            if (!this.units.has(it.unitId)) {
+                const tile = this.tiles.find(tile => tile.coordinates.equals(it.coordinates))
+                const unitColor = this.playersMap.get(it.playerId).color
+                this.units.set(it.unitId, new Unit(this, it, unitColor, tile.x, tile.y))
             }
         })
     }

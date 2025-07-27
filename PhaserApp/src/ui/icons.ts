@@ -61,7 +61,6 @@ export class BuildingIcons {
 export class UnitIcons {
 
     static get(unit: civ.model.UnitType) {
-        return "placeholder"
         switch (unit) {
             case civ.model.UnitType.SETTLERS:
                 return "settlers"

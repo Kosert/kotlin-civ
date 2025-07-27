@@ -9,6 +9,13 @@ export class Tile extends Phaser.GameObjects.Polygon {
     static readonly HEX_HEIGHT = this.HEX_SIZE * 2
     static readonly HEX_WIDTH = this.HEX_SIZE * this.SQRT3
 
+    // static centerPosition(coordinates: civ.hex.Coordinates) {
+    //     return {
+    //         x: (Tile.SQRT3 * coordinates.q + Tile.SQRT3/2 * coordinates.r) * Tile.HEX_SIZE + Tile.HEX_OFFSET,
+    //         y: (1.5 * coordinates.r) * Tile.HEX_SIZE + Tile.HEX_OFFSET
+    //     }
+    // }
+
     readonly coordinates: civ.hex.Coordinates
 
     private isHovered: boolean = false
@@ -24,6 +31,8 @@ export class Tile extends Phaser.GameObjects.Polygon {
     private highlight: Phaser.GameObjects.Arc
     private pathHighlight: Phaser.GameObjects.Arc
     private borderLines = new Map<civ.hex.HexEdge, Phaser.GameObjects.Line>()
+
+
 
     constructor(
         readonly scene: Scene,
@@ -126,7 +135,7 @@ export class Tile extends Phaser.GameObjects.Polygon {
                     cityTextureName = "town"
                     break;            
                case civ.model.Building.CASTLE:
-                    cityTextureName = "castle"
+                    cityTextureName = "city"
                     break;
             }
         }
@@ -169,25 +178,25 @@ export class Tile extends Phaser.GameObjects.Polygon {
             this.cityRangeOverlay.setFillStyle(0x000000, 0)
         }
 
-        if (data.unit) {
-            this.unit.setVisible(true)
-            const color = this.playersMap.get(data.unit.playerId).color
-            switch (color) {
-                case civ.model.PlayerColor.BLUE:
-                    this.unit.setFillStyle(0x0000ff)
-                    break
-                case civ.model.PlayerColor.RED:
-                    this.unit.setFillStyle(0x8B0000)
-                    break
-                case civ.model.PlayerColor.GREEN:
-                    this.unit.setFillStyle(0x6666ff)
-                    break;
-                default:
-                    break;
-            }
-        } else {
-            this.unit.setVisible(false)
-        }
+        // if (data.unit) {
+            // this.unit.setVisible(true)
+            // const color = this.playersMap.get(data.unit.playerId).color
+            // switch (color) {
+                // case civ.model.PlayerColor.BLUE:
+                    // this.unit.setFillStyle(0x0000ff)
+                    // break
+                // case civ.model.PlayerColor.RED:
+                    // this.unit.setFillStyle(0x8B0000)
+                    // break
+                // case civ.model.PlayerColor.GREEN:
+                    // this.unit.setFillStyle(0x6666ff)
+                    // break;
+                // default:
+                    // break;
+            // }
+        // } else {
+            // this.unit.setVisible(false)
+        // }
     }
 
     setStates(hovered: boolean, selected: boolean) {
