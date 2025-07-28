@@ -31,8 +31,7 @@ export class Tile extends Phaser.GameObjects.Polygon {
     private highlight: Phaser.GameObjects.Arc
     private pathHighlight: Phaser.GameObjects.Arc
     private borderLines = new Map<civ.hex.HexEdge, Phaser.GameObjects.Line>()
-
-
+    private rivers: Map<civ.hex.HexEdge, Phaser.GameObjects.Image>
 
     constructor(
         readonly scene: Scene,
@@ -68,8 +67,9 @@ export class Tile extends Phaser.GameObjects.Polygon {
         this.cityRangeOverlay = scene.add.polygon(centerX, centerY, polygonPoints)
             .setDepth(5)
             .setFillStyle(0x000000, 0)
-        this.unit = scene.add.circle(this.x, this.y, 16)
+        this.unit = scene.add.circle(this.x, this.y, 16,  0x00ffff)
             .setDepth(6)
+            .setVisible(false)
         this.mainOverlay = scene.add.polygon(centerX, centerY, polygonPoints)
             .setDepth(7)
             .setFillStyle(0x000000, 0)
@@ -90,17 +90,31 @@ export class Tile extends Phaser.GameObjects.Polygon {
             this.mainOverlay.fillAlpha = 1
             this.borderLines.forEach(it => it.setVisible(false))
             this.cityRangeOverlay.setFillStyle(0x000000, 0)
+            //this.rivers.forEach(it => it.setVisible(false))
             this.setFillStyle(0x888888)
             return
         }
+
+        //todo generate only if changed?
 
         let terrainTextureName: string
         if (data.tile instanceof civ.tile.Water) {
             this.setFillStyle(0x2389da)
         } else {
             this.setFillStyle(0x489030)
-
             if (data.tile instanceof civ.tile.Grass) {
+
+                if (!this.rivers) {
+                    this.rivers = new Map<civ.hex.HexEdge, Phaser.GameObjects.Image>()
+                    data.tile.riverEdges.asJsReadonlyArrayView().forEach(edge => {
+                        this.rivers.set(
+                            edge, 
+                            this.scene.add.image(this.x, this.y, "river_" + edge.name.toLowerCase())
+                                .setDepth(2)
+                        )
+                    })
+                }
+
                 if (data.tile.forest && data.tile.animals) {
                     terrainTextureName = "forest_animals"
                 } else if (data.tile.forest) {
@@ -116,11 +130,12 @@ export class Tile extends Phaser.GameObjects.Polygon {
                 }
             }
         }
+
         if (terrainTextureName != this.terrainGraphics?.texture?.key) {
             this.terrainGraphics?.destroy()
             if (terrainTextureName) {
                 this.terrainGraphics = this.scene.add.image(this.x, this.y, terrainTextureName)
-                .setDepth(2)
+                .setDepth(3)
             }
         } 
 

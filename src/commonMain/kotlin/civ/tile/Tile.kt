@@ -3,6 +3,7 @@
 package civ.tile
 
 import civ.hex.Coordinates
+import civ.hex.HexEdge
 import civ.model.Building
 import civ.model.DefenseBonus
 import civ.model.OverrideMovementCost
@@ -43,7 +44,7 @@ sealed class Tile {
     ): Tile
 
     fun getAllPossibleBuildings(): List<Building> = buildings
-        .plus(Building.values().filter { it.tileRequirement(this) })
+        .plus(Building.entries.filter { it.tileRequirement(this) })
         .sortedBy { it.ordinal }
 
     fun getMainCityBuilding(): Building? = buildings.firstOrNull { it in Building.cityMainBuildings }
@@ -65,9 +66,12 @@ data class Grass(
     val coast: Boolean = false,
     val forest: Boolean = false,
     val animals: Boolean = false,
-    val river: Boolean = false,
+    val riverEdges: List<HexEdge> = listOf(),
     override val buildings: Set<Building> = setOf(),
 ) : Tile() {
+    val river: Boolean
+        get() = riverEdges.isNotEmpty()
+
     override val baseMovementCost: Int// = 10
         get() = when {
             river || forest -> 11

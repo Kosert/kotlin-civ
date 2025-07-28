@@ -18,7 +18,7 @@ export class MainScene extends Phaser.Scene {
     private upKey: MultiKey
     private downKey: MultiKey
 
-    private gameApi = civ.core.GameApi.Companion.fromGameState(civ.TestData.gameState2)
+    private gameApi = civ.core.GameApi.Companion.fromGameState(civ.TestData.generated)
     private playersMap = new Map<string, civ.model.Player>()
     private player: civ.model.Player
 
@@ -52,11 +52,19 @@ export class MainScene extends Phaser.Scene {
 
         this.load.image("settlers", "assets/icons/units/settlers.png")
 
+        this.load.image("river_bottom_left", "assets/river_bottom_left.png")
+        this.load.image("river_left", "assets/river_left.png")
+        this.load.image("river_top_left", "assets/river_top_left.png")
+        this.load.image("river_bottom_right", "assets/river_bottom_right.png")
+        this.load.image("river_right", "assets/river_right.png")
+        this.load.image("river_top_right", "assets/river_top_right.png")
+
         this.load.image("forest", "assets/forest.png")
         this.load.image("animals", "assets/animals.png")
         this.load.image("forest_animals", "assets/forest_animals.png")
         this.load.image("mountains", "assets/mountains.png")
         this.load.image("mountains_gold", "assets/mountains_gold.png")
+
         this.load.image("village", "assets/village.png")
         this.load.image("town", "assets/town.png")
 
@@ -84,7 +92,7 @@ export class MainScene extends Phaser.Scene {
 
         this.input.mouse.disableContextMenu()
 
-        civ.TestData.gameState2.players.asJsReadonlyArrayView().forEach(it => {
+        civ.TestData.generated.players.asJsReadonlyArrayView().forEach(it => {
             this.playersMap.set(it.playerId, it)
         })
 
@@ -131,7 +139,7 @@ export class MainScene extends Phaser.Scene {
             }
         })
 
-        this.player = civ.TestData.gameState1.players.asJsReadonlyArrayView()[0]
+        this.player = civ.TestData.generated.players.asJsReadonlyArrayView()[0]
         this.gameApi.tilesForPlayer(this.player.playerId).asJsReadonlyArrayView().map(it => {
             this.tiles.push(new Tile(this, it, this.playersMap))
             // this.tiles.set(it.coordinates, new Tile(this, it, this.playersMap))

@@ -58,8 +58,8 @@ class GameApi private constructor(
         val vision = visionCalculator.getVisionFor(playerId)
 
         return hexMap.tiles.values.map {
-            val isVisible = vision.visible.contains(it.coords)
-            val isDiscovered by lazy { vision.discovered.contains(it.coords) }
+            val isVisible = true//vision.visible.contains(it.coords)
+            val isDiscovered = true// by lazy { vision.discovered.contains(it.coords) }
             PlayerTileData(
                 coordinates = it.coords,
                 isVisible = isVisible,
