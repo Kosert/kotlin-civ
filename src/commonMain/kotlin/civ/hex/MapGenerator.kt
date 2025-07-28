@@ -1,5 +1,6 @@
 package civ.hex
 
+import civ.addIf
 import civ.model.Player
 import civ.model.UnitType
 import civ.tile.Grass
@@ -185,16 +186,26 @@ class MapGenerator(
 
         println("Remaining free: ${freeTiles.size}")
 
-        val animalTiles = freeTiles.sortedByDescending {
+        val animalTiles = mutableSetOf<Coordinates>()
+        (forestTiles + freeTiles).sortedByDescending {
+            //todo prefer empty tiles
+            //todo distance between animals?
             it.neighbors().sumOf {
                 when (it) {
                     in mountainTiles -> 0
-                    in riverTiles -> 5
+                    in riverTiles -> 8
                     in forestTiles -> 5
                     else -> 2
                 }
-            }
-        }.take(animals)
+            }.addIf(it in freeTiles, 8)
+        }.forEach { candidate ->
+            if (candidate.neighbors().any { it in animalTiles })
+                return@forEach
+
+            //TODO
+        }
+
+
         println("Animals generated")
         //todo remove from free tiles?
 
