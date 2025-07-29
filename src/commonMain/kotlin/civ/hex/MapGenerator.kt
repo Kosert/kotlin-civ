@@ -16,7 +16,7 @@ class MapGenerator(
     val random = Random(seed)
 
     val forestsPercent = 0.35
-    val mountainsPercent = 0.1
+    val mountainsPercent = 0.09
     val goldPercent = 0.5
     val lakesPercent = 0.1
     val animalsPercent = 0.05
@@ -39,14 +39,12 @@ class MapGenerator(
                     .take(random.nextInt(1, 3).coerceAtMost(remaining))
 
                 current += toAdd
-                println("current: ${current.size} $current")
                 if (toAdd.isEmpty())
                     break
             }
 
             resultTiles.addAll(current)
             freeTiles.removeAll(current)
-            println("adding to group: ${resultTiles.size} $resultTiles")
         }
         return resultTiles
     }
@@ -68,7 +66,6 @@ class MapGenerator(
                 break
 
             current.neighbors()
-                //.mapNotNull { tiles[it] }
                 .forEach { nextTile ->
                     val newCost = totalCosts.getValue(current) + nextTile.cost()
                     if (totalCosts[nextTile]?.let { it > newCost } != false) {
@@ -79,7 +76,6 @@ class MapGenerator(
                 }
         }
 
-        //todo
         var pointer = end
         return buildList<Coordinates> {
             while (pointer != start) {
@@ -89,6 +85,7 @@ class MapGenerator(
         }
     }
 
+    @Suppress("CANDIDATE_CHOSEN_USING_OVERLOAD_RESOLUTION_BY_LAMBDA_ANNOTATION")
     fun generate(
         width: Int = 50,
         height: Int = 50,
@@ -120,12 +117,16 @@ class MapGenerator(
         println("Lakes generated")
 
         val units = mutableMapOf<Coordinates, Pair<String, UnitType>>()
-        //todo min distance between players
+
+        //todo safeguard for too many players on too little map?
+        val distanceBetweenPlayers = 5
+        val playerSafeZone = borderWaterTiles.flatMap { it.getAllInRange(2) }.toMutableSet()
         players.forEach { player ->
-            val settlersPosition = freeTiles.random(random)
+            val settlersPosition = (freeTiles - playerSafeZone).random(random)
             val scoutPosition = settlersPosition.neighbors().filter { it in freeTiles }.random(random)
-            units.put(settlersPosition, player.playerId to UnitType.SETTLERS)
-            units.put(scoutPosition, player.playerId to UnitType.SCOUT)
+            units[settlersPosition] = player.playerId to UnitType.SETTLERS
+            units[scoutPosition] = player.playerId to UnitType.SCOUT
+            playerSafeZone.addAll(settlersPosition.getAllInRange(distanceBetweenPlayers))
             freeTiles.remove(settlersPosition)
             freeTiles.remove(scoutPosition)
         }
@@ -184,12 +185,9 @@ class MapGenerator(
             HexEdge.entries.filter { edge -> it.movedBy(edge) in riverConnectingTiles }
         }
 
-        println("Remaining free: ${freeTiles.size}")
-
         val animalTiles = mutableSetOf<Coordinates>()
+        val animalFreeZone = mutableSetOf<Coordinates>()
         (forestTiles + freeTiles).sortedByDescending {
-            //todo prefer empty tiles
-            //todo distance between animals?
             it.neighbors().sumOf {
                 when (it) {
                     in mountainTiles -> 0
@@ -199,28 +197,25 @@ class MapGenerator(
                 }
             }.addIf(it in freeTiles, 8)
         }.forEach { candidate ->
-            if (candidate.neighbors().any { it in animalTiles })
-                return@forEach
-
-            //TODO
+            if (animalTiles.size < animals && candidate !in animalFreeZone) {
+                animalTiles.add(candidate)
+                animalFreeZone.addAll(candidate.getAllInRange(2))
+            }
         }
-
-
-        println("Animals generated")
-        //todo remove from free tiles?
 
         return MapData(
             seed = seed,
             tiles = layout.mapTo(mutableSetOf()) {
-                when {
-                    it in allWaterTiles -> Water(it)
-                    it in mountainTiles -> Mountains(it, gold = it in goldTiles)
+                when (it) {
+                    in allWaterTiles -> Water(it)
+                    in mountainTiles -> Mountains(it, gold = it in goldTiles)
                     else -> Grass(
                         it,
                         forest = it in forestTiles,
                         riverEdges = riverEdgesMap[it].orEmpty(),
                         animals = it in animalTiles,
-                        coast = it.neighbors().any { it in allWaterTiles }
+                        coast = it.neighbors().any { it in allWaterTiles },
+                        isBusy = units.containsKey(it)
                     )
                 }
             },

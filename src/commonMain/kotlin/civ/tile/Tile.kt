@@ -48,6 +48,8 @@ sealed class Tile {
         .sortedBy { it.ordinal }
 
     fun getMainCityBuilding(): Building? = buildings.firstOrNull { it in Building.cityMainBuildings }
+
+    abstract fun getVisibleName(): String
 }
 
 @JsExport
@@ -57,6 +59,8 @@ data class Water(
 ) : Tile() {
     override val baseMovementCost: Int = IMPASSABLE_COST
     override fun updated(isBusy: Boolean, buildings: Set<Building>) = copy(buildings = buildings)
+
+    override fun getVisibleName() = "Water"
 }
 
 @JsExport
@@ -72,7 +76,7 @@ data class Grass(
     val river: Boolean
         get() = riverEdges.isNotEmpty()
 
-    override val baseMovementCost: Int// = 10
+    override val baseMovementCost: Int
         get() = when {
             river || forest -> 11
             else -> 10
@@ -82,6 +86,13 @@ data class Grass(
         isBusy: Boolean,
         buildings: Set<Building>
     ) = copy(isBusy = isBusy, buildings = buildings)
+
+    override fun getVisibleName(): String = listOfNotNull(
+        if (forest) "Forest " else "Plains",
+        "coastline".takeIf { coast },
+        "river".takeIf { river },
+        "animals".takeIf { animals },
+    ).joinToString(", ")
 }
 
 @JsExport
@@ -98,5 +109,7 @@ data class Mountains(
         isBusy: Boolean,
         buildings: Set<Building>
     ) = copy(isBusy = isBusy, buildings = buildings)
+
+    override fun getVisibleName() = "Mountains" + if (gold) ", gold ore" else ""
 }
 

@@ -12,6 +12,7 @@ import civ.tile.Mountains
 import civ.tile.Water
 import kotlin.js.ExperimentalJsExport
 import kotlin.js.JsExport
+import kotlin.random.Random
 
 @OptIn(ExperimentalJsExport::class)
 @JsExport
@@ -144,11 +145,10 @@ object TestData {
             Player(name = "Drugi", color = PlayerColor.RED),
         )
 
-        val mapData =  MapGenerator(123).generate(players = playerList)
+        val seed = Random.nextLong()
+        println("Seed: $seed")
 
-        mapData.tiles.count { it is Grass && it.river }.let {
-            println("RIVERS COUNT: $it")
-        }
+        val mapData =  MapGenerator(seed).generate(20, 20, players = playerList)
 
         GameState(
             players = playerList,

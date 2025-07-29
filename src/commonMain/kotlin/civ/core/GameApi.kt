@@ -58,8 +58,8 @@ class GameApi private constructor(
         val vision = visionCalculator.getVisionFor(playerId)
 
         return hexMap.tiles.values.map {
-            val isVisible = true//vision.visible.contains(it.coords)
-            val isDiscovered = true// by lazy { vision.discovered.contains(it.coords) }
+            val isVisible = vision.visible.contains(it.coords)
+            val isDiscovered by lazy { vision.discovered.contains(it.coords) }
             PlayerTileData(
                 coordinates = it.coords,
                 isVisible = isVisible,
@@ -249,6 +249,10 @@ class GameApi private constructor(
                     .mapNotNull { units[it] }
                     .firstOrNull { it.unitId == action.targetUnitId }
                     ?: return ActionResult.exception("Target unit ${action.targetUnitId} not found")
+
+                if (defender.playerId == attacker.playerId) {
+                    return ActionResult.exception("Cannot attack own unit")
+                }
 
                 val isRangedAttack = defender.coordinates !in attacker.coordinates.neighbors()
 

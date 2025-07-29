@@ -2,6 +2,16 @@ import { civ } from "kotlin-civ";
 
 export class Texts {
 
+    // Glyphs:
+    // { - food
+    // } - wood
+    // $ - gold
+    // @ - attack
+    // | - defense
+    // % - range
+    // ^ - health
+    // § - speed
+
     static tileDescription(income?: civ.model.Stockpiles): string {
         if (!income)
             return ""
@@ -101,11 +111,11 @@ export class Texts {
             case civ.model.Building.WINDMILL:
                 return "Produces 3{ each turn.\nRequires Farm."
             case civ.model.Building.RIVERLAND_FARM:
-                return "Produces 3{ each turn. Can only be built on a river tile."
+                return "Produces 3{ each turn."
             case civ.model.Building.WATERMILL:
                 return "Produces 4{ each turn.\nRequires Riverland Farm."
              case civ.model.Building.HUNTERS_CAMP:
-                return "Produces 2{ and 1$ each turn. Can only be built on a tile with animals."
+                return "Produces 2{ and 1$ each turn."
             case civ.model.Building.BUTCHERY:
                 return "Produces 3{ and 1$ each turn.\nRequires Hunters' Camp."
             case civ.model.Building.MINE:
@@ -156,26 +166,46 @@ export class Texts {
         }
     }
 
+    static unitStats(unitType: civ.model.UnitType): string {
+        return [
+            `^ ${unitType.maxHp}`,
+            unitType.attack > 0 ? ((unitType.range > 1 ? "%" : "@") + ` ${unitType.attack}`) : "",
+            unitType.defense > 0 ? `| ${unitType.defense}` : "",
+            unitType.speed > 0 ? `§ ${unitType.speed}` : "",
+        ].filter(it => it).join("\n")
+    }
+
+    static selectedUnitStats(unit: civ.model.CivUnit): string {
+        return [
+            `^ ${unit.hp}/${unit.maxHp}`,
+            unit.attack > 0 ? ((unit.attackRange > 1 ? "%" : "@") + ` ${unit.attack}`) : "",
+            unit.defense > 0 ? `| ${unit.defense}` : "",
+            "Movement left: " + (unit.movementLeft / 10).toPrecision(2),
+            "Action points: " + (unit.actionPoint ? "1" : "0")
+            //todo action points
+        ].filter(it => it).join("\n")
+    }
+
     static unitDescription(unitType: civ.model.UnitType): string {
         switch (unitType) {
             case civ.model.UnitType.SETTLERS:
-                return "Can found new cities."
+                return "Can found new cities.\n" + this.unitStats(unitType)
             case civ.model.UnitType.SCOUT:
-                return "Fast reconnaissance unit with good vision range."
+                return "Fast reconnaissance unit with good vision range.\n" + this.unitStats(unitType)
             case civ.model.UnitType.WARRIOR:
-                return "Basic melee combat unit."
+                return "Basic melee combat unit.\n" + this.unitStats(unitType)
             case civ.model.UnitType.ARCHER:
-                return "Ranged combat unit that can attack from distance."
+                return "Ranged combat unit that can attack from distance.\n" + this.unitStats(unitType)
             case civ.model.UnitType.SWORDSMAN:
-                return "Advanced melee unit with iron weapons."
+                return "Advanced melee unit with iron weapons.\n" + this.unitStats(unitType)
             case civ.model.UnitType.KNIGHT:
-                return "Fast heavy cavalry unit."
+                return "Fast heavy cavalry unit.\n" + this.unitStats(unitType)
             case civ.model.UnitType.HEAVY_PIKEMAN:
-                return "Heavily armored defensive unit."
+                return "Heavily armored defensive unit.\n" + this.unitStats(unitType)
             case civ.model.UnitType.HEAVY_SWORDSMAN:
-                return "Elite heavily armored melee unit."
+                return "Elite heavily armored melee unit.\n" + this.unitStats(unitType)
             case civ.model.UnitType.TREBUCHET:
-                return "Powerful siege weapon with long range."
+                return "Powerful siege weapon with long range.\n" + this.unitStats(unitType)
             default:
                 throw new Error(`Unhandled unit type: ${unitType.value}`);
         }

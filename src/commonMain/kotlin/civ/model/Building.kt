@@ -96,7 +96,7 @@ enum class Building(
     ),
 
     FARM(
-        tileRequirement = { it.isNotACity() && it is Grass && !it.forest },
+        tileRequirement = { it.isNotACity() && it is Grass && !it.forest && !it.river },
         cost = Stockpiles(wood = 10),
         bonus = StockCollectBonus(Stockpiles(food = 2))
     ),

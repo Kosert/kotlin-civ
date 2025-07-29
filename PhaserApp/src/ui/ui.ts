@@ -51,6 +51,7 @@ export class Ui {
     private recruitTitle: Phaser.GameObjects.Text
     private recruitButtons = new Map<civ.model.UnitType, RecruitButton>()
 
+    private errorAlertBackground: Phaser.GameObjects.Rectangle
     private errorAlert: Phaser.GameObjects.Text
 
     private tooltip: Tooltip
@@ -161,7 +162,12 @@ export class Ui {
             }
         })
 
-        this.errorAlert = scene.add.text(Ui.uiMainStart, stockY - 32, "", { font: "bold 20px Arial", color: "#FF0000" }).setDepth(91)
+        this.errorAlertBackground = scene.add.rectangle(scene.cameras.main.width / 2, scene.cameras.main.height / 2, 0, 0, 0x000000, 0.8)
+        .setDepth(91).setScrollFactor(0).setOrigin(0.5, 0.5)
+        .setStrokeStyle(1, Ui.colorAccent.color)
+        this.errorAlert = scene.add.text(scene.cameras.main.width / 2, scene.cameras.main.height / 2, "", { font: "bold 20px Arial", color: "#FF0000" })
+        .setDepth(91)
+        .setOrigin(0.5, 0.5)
         .setScrollFactor(0)
 
         this.setSelection(null)
@@ -169,8 +175,21 @@ export class Ui {
 
     postAlert(alertText: string) {
         this.errorAlert.setText(alertText).setAlpha(1)
+        this.errorAlertBackground.setSize(this.errorAlert.width + 32, this.errorAlert.height + 16).setAlpha(1)
+        // this.scene.tweens.add({
+        //     targets: [this.errorAlert, this.errorAlertBackground],
+        //     props: {
+        //         x: { value: this.errorAlert.x + 10, duration: 500, ease: 'Bounce.InOut' },
+        //     },
+        //     delay: 0,
+        //     //ease: 'Bounce',       // 'Cubic', 'Elastic', 'Bounce', 'Back'
+        //     //duration: 500,
+        //     repeat: 0,            // -1: infinity
+        //     yoyo: false,
+        // })
+
         this.scene.tweens.add({
-            targets: this.errorAlert,
+            targets: [this.errorAlert, this.errorAlertBackground],
             alpha: 0,
             delay: 3000,
             ease: 'Linear',       // 'Cubic', 'Elastic', 'Bounce', 'Back'
@@ -213,7 +232,7 @@ export class Ui {
 
             if (!entity.tile) {
                 this.selectedTitle.setText("Unknown")
-                this.selectedText.setText("-")
+                this.selectedText.setText("Move closer to reveal this tile")
                 this.selectedSeparator.setVisible(false)
                 this.recruitBackground.setVisible(false)
                 this.recruitTitle.setVisible(false)
@@ -221,17 +240,7 @@ export class Ui {
                 return
             }
 
-            if (entity.tile instanceof civ.tile.Grass) {
-                if (entity.tile.forest) {
-                    this.selectedTitle.setText("Forest")
-                } else {
-                    this.selectedTitle.setText("Plains")
-                }
-            } else if (entity.tile instanceof civ.tile.Mountains) {
-                this.selectedTitle.setText("Mountains")
-            } else if (entity.tile instanceof civ.tile.Water) {
-                this.selectedTitle.setText("Water")
-            }
+            this.selectedTitle.setText(entity.tile.getVisibleName())
 
             //todo const playerId
             const playerId = this.gameApi.currentPlayer.playerId
@@ -300,13 +309,7 @@ export class Ui {
 
             this.selectedTitle.setText(entity.unitType.name)
             this.selectedIcon.setTexture(UnitIcons.get(entity.unitType))
-
-            let description = `HP: ${entity.hp}/${entity.maxHp}\nAttack: ${entity.attack}\n`
-            if (true /*isCurrentPlayer*/) {
-                description += `Movement left: ${(entity.movementLeft / 10).toPrecision(2)}\n`
-                description += `Action points: ${(entity.actionPoint ? "1" : "0")}`
-            }
-            this.selectedText.setText(description)
+            this.selectedText.setText(Texts.selectedUnitStats(entity))
 
             this.buttonSettle.setVisible(entity.unitType == civ.model.UnitType.SETTLERS)
             this.buttonSettle.setDisabled(!entity.actionPoint)
@@ -321,7 +324,6 @@ export class Ui {
             this.selectedTile.setVisible(false)
             this.selectedIcon.setVisible(false)
             this.selectedTitle.setVisible(false)
-            this.selectedText.setVisible(false)
             this.selectedText.setVisible(false)
             this.buttonSettle.setVisible(false)
             this.buttonConquer.setVisible(false)

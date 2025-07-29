@@ -238,31 +238,31 @@ export class MainScene extends Phaser.Scene {
 
         const mouseScrollThreshold = NaN//25
         if (mouseX - mouseScrollThreshold < 0) {
-            horizontalMove = -5
+            horizontalMove = -1
         } else if (mouseX + mouseScrollThreshold > gameW) {
-            horizontalMove = 5
+            horizontalMove = 1
         }
 
         if (mouseY - mouseScrollThreshold < 0) {
-            verticalMove = -5
+            verticalMove = -1
         } else if (mouseY + mouseScrollThreshold > gameH) {
-            verticalMove = 5
+            verticalMove = 1
         }
 
         if (this.rightKey.isDown()) {
-            horizontalMove = 5
+            horizontalMove = 1
         } else if (this.leftKey.isDown()) {
-            horizontalMove = -5
+            horizontalMove = -1
         }
 
         if (this.downKey.isDown()) {
-            verticalMove = 5
+            verticalMove = 1
         } else if (this.upKey.isDown()) {
-            verticalMove = -5
+            verticalMove = -1
         }
 
-        this.cameras.main.scrollX += horizontalMove
-        this.cameras.main.scrollY += verticalMove
+        this.cameras.main.scrollX += horizontalMove * delta
+        this.cameras.main.scrollY += verticalMove * delta
         this.input.activePointer.updateWorldPoint(this.cameras.main)
 
         if (this.escKey.isDown()) {
@@ -317,6 +317,7 @@ export class MainScene extends Phaser.Scene {
             }
         })
 
+        //todo unit events (create/move/kill/vanish), tile updated events
         this.units.forEach(it => {
             const updated = unitsFromApi.find(unit => unit.unitId == it.unitId)
             if (updated) {
