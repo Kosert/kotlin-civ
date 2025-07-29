@@ -14,16 +14,13 @@ class VisionCalculator(
 
     fun getVisionFor(playerId: String) = data[playerId] ?: VisionData(emptySet(), emptySet())
 
-    //todo?
-//    fun recalculate(units: Collection<CivUnit>, cities: Collection<City>) {
-//        val visionPoints = units.map { it.coordinates to it.visionRange }
-//            .plus(cities.map { it.coordinates to it.visionRange })
-//
-//        val visible = visionPoints.flatMapTo(mutableSetOf()) { (coordinates, range) ->
-//            hexMap.range(coordinates, range)
-//        }
-//
-//    }
+    fun getPlayersThatCanSee(vararg coordinates: Coordinates): List<String> = data.mapNotNull { (playerId, vision) ->
+        playerId.takeIf { vision.visible.any { it in coordinates } }
+    }
+
+    fun getPlayersThatDiscovered(vararg coordinates: Coordinates): List<String> = data.mapNotNull { (playerId, vision) ->
+        playerId.takeIf { vision.discovered.any { it in coordinates } }
+    }
 
     fun recalculate(playerId: String, units: Collection<CivUnit>, cities: Collection<City>) {
         val visionPoints = units.map { it.coordinates to it.visionRange }

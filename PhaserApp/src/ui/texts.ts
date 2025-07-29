@@ -151,12 +151,14 @@ export class Texts {
                 return "Warrior"
             case civ.model.UnitType.ARCHER:
                 return "Archer"
+            case civ.model.UnitType.RIDER:
+                return "Rider"        
             case civ.model.UnitType.SWORDSMAN:
                 return "Swordsman"
             case civ.model.UnitType.KNIGHT:
                 return "Knight"
-            case civ.model.UnitType.HEAVY_PIKEMAN:
-                return "Heavy Pikeman"
+            // case civ.model.UnitType.HEAVY_PIKEMAN:
+            //     return "Heavy Pikeman"
             case civ.model.UnitType.HEAVY_SWORDSMAN:
                 return "Heavy Swordsman"
             case civ.model.UnitType.TREBUCHET:
@@ -196,12 +198,14 @@ export class Texts {
                 return "Basic melee combat unit.\n" + this.unitStats(unitType)
             case civ.model.UnitType.ARCHER:
                 return "Ranged combat unit that can attack from distance.\n" + this.unitStats(unitType)
+            case civ.model.UnitType.RIDER:
+                return "Fast mounted unit offensive unit.\n" + this.unitStats(unitType)
             case civ.model.UnitType.SWORDSMAN:
                 return "Advanced melee unit with iron weapons.\n" + this.unitStats(unitType)
             case civ.model.UnitType.KNIGHT:
                 return "Fast heavy cavalry unit.\n" + this.unitStats(unitType)
-            case civ.model.UnitType.HEAVY_PIKEMAN:
-                return "Heavily armored defensive unit.\n" + this.unitStats(unitType)
+            // case civ.model.UnitType.HEAVY_PIKEMAN:
+            //     return "Heavily armored defensive unit.\n" + this.unitStats(unitType)
             case civ.model.UnitType.HEAVY_SWORDSMAN:
                 return "Elite heavily armored melee unit.\n" + this.unitStats(unitType)
             case civ.model.UnitType.TREBUCHET:

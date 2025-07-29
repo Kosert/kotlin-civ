@@ -2,7 +2,6 @@
 
 package civ.model
 
-import civ.contains
 import civ.hex.Coordinates
 import kotlin.uuid.Uuid
 import kotlin.js.ExperimentalJsExport
@@ -18,7 +17,7 @@ enum class UnitType(
     val speed: Int,
     val visionRange: Int,
     val cost: Stockpiles,
-    val buildingRequirement: (Set<Building>) -> Boolean = { true }
+    val requiredBuildings: (Set<Building>) = emptySet()
 ) {
     SETTLERS(
         value = "settlers",
@@ -28,7 +27,7 @@ enum class UnitType(
         maxHp = 5,
         speed = 1,
         visionRange = 1,
-        cost = Stockpiles(food = 30)
+        cost = Stockpiles(food = 40)
     ),
 
     SCOUT(
@@ -40,20 +39,22 @@ enum class UnitType(
         speed = 2,
         visionRange = 2,
         cost = Stockpiles(food = 10),
-        buildingRequirement = { it.contains(Building.STABLE) }
+        requiredBuildings = setOf(Building.STABLE)
     ),
 
     WARRIOR(
         value = "warrior",
-        attack = 4,
+        attack = 3,
         range = 1,
         defense = 1,
         maxHp = 15,
         speed = 1,
         visionRange = 1,
-        cost = Stockpiles(food = 10),
-        buildingRequirement = { it.contains(Building.BARRACKS) }
+        cost = Stockpiles(food = 15),
+        requiredBuildings = setOf(Building.BARRACKS)
     ),
+
+    // TOWN LEVEL UNITS
 
     ARCHER(
         value = "archer",
@@ -63,21 +64,35 @@ enum class UnitType(
         maxHp = 10,
         speed = 1,
         visionRange = 2,
-        cost = Stockpiles(food = 10, wood = 5),
-        buildingRequirement = { it.contains(Building.ARCHERY_RANGE) }
+        cost = Stockpiles(food = 15, wood = 10),
+        requiredBuildings = setOf(Building.ARCHERY_RANGE)
+    ),
+
+    RIDER(
+        value = "rider",
+        attack = 5,
+        range = 1,
+        defense = 1,
+        maxHp = 15,
+        speed = 1,
+        visionRange = 1,
+        cost = Stockpiles(food = 20, gold = 5),
+        requiredBuildings = setOf(Building.TOWN_HALL, Building.STABLE)
     ),
 
     SWORDSMAN(
         value = "swordsman",
-        attack = 6,
+        attack = 5,
         range = 1,
         defense = 3,
         maxHp = 15,
         speed = 1,
         visionRange = 1,
-        cost = Stockpiles(food = 10, gold = 10),
-        buildingRequirement = { it.contains(Building.BARRACKS, Building.BLACKSMITH) }
+        cost = Stockpiles(food = 20, gold = 15),
+        requiredBuildings = setOf(Building.BARRACKS, Building.BLACKSMITH)
     ),
+
+    // CASTLE LEVEL UNITS
 
     KNIGHT(
         value = "knight",
@@ -87,32 +102,32 @@ enum class UnitType(
         maxHp = 20,
         speed = 2,
         visionRange = 2,
-        cost = Stockpiles(food = 20, gold = 20),
-        buildingRequirement = { it.contains(Building.STABLE, Building.BLACKSMITH) }
+        cost = Stockpiles(food = 20, gold = 40),
+        requiredBuildings = setOf(Building.CASTLE, Building.STABLE, Building.BLACKSMITH)
     ),
 
-    HEAVY_PIKEMAN(
-        value = "heavy_pikemen",
-        attack = 4,
-        range = 1,
-        defense = 8,
-        maxHp = 15,
-        speed = 1,
-        visionRange = 1,
-        cost = Stockpiles(food = 20, gold = 20),
-        buildingRequirement = { it.contains(Building.BARRACKS, Building.ARMORERS_WORKSHOP) }
-    ),
+//    HEAVY_PIKEMAN(
+//        value = "heavy_pikemen",
+//        attack = 4,
+//        range = 1,
+//        defense = 8,
+//        maxHp = 15,
+//        speed = 1,
+//        visionRange = 1,
+//        cost = Stockpiles(food = 20, gold = 20),
+//        buildingRequirement = setOf(Building.BARRACKS, Building.ARMORERS_WORKSHOP)
+//    ),
 
     HEAVY_SWORDSMAN(
         value = "heavy_swordsman",
-        attack = 10,
+        attack = 8,
         range = 1,
         defense = 10,
         maxHp = 20,
         speed = 1,
         visionRange = 1,
         cost = Stockpiles(food = 20, gold = 50),
-        buildingRequirement = { it.contains(Building.BARRACKS, Building.BLACKSMITH, Building.ARMORERS_WORKSHOP) }
+        requiredBuildings = setOf(Building.BARRACKS, Building.BLACKSMITH, Building.ARMORERS_WORKSHOP)
     ),
 
     TREBUCHET(
@@ -124,10 +139,12 @@ enum class UnitType(
         speed = 1,
         visionRange = 3,
         cost = Stockpiles(wood = 50, gold = 50),
-        buildingRequirement = { it.contains(Building.SIEGE_WORKSHOP) }
+        requiredBuildings = setOf(Building.SIEGE_WORKSHOP)
     )
 
     ;
+
+    fun buildingRequirement(buildings: Set<Building>): Boolean = buildings.containsAll(requiredBuildings)
 
     companion object {
         fun byValue(value: String) = entries.first { it.value == value }

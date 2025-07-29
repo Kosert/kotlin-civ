@@ -1,6 +1,10 @@
 package civ.core
 
 import civ.action.*
+import civ.events.EventListener
+import civ.events.GameEvent
+import civ.events.UnitEvent
+import civ.events.VisionChanged
 import civ.hex.*
 import civ.model.*
 import civ.tile.Grass
@@ -20,13 +24,14 @@ class GameApi private constructor(
 ) {
     //todo initial sort?
     private val turns = players.toMutableList()
+    private val eventListeners = mutableListOf<EventListener>()
 
     private val hexMap = HexMap(tileList)
     private val visionCalculator = VisionCalculator(hexMap)
     private val borderCalculator = BorderCalculator(hexMap)
     private val combatCalculator = CombatCalculator()
 
-    private val stocksManager = StockpilesManager(hexMap, stocks)
+    private val stocksManager = StockpilesManager(hexMap, eventListeners, stocks)
 
     private val cities = cities.associateBy { it.coordinates }.toMutableMap()
     private val units = units.associateBy { it.coordinates }.toMutableMap()
@@ -34,6 +39,10 @@ class GameApi private constructor(
     fun citiesFor(playerId: String) = cities.values.filter { it.playerId == playerId }
     fun unitsFor(playerId: String) = units.values.filter { it.playerId == playerId }
     fun stocksFor(playerId: String) = stocksManager.getFor(playerId)
+
+    private fun triggerEvent(recipientIds: List<String>, event: GameEvent) {
+        eventListeners.filter { it.playerId in recipientIds }.forEach { it.listener(event) }
+    }
 
     private fun recalculateVision() {
         turns.forEach { player ->
@@ -44,6 +53,7 @@ class GameApi private constructor(
             )
         }
         borderCalculator.recalculate(turns, cities.values)
+        eventListeners.forEach { it.listener(VisionChanged) }
     }
 
     init {
@@ -53,6 +63,12 @@ class GameApi private constructor(
 
     val currentPlayer
         get() = turns.first()
+
+    fun registerEventListener(playerId: String, listener: (GameEvent) -> Unit) {
+        eventListeners.add(EventListener(playerId, listener))
+    }
+
+    fun unregisterEventListeners(playerId: String) = eventListeners.removeAll { it.playerId == playerId }
 
     fun tilesForPlayer(playerId: String): List<PlayerTileData> {
         val vision = visionCalculator.getVisionFor(playerId)
@@ -141,6 +157,10 @@ class GameApi private constructor(
                         conquerState = if (isOccupying) ConquerState.OCCUPYING else ConquerState.NONE
                     )
                     recalculateVision()
+                    triggerEvent(
+                        visionCalculator.getPlayersThatCanSee(current, it.coordinates),
+                        UnitEvent.Moved(units.getValue(it.coordinates))
+                    )
                 }
             }
             is Settle -> {
@@ -165,6 +185,10 @@ class GameApi private constructor(
                 cities[unit.coordinates] = City(
                     coordinates = unit.coordinates,
                     playerId = unit.playerId
+                )
+                triggerEvent(
+                    visionCalculator.getPlayersThatCanSee(unit.coordinates),
+                    UnitEvent.Vanish(unit)
                 )
                 recalculateVision()
             }
@@ -230,6 +254,10 @@ class GameApi private constructor(
                 )
                 units[action.coordinates] = newUnit
                 hexMap.markBusy(action.coordinates, true)
+                triggerEvent(
+                    visionCalculator.getPlayersThatCanSee(newUnit.coordinates),
+                    UnitEvent.Created(newUnit)
+                )
 
                 recalculateVision()
             }
@@ -263,7 +291,12 @@ class GameApi private constructor(
                 )
 
                 if (isRangedAttack) {
-                    units[attacker.coordinates] = attacker.copy(actionPoint = false)
+                    val updated = attacker.copy(actionPoint = false)
+                    units[attacker.coordinates] = updated
+                    triggerEvent(
+                        visionCalculator.getPlayersThatCanSee(updated.coordinates),
+                        UnitEvent.Updated(updated)
+                    )
                 } else {
                     if (updatedAttacker.hp <= 0) {
                         hexMap.markBusy(updatedAttacker.coordinates, false)
@@ -271,6 +304,10 @@ class GameApi private constructor(
                     } else {
                         units[updatedAttacker.coordinates] = updatedAttacker.copy(actionPoint = false)
                     }
+                    triggerEvent(
+                        visionCalculator.getPlayersThatCanSee(updatedAttacker.coordinates),
+                        UnitEvent.Updated(updatedAttacker)
+                    )
                 }
 
                 if (updatedDefender.hp <= 0) {
@@ -279,6 +316,10 @@ class GameApi private constructor(
                 } else {
                     units[updatedDefender.coordinates] = updatedDefender
                 }
+                triggerEvent(
+                    visionCalculator.getPlayersThatCanSee(updatedDefender.coordinates),
+                    UnitEvent.Updated(updatedDefender)
+                )
                 recalculateVision()
             }
             is Conquer -> {
@@ -292,9 +333,14 @@ class GameApi private constructor(
                     playerId = attacker.playerId
                 )
 
-                units[action.coordinates] = attacker.copy(
+                val updatedAttacker = attacker.copy(
                     actionPoint = false,
                     conquerState = ConquerState.NONE
+                )
+                units[action.coordinates] = updatedAttacker
+                triggerEvent(
+                    visionCalculator.getPlayersThatCanSee(updatedAttacker.coordinates),
+                    UnitEvent.Updated(updatedAttacker)
                 )
                 recalculateVision()
             }
@@ -312,11 +358,16 @@ class GameApi private constructor(
 
         unitsFor(currentPlayer.playerId)
             .forEach {
-                units.put(it.coordinates, it.copy(
+                val updatedUnit = it.copy(
                     movementLeft = CivUnit.speedToMovement(it.speed),
                     actionPoint = true,
                     conquerState = if (it.conquerState == ConquerState.OCCUPYING) ConquerState.CAN_CONQUER else it.conquerState
-                ))
+                )
+                units.put(it.coordinates, updatedUnit)
+                triggerEvent(
+                    visionCalculator.getPlayersThatCanSee(updatedUnit.coordinates),
+                    UnitEvent.Updated(updatedUnit)
+                )
             }
 
         stocksManager.collect(
@@ -349,7 +400,13 @@ class GameApi private constructor(
     }
 
     fun generateGameState(): GameState {
-        TODO()
+        return GameState(
+            players = turns,
+            tileList = hexMap.tiles.values.toSet(),
+            cities = cities.values.toSet(),
+            units = units.values.toSet(),
+            stock = turns.associate { it.playerId to stocksManager.getFor(it.playerId) }
+        )
     }
 
     companion object {

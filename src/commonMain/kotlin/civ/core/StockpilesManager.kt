@@ -1,6 +1,8 @@
 package civ.core
 
 import civ.addIf
+import civ.events.EventListener
+import civ.events.StockUpdated
 import civ.hex.HexMap
 import civ.model.*
 import civ.tile.Grass
@@ -8,6 +10,7 @@ import civ.tile.Tile
 
 class StockpilesManager(
     private val hexMap: HexMap,
+    private val eventListeners: List<EventListener>,
     stocks: Map<String, Stockpiles>,
 ) {
     private val stocks = stocks.toMutableMap()
@@ -15,8 +18,9 @@ class StockpilesManager(
     fun getFor(playerId: String) = stocks[playerId].require()
 
     fun substract(playerId: String, amount: Stockpiles) {
-        val stock = getFor(playerId)
-        stocks[playerId] = stock - amount
+        val updatedStocks = getFor(playerId) - amount
+        stocks[playerId] = updatedStocks
+        eventListeners.filter { it.playerId == playerId }.forEach { it.listener(StockUpdated(updatedStocks)) }
     }
 
     //todo getCollectCalculation with sources to display
@@ -38,6 +42,7 @@ class StockpilesManager(
             }
         }
         stocks[playerId] = stock
+        eventListeners.filter { it.playerId == playerId }.forEach { it.listener(StockUpdated(stock)) }
     }
 }
 

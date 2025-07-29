@@ -66,20 +66,23 @@ export class Unit extends Phaser.GameObjects.Image {
             .setDepth(20)
 
         this.targetHp = hp
-        this.updateUnitData(x, y, hp)
+        this.updateUnitPosition(x, y)
+        this.updateUnitHp(hp)
     }
 
-
-    updateUnitData(x: number, y: number, hp: number) {
+    updateUnitPosition(x: number, y: number) {
         if (this.targetX != x || this.targetY != y) {
             this.animatePosition(x, y)
         }
+    }
+
+    updateUnitHp(hp: number) {
         if (this.targetHp != hp) {
             this.animateHp(hp)
         }
     }
 
-    animatePosition(x: number, y: number) {
+    private animatePosition(x: number, y: number) {
         const sourceX = this.x
         const sourceY = this.y
         this.targetX = x
@@ -107,7 +110,7 @@ export class Unit extends Phaser.GameObjects.Image {
         })
     }
 
-    animateHp(hp: number) {
+    private animateHp(hp: number) {
         const sourceHp = this.targetHp
         this.targetHp = hp
         
@@ -123,11 +126,25 @@ export class Unit extends Phaser.GameObjects.Image {
             yoyo: false,
         })
 
-        this.hpTween.on(Phaser.Tweens.Events.TWEEN_UPDATE, function(tween, key, target, current: number , previous) {
+        this.hpTween.on(Phaser.Tweens.Events.TWEEN_UPDATE, function(tween, key, target, current: number, previous) {
             const newHp = sourceHp + (self.targetHp - sourceHp) * current
             const percent = newHp / self.unitType.maxHp
             self.heathLeftover.setSize(64 * percent, 10)
         })
+
+        this.hpTween.on(Phaser.Tweens.Events.TWEEN_COMPLETE, function() {
+            if (self.targetHp <= 0) {
+                self.destroy()
+            }
+        })
+    }
+
+    tryDestroy() {
+        if (this.targetHp <= 0) {
+            //destroy will be executed by animation
+            return
+        }
+        this.destroy()
     }
 
     destroy() {

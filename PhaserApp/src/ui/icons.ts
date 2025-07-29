@@ -70,12 +70,14 @@ export class UnitIcons {
                 return "warrior"
             case civ.model.UnitType.ARCHER:
                 return "archer"
+            case civ.model.UnitType.RIDER:
+                return "rider"
             case civ.model.UnitType.SWORDSMAN:
                 return "swordsman"
             case civ.model.UnitType.KNIGHT:
                 return "knight"
-            case civ.model.UnitType.HEAVY_PIKEMAN:
-                return "heavy_pikeman"
+            // case civ.model.UnitType.HEAVY_PIKEMAN:
+            //     return "heavy_pikeman"
             case civ.model.UnitType.HEAVY_SWORDSMAN:
                 return "heavy_swordsman"
             case civ.model.UnitType.TREBUCHET:

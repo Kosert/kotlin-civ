@@ -25,7 +25,6 @@ export class Tile extends Phaser.GameObjects.Polygon {
 
     private terrainGraphics: Phaser.GameObjects.Image
     private cityGraphics: Phaser.GameObjects.Image
-    private unit: Phaser.GameObjects.Arc
     private mainOverlay: Phaser.GameObjects.Polygon
     private cityRangeOverlay: Phaser.GameObjects.Polygon
     private highlight: Phaser.GameObjects.Arc
@@ -67,9 +66,6 @@ export class Tile extends Phaser.GameObjects.Polygon {
         this.cityRangeOverlay = scene.add.polygon(centerX, centerY, polygonPoints)
             .setDepth(5)
             .setFillStyle(0x000000, 0)
-        this.unit = scene.add.circle(this.x, this.y, 16,  0x00ffff)
-            .setDepth(6)
-            .setVisible(false)
         this.mainOverlay = scene.add.polygon(centerX, centerY, polygonPoints)
             .setDepth(7)
             .setFillStyle(0x000000, 0)
@@ -86,7 +82,6 @@ export class Tile extends Phaser.GameObjects.Polygon {
 
     updateTileData(data: civ.model.PlayerTileData) {
         if (!data.tile) {
-            this.unit.setVisible(false)
             this.mainOverlay.fillAlpha = 1
             this.borderLines.forEach(it => it.setVisible(false))
             this.cityRangeOverlay.setFillStyle(0x000000, 0)
@@ -94,8 +89,6 @@ export class Tile extends Phaser.GameObjects.Polygon {
             this.setFillStyle(0x888888)
             return
         }
-
-        //todo generate only if changed?
 
         let terrainTextureName: string
         if (data.tile instanceof civ.tile.Water) {

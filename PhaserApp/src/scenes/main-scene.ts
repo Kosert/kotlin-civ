@@ -188,8 +188,12 @@ export class MainScene extends Phaser.Scene {
                 default:
                     break;
             }
-
         })
+
+        // @ts-ignore fixme
+        this.player = { playerId: "" }
+        // this.gameApi.registerEventListener(this.player.playerId, function(event) { self.onGameEvent(event) })
+        // this.ui.setStockpiles(this.gameApi.stocksFor(this.player.playerId))
     }
 
     private tryExecute(gameAction: civ.action.Action): boolean {
@@ -201,6 +205,77 @@ export class MainScene extends Phaser.Scene {
             console.log(result.exception.message, result.exception)
         }
         return result.isSuccess
+    }
+
+    private onGameEvent(event: civ.events.GameEvent) {
+        console.log("Game event:", event)
+        if (event instanceof civ.events.StockUpdated) {
+            this.ui.setStockpiles(event.stock)
+
+        } else if (event == civ.events.VisionChanged) {
+            this.updateUnitsFromTiles()
+
+        } else if (event instanceof civ.events.UnitEvent.Created) {
+            const tile = this.tiles.find(tile => tile.coordinates.equals(event.unit.coordinates))
+            const unitColor = this.playersMap.get(event.unit.playerId).color
+            this.units.set(event.unitId, new Unit(this, event.unit, unitColor, tile.x, tile.y))
+
+        } else if (event instanceof civ.events.UnitEvent.Moved) {
+            const tile = this.tiles.find(tile => tile.coordinates.equals(event.newCoordinates))
+            const unit = this.units.get(event.unitId)
+            unit.updateUnitPosition(tile.x, tile.y)
+
+        } else if (event instanceof civ.events.UnitEvent.Updated) {
+            const unit = this.units.get(event.unitId)
+            unit.updateUnitHp(event.unit.hp)
+
+        } else if (event instanceof civ.events.UnitEvent.Vanish) {
+            const unit = this.units.get(event.unitId)
+            unit.destroy()
+            this.units.delete(unit.unitId)
+        }
+    }
+
+    private updateUnitsFromTiles() {
+        const unitsFromApi: civ.model.CivUnit[] = []
+        this.gameApi.tilesForPlayer(this.player.playerId).asJsReadonlyArrayView().forEach((data, index) => {
+            const tile = this.tiles[index]
+            // tile.updateTileData(data)
+            // tile.setHighlight(
+                // this.moveHighlights.some(it => it.equals(data.coordinates)),
+                // this.pathHighlights.some(it => it.equals(data.coordinates)),
+                // data.unit && data.unit.playerId != this.player.playerId,
+            // )
+            // const isHovered = tile.coordinates.equals(hoveredCoordinates)
+            // const isSelected = tile.coordinates.equals(this.selected?.coordinates)
+            // tile.setStates(isHovered, isSelected)
+            // if (isHovered) {
+                // this.hovered = data
+            // }
+
+            if (data.unit) {
+                unitsFromApi.push(data.unit)
+            }
+        })
+
+        this.units.forEach(it => {
+            const updated = unitsFromApi.find(unit => unit.unitId == it.unitId)
+            if (updated) {
+                // const tile = this.tiles.find(tile => tile.coordinates.equals(updated.coordinates))
+                // it.updateUnitData(tile.x, tile.y, updated.hp)
+            } else {
+                it.tryDestroy()
+                this.units.delete(it.unitId)
+            }
+        })
+
+        unitsFromApi.forEach(it => {
+            if (!this.units.has(it.unitId)) {
+                const tile = this.tiles.find(tile => tile.coordinates.equals(it.coordinates))
+                const unitColor = this.playersMap.get(it.playerId).color
+                this.units.set(it.unitId, new Unit(this, it, unitColor, tile.x, tile.y))
+            }
+        })
     }
 
     select(entity: civ.model.PlayerTileData | civ.model.CivUnit) {
@@ -294,15 +369,24 @@ export class MainScene extends Phaser.Scene {
         }
 
         this.hovered = null
-        this.player = this.gameApi.currentPlayer
-        this.ui.setStockpiles(this.gameApi.stocksFor(this.player.playerId))
-        const unitsFromApi: civ.model.CivUnit[] = []
+
+        if (this.player.playerId != this.gameApi.currentPlayer.playerId) {
+            this.gameApi.unregisterEventListeners(this.player.playerId)
+            this.player = this.gameApi.currentPlayer
+            const self = this
+            this.gameApi.registerEventListener(this.player.playerId, function(event) { self.onGameEvent(event) })
+            this.ui.setStockpiles(this.gameApi.stocksFor(this.player.playerId))
+            this.updateUnitsFromTiles()
+            console.log("player switched")
+        }
+
         this.gameApi.tilesForPlayer(this.player.playerId).asJsReadonlyArrayView().forEach((data, index) => {
             const tile = this.tiles[index]
+            //todo migrate from update() to events
             tile.updateTileData(data)
             tile.setHighlight(
-                this.moveHighlights.some(it => it.equals(data.coordinates)),
-                this.pathHighlights.some(it => it.equals(data.coordinates)),
+                this.moveHighlights.some(it => it.equals(tile.coordinates)),
+                this.pathHighlights.some(it => it.equals(tile.coordinates)),
                 data.unit && data.unit.playerId != this.player.playerId,
             )
             const isHovered = tile.coordinates.equals(hoveredCoordinates)
@@ -310,30 +394,6 @@ export class MainScene extends Phaser.Scene {
             tile.setStates(isHovered, isSelected)
             if (isHovered) {
                 this.hovered = data
-            }
-
-            if (data.unit) {
-                unitsFromApi.push(data.unit)
-            }
-        })
-
-        //todo unit events (create/move/kill/vanish), tile updated events
-        this.units.forEach(it => {
-            const updated = unitsFromApi.find(unit => unit.unitId == it.unitId)
-            if (updated) {
-                const tile = this.tiles.find(tile => tile.coordinates.equals(updated.coordinates))
-                it.updateUnitData(tile.x, tile.y, updated.hp)
-            } else {
-                it.destroy()
-                this.units.delete(it.unitId)
-            }
-        })
-
-        unitsFromApi.forEach(it => {
-            if (!this.units.has(it.unitId)) {
-                const tile = this.tiles.find(tile => tile.coordinates.equals(it.coordinates))
-                const unitColor = this.playersMap.get(it.playerId).color
-                this.units.set(it.unitId, new Unit(this, it, unitColor, tile.x, tile.y))
             }
         })
     }

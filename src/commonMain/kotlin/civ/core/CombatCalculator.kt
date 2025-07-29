@@ -24,8 +24,8 @@ class CombatCalculator {
         val defenderDamage = defenseForce * defenderNumbersRatio.coerceIn(0.5, 2.0)
 
         //println("${attacker.unitType} deals $attackerDamage, ${defender.unitType} deals $defenderDamage")
-        val updatedAttacker = attacker.copy(hp = attacker.hp - defenderDamage.roundToInt())
-        val updatedDefender = defender.copy(hp = defender.hp - attackerDamage.roundToInt())
+        val updatedAttacker = attacker.copy(hp = (attacker.hp - defenderDamage.roundToInt()).coerceAtLeast(0))
+        val updatedDefender = defender.copy(hp = (defender.hp - attackerDamage.roundToInt()).coerceAtLeast(0))
 
         return updatedAttacker to updatedDefender
     }
