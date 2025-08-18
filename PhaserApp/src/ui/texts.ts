@@ -84,6 +84,18 @@ export class Texts {
         }
     }
 
+    static buildDescription(building: civ.model.Building): string {
+        const requiredBuildings = [...building.buildingRequirements.asJsReadonlySetView().values()]
+            .map(it => this.buildingName(it))
+            .join(", ")
+        if (requiredBuildings.length == 0) {
+            return this.buildingDescription(building)
+        } else {
+            return this.buildingDescription(building) + "\nRequires " + requiredBuildings
+        }
+    
+    }
+
     static buildingDescription(building: civ.model.Building): string {
         switch (building) {
             case civ.model.Building.VILLAGE_HALL:
@@ -101,23 +113,23 @@ export class Texts {
             case civ.model.Building.FISHING_HUT:
                 return "Produces 2{ each turn."
             case civ.model.Building.PORT:
-                return "Produces 2{ and 3$ each turn.\nRequires Fishing Hut."
+                return "Produces 2{ and 3$ each turn."
             case civ.model.Building.LUMBERCAMP:
                 return "Produces 2} each turn."
             case civ.model.Building.SAWMILL:
-                return "Produces 3} each turn.\nRequires Lumber camp."
+                return "Produces 3} each turn."
             case civ.model.Building.FARM:
                 return "Produces 2{ each turn."
             case civ.model.Building.WINDMILL:
-                return "Produces 3{ each turn.\nRequires Farm."
+                return "Produces 3{ each turn."
             case civ.model.Building.RIVERLAND_FARM:
                 return "Produces 3{ each turn."
             case civ.model.Building.WATERMILL:
-                return "Produces 4{ each turn.\nRequires Riverland Farm."
+                return "Produces 4{ each turn."
              case civ.model.Building.HUNTERS_CAMP:
                 return "Produces 2{ and 1$ each turn."
             case civ.model.Building.BUTCHERY:
-                return "Produces 3{ and 1$ each turn.\nRequires Hunters' Camp."
+                return "Produces 3{ and 1$ each turn."
             case civ.model.Building.MINE:
                 return "Produces 5$ each turn. Can only be built on a mountain with gold."
             case civ.model.Building.BARRACKS:
@@ -186,6 +198,17 @@ export class Texts {
             "Action points: " + (unit.actionPoint ? "1" : "0")
             //todo action points
         ].filter(it => it).join("\n")
+    }
+
+    static recruitDescription(unitType: civ.model.UnitType): string {
+        const requiredBuildings = [...unitType.requiredBuildings.asJsReadonlySetView().values()]
+            .map(it => this.buildingName(it))
+            .join(", ")
+        if (requiredBuildings.length == 0) {
+            return this.unitDescription(unitType)
+        } else {
+            return this.unitDescription(unitType) + "\nRequires " + requiredBuildings
+        }
     }
 
     static unitDescription(unitType: civ.model.UnitType): string {

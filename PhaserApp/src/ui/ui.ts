@@ -53,6 +53,7 @@ export class Ui {
 
     private errorAlertBackground: Phaser.GameObjects.Rectangle
     private errorAlert: Phaser.GameObjects.Text
+    private errorAlertDisappear: Phaser.Tweens.Tween
 
     private tooltip: Tooltip
 
@@ -147,7 +148,7 @@ export class Ui {
 
         this.recruitTitle = scene.add.text(Ui.uiMainEnd + 16, selectedY + 16, "Recruit", { font: "bold 20px Arial", color: "#FFFFFF" }).setDepth(91).setScrollFactor(0)
 
-        let xCounter = Ui.uiMainEnd + 8
+        let xCounter = Ui.uiMainEnd + 5
         let yCounter = selectedY + 15//this.recruitTitle.getBottomLeft().y
         const recruit1RowY = this.recruitTitle.y + this.recruitTitle.height + 16
         civ.model.UnitType.values().forEach((it, index) => {
@@ -174,27 +175,26 @@ export class Ui {
     }
 
     postAlert(alertText: string) {
-        this.errorAlert.setText(alertText).setAlpha(1)
-        this.errorAlertBackground.setSize(this.errorAlert.width + 32, this.errorAlert.height + 16).setAlpha(1)
-        // this.scene.tweens.add({
-        //     targets: [this.errorAlert, this.errorAlertBackground],
-        //     props: {
-        //         x: { value: this.errorAlert.x + 10, duration: 500, ease: 'Bounce.InOut' },
-        //     },
-        //     delay: 0,
-        //     //ease: 'Bounce',       // 'Cubic', 'Elastic', 'Bounce', 'Back'
-        //     //duration: 500,
-        //     repeat: 0,            // -1: infinity
-        //     yoyo: false,
-        // })
-
+        this.errorAlertDisappear?.destroy()
+        this.errorAlert.setText(alertText).setAlpha(1).setX(this.scene.cameras.main.width / 2)
+        this.errorAlertBackground.setSize(this.errorAlert.width + 32, this.errorAlert.height + 16).setAlpha(1).setX(this.scene.cameras.main.width / 2)
         this.scene.tweens.add({
+            targets: [this.errorAlert, this.errorAlertBackground],
+            props: {
+                x: { value: this.scene.cameras.main.width / 2 + 5, duration: 75, ease: 'Bounce.InOut' },
+            },
+            delay: 0,
+            repeat: 3,
+            yoyo: true,
+        })
+
+        this.errorAlertDisappear = this.scene.tweens.add({
             targets: [this.errorAlert, this.errorAlertBackground],
             alpha: 0,
             delay: 3000,
-            ease: 'Linear',       // 'Cubic', 'Elastic', 'Bounce', 'Back'
+            ease: 'Linear',
             duration: 500,
-            repeat: 0,            // -1: infinity
+            repeat: 0,
             yoyo: false,
         })
     }

@@ -44,13 +44,6 @@ export class MainScene extends Phaser.Scene {
         this.load.image("placeholder", "assets/icons/placeholder50.png")
         this.load.image("speed", "assets/icons/speed.png")
         this.load.image("locked", "assets/icons/locked.png")
-    
-        this.load.image("road", "assets/icons/buildings/road.png")
-        this.load.image("village_hall", "assets/icons/buildings/village_hall2.png")
-        this.load.image("town_hall", "assets/icons/buildings/town_hall.png")
-        this.load.image("windmill", "assets/icons/buildings/windmill.png")
-
-        this.load.image("settlers", "assets/icons/units/settlers.png")
 
         this.load.image("river_bottom_left", "assets/river_bottom_left.png")
         this.load.image("river_left", "assets/river_left.png")
@@ -68,11 +61,16 @@ export class MainScene extends Phaser.Scene {
         this.load.image("village", "assets/village.png")
         this.load.image("town", "assets/town.png")
 
+        const self = this
+        this.load.on(Phaser.Loader.Events.FILE_LOAD_ERROR, function(file: Phaser.Loader.File) {
+            this.load.image(file.key, "assets/icons/placeholder50.png")
+        }, this)
+
         civ.model.Building.values().forEach(it => {
-            this.load.image(BuildingIcons.get(it), "assets/icons/placeholder50.png")
+            this.load.image(BuildingIcons.get(it), "assets/icons/buildings/" + BuildingIcons.get(it) + ".png")
         })
         civ.model.UnitType.values().forEach(it => {
-            this.load.image(UnitIcons.get(it), "assets/icons/placeholder50.png")
+            this.load.image(UnitIcons.get(it), "assets/icons/units/" + UnitIcons.get(it) + ".png")
         })
 
         this.load.bitmapFont("civ_font", "assets/fonts/civ_font.png", "assets/fonts/civ_font.xml")

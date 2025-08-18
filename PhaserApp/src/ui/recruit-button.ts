@@ -133,7 +133,7 @@ export class RecruitButton {
             bottomY: this.image.getTopCenter().y,   
             iconTexture: UnitIcons.get(this.unitType),
             title: Texts.unitName(this.unitType),
-            description: Texts.unitDescription(this.unitType),
+            description: Texts.recruitDescription(this.unitType),
             costFood: this.unitType.cost.food > 0 ? this.unitType.cost.food.toString() : "",
             costWood: this.unitType.cost.wood > 0 ? this.unitType.cost.wood.toString() : "",
             costGold: this.unitType.cost.gold > 0 ? this.unitType.cost.gold.toString() : "",

@@ -14,6 +14,8 @@ export class BuildingIcons {
                 return "road"
             case civ.model.Building.MARKET:
                 return "market"
+            case civ.model.Building.FISHING_SHIP:
+                return "fishing_ship"
             case civ.model.Building.FISHING_HUT:
                 return "fishing_hut"
             case civ.model.Building.PORT:
@@ -53,6 +55,7 @@ export class BuildingIcons {
             case civ.model.Building.SIEGE_WORKSHOP:
                 return "siege_workshop"
             default:
+                console.log("Missing icon name for", building)
                 return "placeholder"
         }
     }
@@ -83,6 +86,7 @@ export class UnitIcons {
             case civ.model.UnitType.TREBUCHET:
                 return "trebuchet"
             default:
+                console.log("Missing icon name for", unit)
                 return "placeholder"
         }
     }

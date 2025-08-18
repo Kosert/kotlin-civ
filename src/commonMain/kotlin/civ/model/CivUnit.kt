@@ -44,9 +44,9 @@ enum class UnitType(
 
     WARRIOR(
         value = "warrior",
-        attack = 3,
+        attack = 2,
         range = 1,
-        defense = 1,
+        defense = 2,
         maxHp = 15,
         speed = 1,
         visionRange = 1,
@@ -74,7 +74,7 @@ enum class UnitType(
         range = 1,
         defense = 1,
         maxHp = 15,
-        speed = 1,
+        speed = 2,
         visionRange = 1,
         cost = Stockpiles(food = 20, gold = 5),
         requiredBuildings = setOf(Building.TOWN_HALL, Building.STABLE)

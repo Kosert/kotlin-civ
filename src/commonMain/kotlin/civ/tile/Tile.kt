@@ -88,7 +88,7 @@ data class Grass(
     ) = copy(isBusy = isBusy, buildings = buildings)
 
     override fun getVisibleName(): String = listOfNotNull(
-        if (forest) "Forest " else "Plains",
+        if (forest) "Forest" else "Plains",
         "coastline".takeIf { coast },
         "river".takeIf { river },
         "animals".takeIf { animals },
