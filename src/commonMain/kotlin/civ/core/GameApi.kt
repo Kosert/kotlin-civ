@@ -448,6 +448,30 @@ class GameApi private constructor(
         turns.add(removed)
         log.write(removed, "ended turn")
 
+        //todo extract to some class
+        turns.sortedBy { it.color.ordinal }.forEach { player ->
+            val unitScore = unitsFor(player.playerId)
+                .sumOf { it.unitType.cost.total } * 0.2
+
+            val buildingScore = citiesFor(player.playerId).sumOf { city ->
+                hexMap.range(city.coordinates, city.borderRange)
+                    .mapNotNull { hexMap.get(it) }
+                    .flatMap { it.buildings.toList() }
+                    .sumOf {
+                        if (it == Building.VILLAGE_HALL)
+                            UnitType.SETTLERS.cost.total
+                        else it.cost.total
+                    }
+            } * 0.2
+
+            val discoveredHexes = visionCalculator.getVisionFor(playerId).discovered.size
+            val discoveredPercent = discoveredHexes / hexMap.tiles.size.toDouble()
+            val visionScore = discoveredPercent * 10
+            val totalScore = unitScore + buildingScore + visionScore
+
+            log.write("Player ${player.color}, score: $unitScore + $buildingScore + $visionScore = $totalScore")
+        }
+
         unitsFor(currentPlayer.playerId)
             .forEach {
                 val updatedUnit = it.copy(

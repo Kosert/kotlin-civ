@@ -44,7 +44,7 @@ export class Unit extends Phaser.GameObjects.Image {
                 color = 0x8B0000
                 break
             case civ.model.PlayerColor.GREEN:
-                color = 0x6666ff
+                color = 0x006400
                 break;
             default:
                 break;

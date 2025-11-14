@@ -19,5 +19,5 @@ enum class AiType(
 
 fun AiType.create(gameApi: GameApi, playerId: String): Ai = when (this) {
     AiType.IDLE -> IdleAi(gameApi, playerId)
-    AiType.EASY -> EasyAi(gameApi, playerId)
+    AiType.EASY -> WarriorAi(gameApi, playerId)
 }

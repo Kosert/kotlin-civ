@@ -146,6 +146,7 @@ object TestData {
         val playerList = listOf(
             Player(name = "Pierwszy", color = PlayerColor.BLUE, aiType = AiType.EASY),
             Player(name = "Drugi", color = PlayerColor.RED, aiType = AiType.EASY),
+            Player(name = "Trzeci", color = PlayerColor.GREEN),
         )
 
         val seed = -4945819805719851227//Random.nextLong()

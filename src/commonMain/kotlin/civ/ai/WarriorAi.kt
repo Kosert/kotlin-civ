@@ -4,7 +4,6 @@ import civ.action.*
 import civ.allMaxBy
 import civ.allMinBy
 import civ.core.GameApi
-import civ.core.LogMessage
 import civ.core.require
 import civ.hex.Coordinates
 import civ.hex.dijkstra
@@ -15,9 +14,8 @@ import civ.onFailure
 import civ.onSuccess
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withTimeoutOrNull
-import kotlin.random.Random
 
-class EasyAi(
+class WarriorAi(
     gameApi: GameApi, playerId: String
 ) : Ai(gameApi, playerId) {
 
@@ -50,8 +48,8 @@ class EasyAi(
         item(Building.PORT)
 //        item(Building.MARKET)
 
-        item(UnitType.SETTLERS, Condition.Predicate { !isCityLimitReached() })
-        item(UnitType.WARRIOR, Condition.Predicate { isCityLimitReached() })
+        item(UnitType.SETTLERS, Condition.Predicate({ !isCityLimitReached() }))
+        item(UnitType.WARRIOR, Condition.Predicate({ isCityLimitReached() }))
     }
 
     private val myCities
@@ -95,13 +93,14 @@ class EasyAi(
                 }
             }
 
-        //todo refresh tiles after move?
-
-        fun closestEnemyCity(tiles: List<PlayerTileData>, coordinates: Coordinates) = tiles//.asSequence()
-            .filter { it.cityRange != null && it.cityRange.playerId != playerId }
-//            .also { println(it.joinToString()) }
+        fun closestEnemyCity(tiles: List<PlayerTileData>, coordinates: Coordinates) = tiles
+            .filter {
+                (it.city != null && it.city.playerId != playerId) ||
+                    (it.cityRange != null && it.cityRange.playerId != playerId)
+            }
             .minByOrNull {
                 val distance = it.coordinates.distanceTo(coordinates)
+                //looks for cities and borders, but cities are the real target
                 distance + (if (it.city == null) 100_000 else 0)
             }
 
@@ -133,16 +132,11 @@ class EasyAi(
                             it?.hp ?: Int.MAX_VALUE
                     }
 
-                //fixme dopiero odkryte nie beda w tiles
-
                 if (attackTarget != null) {
                     execute(Attack(unit.unitId, attackTarget.coordinates))
                     println("Attacking executed - returning (${unit.unitId}")
                     return@forEach
                 }
-
-                //fixme
-//                val unit = myUnits.first { it.unitId == unit.unitId }
 
                 println("Looking for move target for (${unit.unitId}")
                 val target = closestEnemyCity(tiles, unit.coordinates)?.coordinates
@@ -155,8 +149,6 @@ class EasyAi(
                 }
 
                 val possibleTargets = findPossibleTargets(tiles, listOf(target))
-
-                println("${unit.unitType} ${unit.coordinates} Target: $possibleTargets")
                 val preferredPath = withTimeoutOrNull(1000) {
                     dijkstra(unit.coordinates, possibleTargets, cost = {
                         tiles.find { it.coordinates == this }?.tile?.movementCost() ?: 10
@@ -164,33 +156,19 @@ class EasyAi(
                 } ?: run {
                     println("Pathing timed out after 1s")
                     println("from ${unit.coordinates} to: $possibleTargets")
-                    gameApi.log.write(
-                        "Unit: ", unit
-                    )
-                    gameApi.log.write(
-                        "Target tile", possibleTargets,
-                    )
+                    gameApi.log.write("Unit: ", unit)
+                    gameApi.log.write("Target tile", possibleTargets,)
                     return@forEach
                 }
 
-                println("Preferred path: ${preferredPath.joinToString { it.value.toString() }}")
-                
                 actions.moveTargets.maxByOrNull { moveTarget ->
-                    println("Checking target $moveTarget index: ${preferredPath.find { it.value == moveTarget }?.index ?: -1}")
-
                     preferredPath.find { it.value == moveTarget }?.index ?: -1
                 }?.let {
-                    println("Selected move: $it")
                     execute(Move(unit.unitId, it))
                 }
             }
 
         priorityQueue.forEach { item ->
-            if (!item.canExecute) {
-                return@forEach
-            }
-
-            //fixme
             val tiles = gameApi.tilesForPlayer(playerId)
 
             when (item) {
@@ -200,7 +178,7 @@ class EasyAi(
         }
 
         println("AI done")
-//        gameApi.endTurn(playerId)
+        gameApi.endTurn(playerId)
     }
 
     private suspend fun processQueueItem(
@@ -211,14 +189,14 @@ class EasyAi(
             .filter { it.tile != null }
             .filter { it.cityRange?.playerId == playerId }
             .filter { gameApi.canBuild(it.coordinates, playerId) }
-            .filter { item.building.tileRequirement(it.tile.require()) }
+            .map { it.tile.require() }
+            .filter { item.building.tileRequirement(it) }
+            .sortedByDescending { item.executionPriority(it) }
             .forEach { tile ->
-                buildIfPossible(tile.coordinates, item.building)?.onSuccess {
-                    item.onExecuted()
-                    if (!item.canExecute) {
-                        return
-                    }
-                }
+                if (!item.canExecute(tile)) return@forEach
+
+                buildIfPossible(tile.coords, item.building)
+                    ?.onSuccess { item.onExecuted() }
             }
     }
 
@@ -229,18 +207,15 @@ class EasyAi(
     ) {
         cities.map { city ->
             tiles.first { city.coordinates == it.coordinates }.tile.require()
-        }.forEach { tile ->
-            if (tile.isBusy || !item.unitType.buildingRequirement(tile.buildings)) {
-                return@forEach
-            }
-
-            recruitIfPossible(tile.coords, item.unitType)?.onSuccess {
-                item.onExecuted()
-                if (!item.canExecute) {
-                    return
+        }.sortedByDescending { item.executionPriority(it) }
+            .forEach { tile ->
+                if (tile.isBusy || !item.unitType.buildingRequirement(tile.buildings) || !item.canExecute(tile)) {
+                    return@forEach
                 }
+
+                recruitIfPossible(tile.coords, item.unitType)
+                    ?.onSuccess { item.onExecuted() }
             }
-        }
     }
 }
 
@@ -248,6 +223,6 @@ class EasyAi(
 //todo
 // ai activate/deactive + end turn
 // better ais
+// otp ai - only warrior/scout/archer
 // save + restore
-// scoreboard?,
-// simple icons for units
+// scoreboard?, game stats

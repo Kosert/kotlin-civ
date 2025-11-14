@@ -276,7 +276,7 @@ export class MainScene extends Phaser.Scene {
             if (!this.units.has(it.unitId)) {
                 const tile = this.tiles.find(tile => tile.coordinates.equals(it.coordinates))
                 const unitColor = this.playersMap.get(it.playerId).color
-                this.units.set(it.unitId, new Unit(this, it, unitColor, tile.x, tile.y))
+                this.units.set(it.unitId, new Unit(this, it, unitColor, tile.x, tile.y, it.hp))
             }
         })
     }

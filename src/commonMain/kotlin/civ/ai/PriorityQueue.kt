@@ -2,6 +2,7 @@ package civ.ai
 
 import civ.model.Building
 import civ.model.UnitType
+import civ.tile.Tile
 
 sealed class PriorityQueueItem(
     private val condition: Condition
@@ -9,30 +10,32 @@ sealed class PriorityQueueItem(
     class UnitItem(val unitType: UnitType, condition: Condition) : PriorityQueueItem(condition)
     class BuildingItem(val building: Building, condition: Condition) : PriorityQueueItem(condition)
 
-    val canExecute
-        get() = condition.canExecute
+    fun canExecute(tile: Tile): Boolean = condition.canExecute(tile)
+    fun executionPriority(tile: Tile): Int = condition.executionPriority(tile)
 
     fun onExecuted() { condition.onExecuted() }
 }
 
 sealed class Condition {
-    abstract val canExecute: Boolean
+    abstract fun canExecute(tile: Tile): Boolean
+    open fun executionPriority(tile: Tile) = 0
     open fun onExecuted() = Unit
 
     data object None : Condition() {
-        override val canExecute: Boolean = true
+        override fun canExecute(tile: Tile): Boolean = true
     }
 
     data class Limit(private var limit: Int) : Condition() {
-        override val canExecute: Boolean
-            get() = limit == 0
-
+        override fun canExecute(tile: Tile): Boolean = limit != 0
         override fun onExecuted() { limit-- }
     }
 
-    class Predicate(val predicate: () -> Boolean) : Condition() {
-        override val canExecute: Boolean
-            get() = predicate()
+    class Predicate(
+        val predicate: (Tile) -> Boolean,
+        val priority: (Tile) -> Int = { 0 }
+    ) : Condition() {
+        override fun canExecute(tile: Tile): Boolean = predicate(tile)
+        override fun executionPriority(tile: Tile): Int = priority(tile)
     }
 }
 

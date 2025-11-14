@@ -10,6 +10,9 @@ data class Stockpiles(
     val wood: Int = 0,
     val gold: Int = 0,
 ) {
+    val total: Int
+        get() = food + wood + gold
+
     operator fun plus(other: Stockpiles) = Stockpiles(
         food = food + other.food,
         wood = wood + other.wood,
