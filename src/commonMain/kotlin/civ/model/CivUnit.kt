@@ -27,19 +27,7 @@ enum class UnitType(
         maxHp = 5,
         speed = 1,
         visionRange = 1,
-        cost = Stockpiles(food = 40)
-    ),
-
-    SCOUT(
-        value = "scout",
-        attack = 3,
-        range = 1,
-        defense = 1,
-        maxHp = 10,
-        speed = 2,
-        visionRange = 2,
-        cost = Stockpiles(food = 10),
-        requiredBuildings = setOf(Building.STABLE)
+        cost = Stockpiles(food = 80)
     ),
 
     WARRIOR(
@@ -50,11 +38,21 @@ enum class UnitType(
         maxHp = 15,
         speed = 1,
         visionRange = 1,
-        cost = Stockpiles(food = 15),
+        cost = Stockpiles(food = 40), //todo warrior line cheaper than scout line?
         requiredBuildings = setOf(Building.BARRACKS)
     ),
 
-    // TOWN LEVEL UNITS
+    SCOUT(
+        value = "scout",
+        attack = 3,
+        range = 1,
+        defense = 1,
+        maxHp = 10,
+        speed = 2,
+        visionRange = 2,
+        cost = Stockpiles(food = 50),
+        requiredBuildings = setOf(Building.STABLE)
+    ),
 
     ARCHER(
         value = "archer",
@@ -64,8 +62,22 @@ enum class UnitType(
         maxHp = 10,
         speed = 1,
         visionRange = 2,
-        cost = Stockpiles(food = 15, wood = 10),
+        cost = Stockpiles(food = 40, gold = 10),
         requiredBuildings = setOf(Building.ARCHERY_RANGE)
+    ),
+
+    // TOWN LEVEL UNITS
+
+    SWORDSMAN(
+        value = "swordsman",
+        attack = 5,
+        range = 1,
+        defense = 3,
+        maxHp = 15,
+        speed = 1,
+        visionRange = 1,
+        cost = Stockpiles(food = 50, gold = 10),
+        requiredBuildings = setOf(Building.BARRACKS, Building.BLACKSMITH)
     ),
 
     RIDER(
@@ -76,47 +88,23 @@ enum class UnitType(
         maxHp = 15,
         speed = 2,
         visionRange = 1,
-        cost = Stockpiles(food = 20, gold = 5),
-        requiredBuildings = setOf(Building.TOWN_HALL, Building.STABLE)
+        cost = Stockpiles(food = 60, gold = 10),
+        requiredBuildings = setOf(Building.STABLE, Building.BLACKSMITH)
     ),
 
-    SWORDSMAN(
-        value = "swordsman",
-        attack = 5,
-        range = 1,
-        defense = 3,
+    CROSSBOWMAN(
+        value = "crossbowman",
+        attack = 7,
+        range = 2,
+        defense = 1,
         maxHp = 15,
         speed = 1,
-        visionRange = 1,
-        cost = Stockpiles(food = 20, gold = 15),
-        requiredBuildings = setOf(Building.BARRACKS, Building.BLACKSMITH)
+        visionRange = 2,
+        cost = Stockpiles(food = 50, gold = 25),
+        requiredBuildings = setOf(Building.ARCHERY_RANGE, Building.BLACKSMITH)
     ),
 
     // CASTLE LEVEL UNITS
-
-    KNIGHT(
-        value = "knight",
-        attack = 10,
-        range = 1,
-        defense = 5,
-        maxHp = 20,
-        speed = 2,
-        visionRange = 2,
-        cost = Stockpiles(food = 20, gold = 40),
-        requiredBuildings = setOf(Building.CASTLE, Building.STABLE, Building.BLACKSMITH)
-    ),
-
-//    HEAVY_PIKEMAN(
-//        value = "heavy_pikemen",
-//        attack = 4,
-//        range = 1,
-//        defense = 8,
-//        maxHp = 15,
-//        speed = 1,
-//        visionRange = 1,
-//        cost = Stockpiles(food = 20, gold = 20),
-//        buildingRequirement = setOf(Building.BARRACKS, Building.ARMORERS_WORKSHOP)
-//    ),
 
     HEAVY_SWORDSMAN(
         value = "heavy_swordsman",
@@ -126,10 +114,24 @@ enum class UnitType(
         maxHp = 20,
         speed = 1,
         visionRange = 1,
-        cost = Stockpiles(food = 20, gold = 50),
-        requiredBuildings = setOf(Building.BARRACKS, Building.BLACKSMITH, Building.ARMORERS_WORKSHOP)
+        cost = Stockpiles(food = 100, gold = 50),
+        requiredBuildings = setOf(Building.BARRACKS, Building.ARMORERS_WORKSHOP)
     ),
 
+    KNIGHT(
+        value = "knight",
+        attack = 10,
+        range = 1,
+        defense = 5,
+        maxHp = 20,
+        speed = 2,
+        visionRange = 2,
+        cost = Stockpiles(food = 100, gold = 80),
+        requiredBuildings = setOf(Building.STABLE, Building.ARMORERS_WORKSHOP)
+        //todo knights' stables? royal stables?
+    ),
+
+    //todo ballista?
     TREBUCHET(
         value = "trebuchet",
         attack = 10,
@@ -138,9 +140,9 @@ enum class UnitType(
         maxHp = 10,
         speed = 1,
         visionRange = 3,
-        cost = Stockpiles(wood = 50, gold = 50),
+        cost = Stockpiles(food = 50, gold = 150),
         requiredBuildings = setOf(Building.SIEGE_WORKSHOP)
-    )
+    ),
 
     ;
 

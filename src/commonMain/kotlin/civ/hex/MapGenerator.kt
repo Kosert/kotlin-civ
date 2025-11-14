@@ -49,42 +49,6 @@ class MapGenerator(
         return resultTiles
     }
 
-    private fun dijkstra(
-        start: Coordinates,
-        end: Coordinates,
-        cost: Coordinates.() -> Int
-    ): List<Coordinates> {
-        val frontier = mutableListOf(start to 0)
-        val cameFrom = mutableMapOf<Coordinates, Coordinates>()
-        val totalCosts = mutableMapOf<Coordinates, Int>(start to 0)
-
-        while (frontier.isNotEmpty()) {
-            frontier.sortBy { it.second }
-            val current = frontier.removeFirst().first
-
-            if (current == end)
-                break
-
-            current.neighbors()
-                .forEach { nextTile ->
-                    val newCost = totalCosts.getValue(current) + nextTile.cost()
-                    if (totalCosts[nextTile]?.let { it > newCost } != false) {
-                        totalCosts[nextTile] = newCost
-                        cameFrom[nextTile] = current
-                        frontier.add(nextTile to newCost)
-                    }
-                }
-        }
-
-        var pointer = end
-        return buildList<Coordinates> {
-            while (pointer != start) {
-                add(pointer)
-                pointer = cameFrom.getValue(pointer)
-            }
-        }
-    }
-
     @Suppress("CANDIDATE_CHOSEN_USING_OVERLOAD_RESOLUTION_BY_LAMBDA_ANNOTATION")
     fun generate(
         width: Int = 50,

@@ -2,6 +2,7 @@
 
 package civ.model
 
+import civ.ai.AiType
 import kotlin.uuid.Uuid
 import kotlin.js.ExperimentalJsExport
 import kotlin.js.JsExport
@@ -11,7 +12,7 @@ data class Player(
     val playerId: String = Uuid.random().toHexString(),
     val name: String,
     val color: PlayerColor,
-    //todo civ? ai?
+    val aiType: AiType? = null,
 )
 
 @JsExport

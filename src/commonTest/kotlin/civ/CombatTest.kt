@@ -14,7 +14,7 @@ class CombatTest {
         return CivUnit(unitType = unitType, coordinates = Coordinates(0, 0), playerId = "", hp = hp)
     }
 
-    fun oneSidedFight(attacker1: CivUnit, defender1: CivUnit) {
+    fun oneSidedFight(attacker1: CivUnit, defender1: CivUnit, defBonus: Int = 0) {
         var attacker = attacker1
         var defender = defender1
         println(
@@ -24,7 +24,7 @@ class CombatTest {
         )
 
         while (attacker.hp > 0 && defender.hp > 0) {
-            calculator.calculate(attacker, defender).let {
+            calculator.calculate(attacker, defender, defBonus).let {
                 attacker = it.first
                 defender = it.second
             }
@@ -51,13 +51,20 @@ class CombatTest {
     }
 
     @Test
+    fun simpleTest() {
+        val warrior = createUnit(UnitType.WARRIOR)
+        val heavySwordsman = createUnit(UnitType.HEAVY_SWORDSMAN)
+        oneSidedFight(warrior, heavySwordsman)
+    }
+
+    @Test
     fun test() {
         val scout = createUnit(UnitType.SCOUT)
         val settlers = createUnit(UnitType.SETTLERS)
         val warrior = createUnit(UnitType.WARRIOR)
         val archer = createUnit(UnitType.ARCHER)
         val swordsman = createUnit(UnitType.SWORDSMAN)
-        val heavyPikeman = createUnit(UnitType.HEAVY_PIKEMAN)
+        val crossbowman = createUnit(UnitType.CROSSBOWMAN)
         val knight = createUnit(UnitType.KNIGHT)
         val heavySwordsman = createUnit(UnitType.HEAVY_SWORDSMAN)
         val trebuchet = createUnit(UnitType.TREBUCHET)
@@ -74,11 +81,11 @@ class CombatTest {
         println("======================")
         oneSidedFight(swordsman, scout)
         println("======================")
-        oneSidedFight(swordsman, heavyPikeman)
+        oneSidedFight(swordsman, crossbowman)
         println("======================")
-        oneSidedFight(heavyPikeman, swordsman)
+        oneSidedFight(crossbowman, swordsman)
         println("======================")
-        oneSidedFight(knight, heavyPikeman)
+        oneSidedFight(knight, crossbowman)
         println("======================")
         println("======================")
         println("======================")
@@ -91,17 +98,17 @@ class CombatTest {
         println("======================")
         equalFight(swordsman, scout)
         println("======================")
-        equalFight(swordsman, heavyPikeman)
+        equalFight(swordsman, crossbowman)
         println("======================")
-        equalFight(heavyPikeman, swordsman)
+        equalFight(crossbowman, swordsman)
         println("======================")
         equalFight(knight, swordsman)
         println("======================")
-        equalFight(knight, heavyPikeman)
+        equalFight(crossbowman, knight)
         println("======================")
         equalFight(knight, heavySwordsman)
         println("======================")
-        equalFight(heavySwordsman, heavyPikeman)
+        equalFight(crossbowman, heavySwordsman)
         println("======================")
 
         println("======================")
@@ -113,7 +120,7 @@ class CombatTest {
         println("======================")
         equalFight(archer, swordsman)
         println("======================")
-        equalFight(archer, heavyPikeman)
+        equalFight(archer, crossbowman)
         println("======================")
         equalFight(archer, knight)
         println("======================")
@@ -128,7 +135,7 @@ class CombatTest {
         println("======================")
         equalFight(trebuchet, swordsman)
         println("======================")
-        equalFight(trebuchet, heavyPikeman)
+        equalFight(trebuchet, crossbowman)
         println("======================")
         equalFight(trebuchet, knight)
         println("======================")

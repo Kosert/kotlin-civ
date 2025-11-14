@@ -117,9 +117,13 @@ export class MainScene extends Phaser.Scene {
                     if (self.selected.playerId == self.player.playerId) {
                         const selectedUnitId = self.selected.unitId
                         if (target.unit) {
-                            const targetUnitId = target.unit.unitId
-                            const gameAction = new civ.action.Attack(selectedUnitId, targetUnitId)
+                            const targetUnitCoords = target.unit.coordinates
+                            const gameAction = new civ.action.Attack(selectedUnitId, targetUnitCoords)
                             if (self.tryExecute(gameAction)) {
+                                // const updatedUnit = self.gameApi.unitsFor(self.player.playerId)
+                                //     .asJsReadonlyArrayView()
+                                //     .find(it => it.unitId == selectedUnitId)
+                                // self.select(updatedUnit)
                                 const updatedTile = self.gameApi.tilesForPlayer(self.player.playerId).asJsReadonlyArrayView().find(it => it.unit?.unitId == selectedUnitId)
                                 self.select(updatedTile?.unit)
                             }
@@ -189,9 +193,10 @@ export class MainScene extends Phaser.Scene {
         })
 
         // @ts-ignore fixme
-        this.player = { playerId: "" }
-        // this.gameApi.registerEventListener(this.player.playerId, function(event) { self.onGameEvent(event) })
-        // this.ui.setStockpiles(this.gameApi.stocksFor(this.player.playerId))
+        // this.player = { playerId: "" }
+        this.gameApi.registerEventListener(this.player.playerId, function(event) { self.onGameEvent(event) })
+        this.ui.setStockpiles(this.gameApi.stocksFor(this.player.playerId), this.gameApi.incomeFor(this.player.playerId))
+        this.updateUnitsFromTiles()
     }
 
     private tryExecute(gameAction: civ.action.Action): boolean {
@@ -208,7 +213,7 @@ export class MainScene extends Phaser.Scene {
     private onGameEvent(event: civ.events.GameEvent) {
         console.log("Game event:", event)
         if (event instanceof civ.events.StockUpdated) {
-            this.ui.setStockpiles(event.stock)
+            this.ui.setStockpiles(event.stock, event.income)
 
         } else if (event == civ.events.VisionChanged) {
             this.updateUnitsFromTiles()
@@ -368,15 +373,19 @@ export class MainScene extends Phaser.Scene {
 
         this.hovered = null
 
+        // PLAYER SWAPPING
         if (this.player.playerId != this.gameApi.currentPlayer.playerId) {
             this.gameApi.unregisterEventListeners(this.player.playerId)
             this.player = this.gameApi.currentPlayer
             const self = this
+
             this.gameApi.registerEventListener(this.player.playerId, function(event) { self.onGameEvent(event) })
-            this.ui.setStockpiles(this.gameApi.stocksFor(this.player.playerId))
+            this.ui.setStockpiles(this.gameApi.stocksFor(this.player.playerId), this.gameApi.incomeFor(this.player.playerId))
             this.updateUnitsFromTiles()
             console.log("player switched")
         }
+
+        this.ui.disableEndTurn(this.gameApi.currentPlayer.playerId != this.player.playerId)
 
         this.gameApi.tilesForPlayer(this.player.playerId).asJsReadonlyArrayView().forEach((data, index) => {
             const tile = this.tiles[index]

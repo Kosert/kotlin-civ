@@ -8,3 +8,6 @@
 // Tile shadow          = 5
 // Tile unit            = 5
 // 
+// ui background        = 90
+// ui elements          = 91
+// error alert          = 95

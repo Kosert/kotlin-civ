@@ -11,6 +11,8 @@ import kotlin.js.JsExport
 @JsExport
 sealed interface Action
 
+//todo disband
+
 @JsExport
 data class Move(
     val unitId: String,
@@ -20,7 +22,8 @@ data class Move(
 @JsExport
 data class Attack(
     val unitId: String,
-    val targetUnitId: String,
+    val targetCoordinates: Coordinates,
+    val moveAttackDelay: Int = 0
 ): Action
 
 @JsExport

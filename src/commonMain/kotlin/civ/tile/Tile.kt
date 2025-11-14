@@ -10,7 +10,7 @@ import civ.model.OverrideMovementCost
 import kotlin.js.ExperimentalJsExport
 import kotlin.js.JsExport
 
-private const val IMPASSABLE_COST = 100_000
+const val IMPASSABLE_COST = 100_000
 
 @JsExport
 sealed class Tile {

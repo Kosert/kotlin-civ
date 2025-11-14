@@ -2,6 +2,7 @@
 
 package civ.hex
 
+import civ.core.require
 import kotlin.js.ExperimentalJsExport
 import kotlin.js.JsExport
 import kotlin.math.abs
@@ -54,4 +55,79 @@ fun Coordinates.getAllInRange(radius: Int): List<Coordinates> = buildList {
             add(this@getAllInRange.movedBy(q, r))
         }
     }
+}
+
+fun dijkstra(
+    start: Coordinates,
+    possibleEnds: List<Coordinates>,
+    cost: Coordinates.() -> Int
+): List<Coordinates> {
+    val frontier = mutableListOf(start to 0)
+    val cameFrom = mutableMapOf<Coordinates, Coordinates>()
+    val totalCosts = mutableMapOf<Coordinates, Int>(start to 0)
+
+    var end: Coordinates? = null
+    while (frontier.isNotEmpty()) {
+        frontier.sortBy { it.second }
+        val current = frontier.removeFirst().first
+
+        if (current in possibleEnds) {
+            end = current
+            break
+        }
+
+        current.neighbors()
+            .forEach { nextTile ->
+                val newCost = totalCosts.getValue(current) + nextTile.cost()
+                if (totalCosts[nextTile]?.let { it > newCost } != false) {
+                    totalCosts[nextTile] = newCost
+                    cameFrom[nextTile] = current
+                    frontier.add(nextTile to newCost)
+                }
+            }
+    }
+
+    var pointer = end.require()
+    return buildList<Coordinates> {
+        while (pointer != start) {
+            add(pointer)
+            pointer = cameFrom.getValue(pointer)
+        }
+    }.reversed()
+}
+
+fun dijkstra(
+    start: Coordinates,
+    end: Coordinates,
+    cost: Coordinates.() -> Int
+): List<Coordinates> {
+    val frontier = mutableListOf(start to 0)
+    val cameFrom = mutableMapOf<Coordinates, Coordinates>()
+    val totalCosts = mutableMapOf<Coordinates, Int>(start to 0)
+
+    while (frontier.isNotEmpty()) {
+        frontier.sortBy { it.second }
+        val current = frontier.removeFirst().first
+
+        if (current == end)
+            break
+
+        current.neighbors()
+            .forEach { nextTile ->
+                val newCost = totalCosts.getValue(current) + nextTile.cost()
+                if (totalCosts[nextTile]?.let { it > newCost } != false) {
+                    totalCosts[nextTile] = newCost
+                    cameFrom[nextTile] = current
+                    frontier.add(nextTile to newCost)
+                }
+            }
+    }
+
+    var pointer = end
+    return buildList<Coordinates> {
+        while (pointer != start) {
+            add(pointer)
+            pointer = cameFrom.getValue(pointer)
+        }
+    }.reversed()
 }

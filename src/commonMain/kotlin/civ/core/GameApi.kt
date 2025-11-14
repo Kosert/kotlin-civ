@@ -1,6 +1,9 @@
 package civ.core
 
 import civ.action.*
+import civ.ai.create
+import civ.cheats.Cheat
+import civ.cheats.CheatEngine
 import civ.events.EventListener
 import civ.events.GameEvent
 import civ.events.UnitEvent
@@ -9,6 +12,9 @@ import civ.hex.*
 import civ.model.*
 import civ.tile.Grass
 import civ.tile.Tile
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlin.js.ExperimentalJsExport
 import kotlin.js.JsExport
 
@@ -25,9 +31,15 @@ class GameApi private constructor(
     //todo initial sort?
     private val turns = players.toMutableList()
     private val eventListeners = mutableListOf<EventListener>()
+    private val cheatEngine = CheatEngine(players)
+
+    //fixme
+    val log = GameLogImpl().also {
+        it.addMessageListener(ConsoleLog())
+    }
 
     private val hexMap = HexMap(tileList)
-    private val visionCalculator = VisionCalculator(hexMap)
+    private val visionCalculator = VisionCalculator(hexMap, cheatEngine)
     private val borderCalculator = BorderCalculator(hexMap)
     private val combatCalculator = CombatCalculator()
 
@@ -39,6 +51,17 @@ class GameApi private constructor(
     fun citiesFor(playerId: String) = cities.values.filter { it.playerId == playerId }
     fun unitsFor(playerId: String) = units.values.filter { it.playerId == playerId }
     fun stocksFor(playerId: String) = stocksManager.getFor(playerId)
+    fun incomeFor(playerId: String): Stockpiles {
+        stocksManager.recalculateIncome(
+            playerCities = citiesFor(currentPlayer.playerId),
+            allUnits = units.values
+        )
+        return stocksManager.incomeFor(playerId)
+    }
+
+    private val ais = players.associate {
+        it.playerId to it.aiType?.create(this, it.playerId)
+    }
 
     private fun triggerEvent(recipientIds: List<String>, event: GameEvent) {
         eventListeners.filter { it.playerId in recipientIds }.forEach { it.listener(event) }
@@ -54,6 +77,11 @@ class GameApi private constructor(
         }
         borderCalculator.recalculate(turns, cities.values)
         eventListeners.forEach { it.listener(VisionChanged) }
+    }
+
+    private fun isTileVisible(playerId: String, coordinates: Coordinates): Boolean {
+        val vision = visionCalculator.getVisionFor(playerId)
+        return vision.visible.contains(coordinates) || cheatEngine.getFor(playerId).contains(Cheat.POLO)
     }
 
     init {
@@ -72,10 +100,11 @@ class GameApi private constructor(
 
     fun tilesForPlayer(playerId: String): List<PlayerTileData> {
         val vision = visionCalculator.getVisionFor(playerId)
+        val cheats = cheatEngine.getFor(playerId)
 
         return hexMap.tiles.values.map {
-            val isVisible = vision.visible.contains(it.coords)
-            val isDiscovered by lazy { vision.discovered.contains(it.coords) }
+            val isDiscovered = vision.discovered.contains(it.coords) || cheats.contains(Cheat.MARCO)
+            val isVisible = vision.visible.contains(it.coords) || (cheats.contains(Cheat.POLO) && isDiscovered)
             PlayerTileData(
                 coordinates = it.coords,
                 isVisible = isVisible,
@@ -102,7 +131,7 @@ class GameApi private constructor(
 
     fun getTileIncome(coordinates: Coordinates, playerId: String): Stockpiles? {
         val vision = visionCalculator.getVisionFor(playerId)
-        val isVisible = vision.visible.contains(coordinates)
+        val isVisible = vision.visible.contains(coordinates) || cheatEngine.getFor(playerId).contains(Cheat.POLO)
         return hexMap.get(coordinates)?.takeIf { isVisible }?.getIncome()
     }
 
@@ -114,14 +143,89 @@ class GameApi private constructor(
 
         return hexMap.movementRange(unit.coordinates, unit.movementLeft).run {
             if (unit.actionPoint) {
-                this.copy(
-                    attackTargets = hexMap.range(unit.coordinates, unit.attackRange)
+
+                // target, attackFrom + cost
+                val attackTargets = mutableMapOf<Coordinates, Pair<Coordinates, Int>>()
+
+                hexMap.range(unit.coordinates, unit.attackRange)
+                    .mapNotNull { units[it] }
+                    .filter { it.playerId != playerId }
+                    .map { it.coordinates }
+                    .filter { isTileVisible(playerId, it) }
+                    .forEach { attackTarget ->
+                        attackTargets[attackTarget] = unit.coordinates to 0
+                    }
+
+                this.moveTargets.forEach { moveTarget ->
+                    val path = getPath(moveTarget) ?: return@forEach
+                    val pathCost = path.sumOf { it.cost }
+
+                    hexMap.range(moveTarget, unit.attackRange)
                         .mapNotNull { units[it] }
                         .filter { it.playerId != playerId }
                         .map { it.coordinates }
-                )
+                        .filter { isTileVisible(playerId, it) }
+                        .forEach { attackTarget ->
+                            attackTargets[attackTarget]?.let { (_, currentCost) ->
+                                if (currentCost > pathCost) {
+                                    attackTargets[attackTarget] = moveTarget to pathCost
+                                }
+                            } ?: run {
+                                attackTargets[attackTarget] = moveTarget to pathCost
+                            }
+                        }
+                }
+
+                this.copy(attackTargets = attackTargets.mapValues { it.value.first })
             } else this
         }
+    }
+
+    private fun executeAttack(attacker: CivUnit, defender: CivUnit) {
+        val isRangedAttack = defender.coordinates !in attacker.coordinates.neighbors()
+
+        val (updatedAttacker, updatedDefender) = combatCalculator.calculate(
+            attacker = attacker,
+            defender = defender,
+            defenseBonus = hexMap.get(defender.coordinates).require().defenseBonus()
+        )
+
+        if (isRangedAttack) {
+            val updated = attacker.copy(actionPoint = false)
+            units[attacker.coordinates] = updated
+            triggerEvent(
+                visionCalculator.getPlayersThatCanSee(updated.coordinates),
+                UnitEvent.Updated(updated)
+            )
+        } else {
+            if (updatedAttacker.hp <= 0) {
+                hexMap.markBusy(updatedAttacker.coordinates, false)
+                units.remove(updatedAttacker.coordinates)
+            } else {
+                units[updatedAttacker.coordinates] = updatedAttacker.copy(actionPoint = false)
+            }
+            triggerEvent(
+                visionCalculator.getPlayersThatCanSee(updatedAttacker.coordinates),
+                UnitEvent.Updated(updatedAttacker)
+            )
+        }
+
+        if (updatedDefender.hp <= 0) {
+            hexMap.markBusy(updatedDefender.coordinates, false)
+            units.remove(updatedDefender.coordinates)
+        } else {
+            units[updatedDefender.coordinates] = updatedDefender
+        }
+        triggerEvent(
+            visionCalculator.getPlayersThatCanSee(updatedDefender.coordinates),
+            UnitEvent.Updated(updatedDefender)
+        )
+        recalculateVision()
+        stocksManager.recalculateIncome(
+            playerCities = citiesFor(currentPlayer.playerId),
+            allUnits = units.values
+        )
+        log.write(currentPlayer, attacker, "attacked", defender, "units after battle:", updatedAttacker, updatedDefender)
     }
 
     fun execute(playerId: String, action: Action): ActionResult {
@@ -161,6 +265,7 @@ class GameApi private constructor(
                         visionCalculator.getPlayersThatCanSee(current, it.coordinates),
                         UnitEvent.Moved(units.getValue(it.coordinates))
                     )
+                    log.write(currentPlayer, "Moved", updatedUnit, "from", current, "to", it.coordinates)
                 }
             }
             is Settle -> {
@@ -191,6 +296,11 @@ class GameApi private constructor(
                     UnitEvent.Vanish(unit)
                 )
                 recalculateVision()
+                stocksManager.recalculateIncome(
+                    playerCities = citiesFor(currentPlayer.playerId),
+                    allUnits = units.values
+                )
+                log.write(currentPlayer, "Settlement created", cities[unit.coordinates])
             }
             is Build -> {
                 if (!canBuild(action.coordinates, currentPlayer.playerId)) {
@@ -215,6 +325,7 @@ class GameApi private constructor(
 
                 stocksManager.substract(currentPlayer.playerId, action.building.cost)
                 hexMap.build(action.coordinates, action.building)
+                log.write(currentPlayer, "Built", action.building, "at", action.coordinates)
 
                 when (action.building) {
                     Building.TOWN_HALL -> CityLevel.TOWN
@@ -225,6 +336,10 @@ class GameApi private constructor(
                     cities[action.coordinates] = city.copy(level = newCityLevel)
                     recalculateVision()
                 }
+                stocksManager.recalculateIncome(
+                    playerCities = citiesFor(currentPlayer.playerId),
+                    allUnits = units.values
+                )
             }
             is Recruit -> {
                 val tile = hexMap.get(action.coordinates).require()
@@ -258,8 +373,8 @@ class GameApi private constructor(
                     visionCalculator.getPlayersThatCanSee(newUnit.coordinates),
                     UnitEvent.Created(newUnit)
                 )
-
                 recalculateVision()
+                log.write(currentPlayer, "Recruited", newUnit, "at", newUnit.coordinates)
             }
             is Attack -> {
                 val attacker = units.values.firstOrNull { it.unitId == action.unitId }
@@ -273,61 +388,32 @@ class GameApi private constructor(
                     return ActionResult.exception("This unit (${attacker.unitType}) cannot attack")
                 }
 
-                val defender = hexMap.range(attacker.coordinates, attacker.attackRange)
-                    .mapNotNull { units[it] }
-                    .firstOrNull { it.unitId == action.targetUnitId }
-                    ?: return ActionResult.exception("Target unit ${action.targetUnitId} not found")
+                val defender = units[action.targetCoordinates]
+                    ?: return ActionResult.exception("Target unit not found at ${action.targetCoordinates}")
 
                 if (defender.playerId == attacker.playerId) {
                     return ActionResult.exception("Cannot attack own unit")
                 }
 
-                val isRangedAttack = defender.coordinates !in attacker.coordinates.neighbors()
+                val paths = actionsForUnit(playerId, attacker.unitId)
+                val path = paths.getPath(action.targetCoordinates)
+                    ?: return ActionResult.exception("No valid attack path for ${action.targetCoordinates}")
 
-                val (updatedAttacker, updatedDefender) = combatCalculator.calculate(
-                    attacker = attacker,
-                    defender = defender,
-                    defenseBonus = hexMap.get(defender.coordinates).require().defenseBonus()
-                )
-
-                if (isRangedAttack) {
-                    val updated = attacker.copy(actionPoint = false)
-                    units[attacker.coordinates] = updated
-                    triggerEvent(
-                        visionCalculator.getPlayersThatCanSee(updated.coordinates),
-                        UnitEvent.Updated(updated)
-                    )
-                } else {
-                    if (updatedAttacker.hp <= 0) {
-                        hexMap.markBusy(updatedAttacker.coordinates, false)
-                        units.remove(updatedAttacker.coordinates)
-                    } else {
-                        units[updatedAttacker.coordinates] = updatedAttacker.copy(actionPoint = false)
+                path.dropLast(1).lastOrNull()?.let {
+                    execute(playerId, Move(attacker.unitId, it.coordinates))
+                    GlobalScope.launch {
+                        delay(500)
+                        val movedAttacker = units.values.first { it.unitId == attacker.unitId }
+                        executeAttack(movedAttacker, defender)
                     }
-                    triggerEvent(
-                        visionCalculator.getPlayersThatCanSee(updatedAttacker.coordinates),
-                        UnitEvent.Updated(updatedAttacker)
-                    )
+                } ?: run {
+                    executeAttack(attacker, defender)
                 }
-
-                if (updatedDefender.hp <= 0) {
-                    hexMap.markBusy(updatedDefender.coordinates, false)
-                    units.remove(updatedDefender.coordinates)
-                } else {
-                    units[updatedDefender.coordinates] = updatedDefender
-                }
-                triggerEvent(
-                    visionCalculator.getPlayersThatCanSee(updatedDefender.coordinates),
-                    UnitEvent.Updated(updatedDefender)
-                )
-                recalculateVision()
             }
             is Conquer -> {
                 val attacker = units[action.coordinates]
                     ?.takeIf { it.playerId == currentPlayer.playerId }
                     ?: return ActionResult.exception("Unit not found for current player")
-
-                //TODO
 
                 cities[action.coordinates] = cities[action.coordinates]!!.copy(
                     playerId = attacker.playerId
@@ -343,6 +429,11 @@ class GameApi private constructor(
                     UnitEvent.Updated(updatedAttacker)
                 )
                 recalculateVision()
+                stocksManager.recalculateIncome(
+                    playerCities = citiesFor(currentPlayer.playerId),
+                    allUnits = units.values
+                )
+                log.write(currentPlayer, updatedAttacker, "conquered", cities[action.coordinates])
             }
         }
         return ActionResult.success()
@@ -355,6 +446,7 @@ class GameApi private constructor(
 
         val removed = turns.removeAt(0)
         turns.add(removed)
+        log.write(removed, "ended turn")
 
         unitsFor(currentPlayer.playerId)
             .forEach {
@@ -375,8 +467,13 @@ class GameApi private constructor(
             allUnits = units.values
         )
 
-        //todo other triggers turn start
-        // run ai if player is ai
+        ais.get(currentPlayer.playerId)?.let { ai ->
+            //fixme
+            GlobalScope.launch {
+                ai.takeTurn()
+                verifyIntegrity()
+            }
+        }
     }
 
     fun verifyIntegrity() {

@@ -15,22 +15,25 @@ data class Paths(
     val start: Coordinates,
     private val cameFrom: Map<Coordinates, Coordinates>,
     private val costs: Map<Coordinates, Int>,
-    val attackTargets: List<Coordinates> = listOf(),
+    // attackTarget to from
+    val attackTargets: Map<Coordinates, Coordinates> = mapOf(),
 ) {
+    val moveTargets
+        get() = costs.keys
+
     val possibleTargets: Set<Coordinates>
-        get() = costs.keys + attackTargets
+        get() = costs.keys + attackTargets.keys
 
     fun getPath(target: Coordinates): List<PathSegment>? {
-        if (target in attackTargets) {
-            return listOf(PathSegment(target, 0))
-        }
-
-        if (target !in costs.keys) {
+        if (target !in possibleTargets) {
             return null
         }
 
-        var pointer = target
+        var pointer = attackTargets[target] ?: target
         return buildList<PathSegment> {
+            if (target in attackTargets) {
+                add(PathSegment(target, 0))
+            }
             while (pointer != start) {
                 add(PathSegment(pointer, costs.getValue(pointer)))
                 pointer = cameFrom.getValue(pointer)
@@ -106,7 +109,6 @@ class HexMap(
         }
         return Paths(start, cameFrom, costPerTile)
     }
-
 
     fun line(from: Coordinates, to: Coordinates): List<Coordinates> {
         return from.lineTo(to)

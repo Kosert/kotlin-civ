@@ -79,8 +79,8 @@ export class UnitIcons {
                 return "swordsman"
             case civ.model.UnitType.KNIGHT:
                 return "knight"
-            // case civ.model.UnitType.HEAVY_PIKEMAN:
-            //     return "heavy_pikeman"
+            case civ.model.UnitType.CROSSBOWMAN:
+                return "crossbowman"
             case civ.model.UnitType.HEAVY_SWORDSMAN:
                 return "heavy_swordsman"
             case civ.model.UnitType.TREBUCHET:

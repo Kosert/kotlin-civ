@@ -1,6 +1,5 @@
 package civ.model
 
-import civ.contains
 import civ.tile.Grass
 import civ.tile.Mountains
 import civ.tile.Tile
@@ -36,7 +35,7 @@ enum class Building(
     TOWN_HALL(
         tileRequirement = { it.buildings.contains(VILLAGE_HALL) },
         replaces = VILLAGE_HALL,
-        cost = Stockpiles(food = 50, gold = 25),
+        cost = Stockpiles(food = 100, gold = 50),
         bonuses = listOf(
             StockCollectBonus(Stockpiles(gold = 3)),
             DefenseBonus(1),
@@ -45,7 +44,7 @@ enum class Building(
     CASTLE(
         tileRequirement = { it.buildings.contains(TOWN_HALL) },
         replaces = TOWN_HALL,
-        cost = Stockpiles(food = 100, gold = 50),
+        cost = Stockpiles(food = 300, gold = 100),
         bonuses = listOf(
             StockCollectBonus(Stockpiles(gold = 5)),
             DefenseBonus(2),
@@ -133,7 +132,7 @@ enum class Building(
 
     MINE(
         tileRequirement = { it is Mountains && it.gold },
-        cost = Stockpiles(wood = 20),
+        cost = Stockpiles(wood = 40),
         bonus = StockCollectBonus(Stockpiles(gold = 5))
     ),
 
@@ -148,7 +147,7 @@ enum class Building(
     ), //todo knight's stables?
     ARCHERY_RANGE(
         tileRequirement = { it.isACity() },
-        buildingRequirements = setOf(TOWN_HALL, BARRACKS),
+//        buildingRequirements = setOf(TOWN_HALL, BARRACKS),
         cost = Stockpiles(wood = 30),
     ),
 
@@ -161,24 +160,24 @@ enum class Building(
     WALLS(
         tileRequirement = { it.isACity() },
         buildingRequirements = setOf(CASTLE, GUARD_TOWERS),
-        cost = Stockpiles(wood = 50),
+        cost = Stockpiles(wood = 100),
         bonus = DefenseBonus(2),
     ),
 
     BLACKSMITH(
         tileRequirement = { it.isACity() },
         buildingRequirements = setOf(TOWN_HALL),
-        cost = Stockpiles(wood = 30, gold = 30),
+        cost = Stockpiles(wood = 50, gold = 20),
     ),
     ARMORERS_WORKSHOP(
         tileRequirement = { it.isACity() },
-        buildingRequirements = setOf(CASTLE),
-        cost = Stockpiles(wood = 30, gold = 30),
+        buildingRequirements = setOf(CASTLE, BLACKSMITH),
+        cost = Stockpiles(wood = 50, gold = 50),
     ),
     SIEGE_WORKSHOP(
         tileRequirement = { it.isACity() },
-        buildingRequirements = setOf(CASTLE),
-        cost = Stockpiles(wood = 30, gold = 30),
+        buildingRequirements = setOf(CASTLE, BLACKSMITH),
+        cost = Stockpiles(wood = 50, gold = 50),
     ),
 
     ;

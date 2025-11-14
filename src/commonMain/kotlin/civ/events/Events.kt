@@ -12,7 +12,10 @@ import kotlin.js.JsExport
 interface GameEvent
 
 @JsExport
-data class StockUpdated(val stock: Stockpiles):  GameEvent
+data class StockUpdated(
+    val stock: Stockpiles,
+    val income: Stockpiles?,
+):  GameEvent
 
 @JsExport
 object VisionChanged: GameEvent

@@ -1,5 +1,7 @@
 package civ.core
 
+import civ.cheats.Cheat
+import civ.cheats.CheatEngine
 import civ.model.City
 import civ.model.CivUnit
 import civ.hex.Coordinates
@@ -9,17 +11,24 @@ import kotlin.collections.emptySet
 
 class VisionCalculator(
     private val hexMap: HexMap,
+    private val cheatEngine: CheatEngine,
 ) {
     private val data = mutableMapOf<String, VisionData>()
 
-    fun getVisionFor(playerId: String) = data[playerId] ?: VisionData(emptySet(), emptySet())
+    fun getVisionFor(playerId: String): VisionData {
+        return data[playerId] ?: VisionData(emptySet(), emptySet())
+    }
 
     fun getPlayersThatCanSee(vararg coordinates: Coordinates): List<String> = data.mapNotNull { (playerId, vision) ->
-        playerId.takeIf { vision.visible.any { it in coordinates } }
+        playerId.takeIf {
+            vision.visible.any { it in coordinates } || (getPlayersThatDiscovered(*coordinates).contains(playerId) && cheatEngine.getFor(playerId).contains(Cheat.POLO))
+        }
     }
 
     fun getPlayersThatDiscovered(vararg coordinates: Coordinates): List<String> = data.mapNotNull { (playerId, vision) ->
-        playerId.takeIf { vision.discovered.any { it in coordinates } }
+        playerId.takeIf {
+            vision.discovered.any { it in coordinates } || cheatEngine.getFor(playerId).contains(Cheat.MARCO)
+        }
     }
 
     fun recalculate(playerId: String, units: Collection<CivUnit>, cities: Collection<City>) {

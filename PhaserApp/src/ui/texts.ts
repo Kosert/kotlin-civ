@@ -169,6 +169,8 @@ export class Texts {
                 return "Swordsman"
             case civ.model.UnitType.KNIGHT:
                 return "Knight"
+            case civ.model.UnitType.CROSSBOWMAN:
+                return "Crossbowman"
             // case civ.model.UnitType.HEAVY_PIKEMAN:
             //     return "Heavy Pikeman"
             case civ.model.UnitType.HEAVY_SWORDSMAN:
@@ -225,10 +227,10 @@ export class Texts {
                 return "Fast mounted unit offensive unit.\n" + this.unitStats(unitType)
             case civ.model.UnitType.SWORDSMAN:
                 return "Advanced melee unit with iron weapons.\n" + this.unitStats(unitType)
+            case civ.model.UnitType.CROSSBOWMAN:
+                return "Advanced ranged unit with a crossbow.\n" + this.unitStats(unitType)
             case civ.model.UnitType.KNIGHT:
-                return "Fast heavy cavalry unit.\n" + this.unitStats(unitType)
-            // case civ.model.UnitType.HEAVY_PIKEMAN:
-            //     return "Heavily armored defensive unit.\n" + this.unitStats(unitType)
+                return "Fast heavy cavalry unit.\n" + this.unitStats(unitType)            
             case civ.model.UnitType.HEAVY_SWORDSMAN:
                 return "Elite heavily armored melee unit.\n" + this.unitStats(unitType)
             case civ.model.UnitType.TREBUCHET:

@@ -129,6 +129,7 @@ export class Unit extends Phaser.GameObjects.Image {
         this.hpTween.on(Phaser.Tweens.Events.TWEEN_UPDATE, function(tween, key, target, current: number, previous) {
             const newHp = sourceHp + (self.targetHp - sourceHp) * current
             const percent = newHp / self.unitType.maxHp
+
             self.heathLeftover.setSize(64 * percent, 10)
         })
 
@@ -148,6 +149,7 @@ export class Unit extends Phaser.GameObjects.Image {
     }
 
     destroy() {
+        this.hpTween?.destroy()
         this.heathBar.destroy()
         this.heathLeftover.destroy()
         this.heathBarBorder.destroy()

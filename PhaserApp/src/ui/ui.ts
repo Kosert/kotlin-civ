@@ -27,7 +27,7 @@ export class Ui {
     static uiMainStart = Ui.stockX + Ui.stocksWidth
     static uiMainWidth = 400
     static uiMainEnd = Ui.uiMainStart + Ui.uiMainWidth
-    static uiRecruitmentWidth = 170
+    static uiRecruitmentWidth = 230
     static uiRecruitmentEnd = Ui.uiMainEnd + Ui.uiRecruitmentWidth
 
     private stockBackground: Phaser.GameObjects.Rectangle
@@ -69,8 +69,9 @@ export class Ui {
         .set(civ.model.Building.MARKET, civ.model.Building.ROAD)
         .set(civ.model.Building.PORT, civ.model.Building.FISHING_HUT)
         .set(civ.model.Building.WALLS, civ.model.Building.GUARD_TOWERS)
-        .set(civ.model.Building.ARCHERY_RANGE, civ.model.Building.BARRACKS)
-        .set(civ.model.Building.ARMORERS_WORKSHOP, civ.model.Building.BLACKSMITH)
+        .set(civ.model.Building.BLACKSMITH, civ.model.Building.BARRACKS)
+        .set(civ.model.Building.SIEGE_WORKSHOP, civ.model.Building.ARCHERY_RANGE)
+        .set(civ.model.Building.ARMORERS_WORKSHOP, civ.model.Building.STABLE)
         .set(civ.model.Building.TOWN_HALL, civ.model.Building.VILLAGE_HALL)
         .set(civ.model.Building.CASTLE, civ.model.Building.TOWN_HALL)
 
@@ -148,7 +149,7 @@ export class Ui {
 
         this.recruitTitle = scene.add.text(Ui.uiMainEnd + 16, selectedY + 16, "Recruit", { font: "bold 20px Arial", color: "#FFFFFF" }).setDepth(91).setScrollFactor(0)
 
-        let xCounter = Ui.uiMainEnd + 5
+        let xCounter = Ui.uiMainEnd + 7
         let yCounter = selectedY + 15//this.recruitTitle.getBottomLeft().y
         const recruit1RowY = this.recruitTitle.y + this.recruitTitle.height + 16
         civ.model.UnitType.values().forEach((it, index) => {
@@ -156,18 +157,24 @@ export class Ui {
                 self.scene.events.emit(UiActionEvent, UiAction.RECRUIT, it)
             })
             self.recruitButtons.set(it, button)
+
+            if (index == 0) {
+                xCounter += button.width + 5
+                return
+            }
+
             xCounter += button.width + 5
-            if ((index + 1) % 3 == 0) {
+            if ((index) % 3 == 0) {
                 yCounter += button.height + 5
-                xCounter = Ui.uiMainEnd + 5
+                xCounter = Ui.uiMainEnd + 12 + button.width
             }
         })
 
         this.errorAlertBackground = scene.add.rectangle(scene.cameras.main.width / 2, scene.cameras.main.height / 2, 0, 0, 0x000000, 0.8)
-        .setDepth(91).setScrollFactor(0).setOrigin(0.5, 0.5)
+        .setDepth(95).setScrollFactor(0).setOrigin(0.5, 0.5)
         .setStrokeStyle(1, Ui.colorAccent.color)
         this.errorAlert = scene.add.text(scene.cameras.main.width / 2, scene.cameras.main.height / 2, "", { font: "bold 20px Arial", color: "#FF0000" })
-        .setDepth(91)
+        .setDepth(95)
         .setOrigin(0.5, 0.5)
         .setScrollFactor(0)
 
@@ -335,13 +342,17 @@ export class Ui {
         }
     }
 
-    setStockpiles(newStocks: civ.model.Stockpiles) {
-        if (this.stocks?.equals(newStocks)) {
-            return
-        }
+    setStockpiles(newStocks: civ.model.Stockpiles, income: civ.model.Stockpiles) {
+        // if (this.stocks?.equals(newStocks)) {
+        //     return
+        // }
 
-        this.foodText.setText(newStocks.food.toString())
-        this.woodText.setText(newStocks.wood.toString())
-        this.goldText.setText(newStocks.gold.toString())
+        this.foodText.setText(newStocks.food.toString() + " (+" + income.food.toString() + ")")
+        this.woodText.setText(newStocks.wood.toString() + " (+" + income.wood.toString() + ")")
+        this.goldText.setText(newStocks.gold.toString() + " (+" + income.gold.toString() + ")")
+    }
+
+    disableEndTurn(disabled: boolean) {
+        this.endTurnButton.setDisabled(disabled)
     }
 }
