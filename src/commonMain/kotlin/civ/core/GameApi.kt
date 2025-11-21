@@ -4,10 +4,7 @@ import civ.action.*
 import civ.ai.create
 import civ.cheats.Cheat
 import civ.cheats.CheatEngine
-import civ.events.EventListener
-import civ.events.GameEvent
-import civ.events.UnitEvent
-import civ.events.VisionChanged
+import civ.events.*
 import civ.hex.*
 import civ.model.*
 import civ.tile.Grass
@@ -33,8 +30,7 @@ class GameApi private constructor(
     private val eventListeners = mutableListOf<EventListener>()
     private val cheatEngine = CheatEngine(players)
 
-    //fixme
-    val log = GameLogImpl().also {
+    private val log = GameLogImpl().also {
         it.addMessageListener(ConsoleLog())
     }
 
@@ -141,6 +137,7 @@ class GameApi private constructor(
             ?.takeIf { it.playerId == playerId }
             ?: error("Unit $unitId not found for current player")
 
+        //todo filter out tiles not visible
         return hexMap.movementRange(unit.coordinates, unit.movementLeft).run {
             if (unit.actionPoint) {
 
@@ -193,10 +190,10 @@ class GameApi private constructor(
         if (isRangedAttack) {
             val updated = attacker.copy(actionPoint = false)
             units[attacker.coordinates] = updated
-            triggerEvent(
-                visionCalculator.getPlayersThatCanSee(updated.coordinates),
-                UnitEvent.Updated(updated)
-            )
+//            triggerEvent(
+//                visionCalculator.getPlayersThatCanSee(updated.coordinates),
+//                UnitEvent.Updated(updated)
+//            )
         } else {
             if (updatedAttacker.hp <= 0) {
                 hexMap.markBusy(updatedAttacker.coordinates, false)
@@ -204,10 +201,10 @@ class GameApi private constructor(
             } else {
                 units[updatedAttacker.coordinates] = updatedAttacker.copy(actionPoint = false)
             }
-            triggerEvent(
-                visionCalculator.getPlayersThatCanSee(updatedAttacker.coordinates),
-                UnitEvent.Updated(updatedAttacker)
-            )
+//            triggerEvent(
+//                visionCalculator.getPlayersThatCanSee(updatedAttacker.coordinates),
+//                UnitEvent.Updated(updatedAttacker)
+//            )
         }
 
         if (updatedDefender.hp <= 0) {
@@ -216,9 +213,18 @@ class GameApi private constructor(
         } else {
             units[updatedDefender.coordinates] = updatedDefender
         }
+//        triggerEvent(
+//            visionCalculator.getPlayersThatCanSee(updatedDefender.coordinates),
+//            UnitEvent.Updated(updatedDefender)
+//        )
+
         triggerEvent(
-            visionCalculator.getPlayersThatCanSee(updatedDefender.coordinates),
-            UnitEvent.Updated(updatedDefender)
+            visionCalculator.getPlayersThatCanSee(attacker.coordinates, defender.coordinates),
+            AttackEvent(
+                attacker.coordinates,
+                defender.coordinates,
+                isRangedAttack,
+            )
         )
         recalculateVision()
         stocksManager.recalculateIncome(
@@ -400,6 +406,9 @@ class GameApi private constructor(
                     ?: return ActionResult.exception("No valid attack path for ${action.targetCoordinates}")
 
                 path.dropLast(1).lastOrNull()?.let {
+                    //fixme prevents scheduling another attack during the delay
+                    units[attacker.coordinates] = attacker.copy(actionPoint = false)
+
                     execute(playerId, Move(attacker.unitId, it.coordinates))
                     GlobalScope.launch {
                         delay(500)
@@ -464,9 +473,9 @@ class GameApi private constructor(
                     }
             } * 0.2
 
-            val discoveredHexes = visionCalculator.getVisionFor(playerId).discovered.size
+            val discoveredHexes = visionCalculator.getVisionFor(player.playerId).discovered.size
             val discoveredPercent = discoveredHexes / hexMap.tiles.size.toDouble()
-            val visionScore = discoveredPercent * 10
+            val visionScore = discoveredPercent * 100
             val totalScore = unitScore + buildingScore + visionScore
 
             log.write("Player ${player.color}, score: $unitScore + $buildingScore + $visionScore = $totalScore")

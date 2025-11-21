@@ -15,11 +15,25 @@ import civ.onSuccess
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withTimeoutOrNull
 
-class WarriorAi(
-    gameApi: GameApi, playerId: String
+sealed class OneTrickPonyAi(
+    gameApi: GameApi,
+    playerId: String,
+    private val otpUnitType: UnitType,
 ) : Ai(gameApi, playerId) {
 
     private val targetCityCount = 3
+    //fixme
+    private val unitLimit = 10
+
+    private fun shouldFocusOnArmy(): Boolean {
+        val visibleEnemies = gameApi.tilesForPlayer(playerId)
+            .count { it.unit?.takeUnless { it.playerId == playerId } != null }
+        return visibleEnemies > 1
+    }
+
+    private fun isUnitLimitReached(): Boolean {
+        return myUnits.filter { it.unitType == otpUnitType }.size >= unitLimit
+    }
 
     private fun isCityLimitReached(): Boolean {
         val myCities = gameApi.citiesFor(playerId)
@@ -32,7 +46,8 @@ class WarriorAi(
         item(Building.SAWMILL)
         item(Building.LUMBERCAMP)
         item(Building.FISHING_SHIP)
-        item(Building.BARRACKS)
+
+        otpUnitType.requiredBuildings.forEach { item(it) }
 
         item(Building.WATERMILL)
         item(Building.RIVERLAND_FARM)
@@ -42,14 +57,12 @@ class WarriorAi(
 
         item(Building.WINDMILL)
         item(Building.FARM)
+
         item(Building.FISHING_HUT)
-
-//        item(Building.MINE)
         item(Building.PORT)
-//        item(Building.MARKET)
 
+        item(otpUnitType, Condition.Predicate({ !isUnitLimitReached() && (shouldFocusOnArmy() || isCityLimitReached()) }))
         item(UnitType.SETTLERS, Condition.Predicate({ !isCityLimitReached() }))
-        item(UnitType.WARRIOR, Condition.Predicate({ isCityLimitReached() }))
     }
 
     private val myCities
@@ -156,8 +169,8 @@ class WarriorAi(
                 } ?: run {
                     println("Pathing timed out after 1s")
                     println("from ${unit.coordinates} to: $possibleTargets")
-                    gameApi.log.write("Unit: ", unit)
-                    gameApi.log.write("Target tile", possibleTargets,)
+                    println("Unit: " + unit)
+                    println("Target tile" + possibleTargets)
                     return@forEach
                 }
 
@@ -219,10 +232,25 @@ class WarriorAi(
     }
 }
 
+class WarriorAi(gameApi: GameApi, playerId: String) : OneTrickPonyAi(gameApi, playerId, UnitType.WARRIOR)
+class ArcherAi(gameApi: GameApi, playerId: String) : OneTrickPonyAi(gameApi, playerId, UnitType.ARCHER)
+class ScoutAi(gameApi: GameApi, playerId: String) : OneTrickPonyAi(gameApi, playerId, UnitType.SCOUT)
+
 
 //todo
-// ai activate/deactive + end turn
+// ai activate/deactive
 // better ais
-// otp ai - only warrior/scout/archer
 // save + restore
-// scoreboard?, game stats
+// stats - scoreboard? turn counter
+// victory/lose - endgame conditions
+
+//todo ui improvements:
+// showing roads on map
+// unit move/action available indicator
+// dont show attack move for ranged units?
+// delay vision updates until attack animations are finished
+// button states: not unlocked yet, unlocked but tile is busy/not enough res, can be bought
+
+// gameplay notes:
+// need more ways to get gold?
+// more building for water tile

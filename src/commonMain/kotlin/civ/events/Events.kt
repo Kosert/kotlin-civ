@@ -21,6 +21,14 @@ data class StockUpdated(
 object VisionChanged: GameEvent
 
 @JsExport
+data class AttackEvent(
+    val from: Coordinates,
+    val to: Coordinates,
+    val isRanged: Boolean,
+    //todo attack type?
+): GameEvent
+
+@JsExport
 sealed class UnitEvent(
     val unitId: String,
 ): GameEvent {

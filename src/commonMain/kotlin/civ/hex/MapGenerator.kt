@@ -14,6 +14,7 @@ class MapGenerator(
     val seed: Long,
 ) {
     val random = Random(seed)
+    val unitPlacementRandom = Random(seed)
 
     val forestsPercent = 0.35
     val mountainsPercent = 0.09
@@ -87,7 +88,7 @@ class MapGenerator(
         val playerSafeZone = borderWaterTiles.flatMap { it.getAllInRange(2) }.toMutableSet()
         players.forEach { player ->
             val settlersPosition = (freeTiles - playerSafeZone).random(random)
-            val scoutPosition = settlersPosition.neighbors().filter { it in freeTiles }.random(random)
+            val scoutPosition = settlersPosition.neighbors().filter { it in freeTiles }.random(unitPlacementRandom)
             units[settlersPosition] = player.playerId to UnitType.SETTLERS
             units[scoutPosition] = player.playerId to UnitType.SCOUT
             playerSafeZone.addAll(settlersPosition.getAllInRange(distanceBetweenPlayers))

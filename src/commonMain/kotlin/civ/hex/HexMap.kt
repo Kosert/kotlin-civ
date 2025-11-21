@@ -5,6 +5,7 @@ package civ.hex
 import civ.model.Building
 import civ.core.require
 import civ.tile.Grass
+import civ.tile.IMPASSABLE_COST
 import civ.tile.Tile
 import kotlin.collections.buildList
 import kotlin.js.ExperimentalJsExport
@@ -69,11 +70,11 @@ class HexMap(
 
         val updatedBuildings = (building.replaces?.let { tile.buildings - it } ?: tile.buildings).plus(building)
 
-        val updated = if (building in Building.cityMainBuildings && tile is Grass) {
+        val updated = if (building == Building.VILLAGE_HALL && tile is Grass) {
             tile.copy(
                 animals = false,
                 forest = false,
-                buildings = updatedBuildings
+                buildings = setOf(Building.VILLAGE_HALL)
             )
         } else {
             tile.updated(buildings = updatedBuildings)
@@ -95,10 +96,15 @@ class HexMap(
             current.neighbors()
                 .mapNotNull { tiles[it] }
                 .forEach { nextTile ->
-                    val newCost = totalCosts.getValue(current) + nextTile.movementCost()
-                    if (newCost > movement) {
+                    val currentCost = totalCosts.getValue(current)
+                    if (movement <= currentCost || nextTile.movementCost() == IMPASSABLE_COST) {
                         return@forEach
                     }
+
+                    val newCost = totalCosts.getValue(current) + nextTile.movementCost()
+//                    if (newCost > movement) {
+//                        return@forEach
+//                    }
                     if (totalCosts[nextTile.coords]?.let { it > newCost } != false) {
                         costPerTile[nextTile.coords] = nextTile.movementCost()
                         totalCosts[nextTile.coords] = newCost

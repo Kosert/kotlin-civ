@@ -172,9 +172,11 @@ export class Tile extends Phaser.GameObjects.Polygon {
                 case civ.model.PlayerColor.RED:
                     color = 0x8B0000
                     break
-                    //fixme not very visible
                 case civ.model.PlayerColor.GREEN:
                     color = 0x00ff00
+                    break;
+                case civ.model.PlayerColor.YELLOW:
+                    color = 0xffea00
                     break;
                 default:
                     break;

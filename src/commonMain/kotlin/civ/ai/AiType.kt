@@ -11,7 +11,9 @@ enum class AiType(
 ) {
 
     IDLE("idle"),
-    EASY("easy"),
+    OTP_WARRIOR("otp_warrior"),
+    OTP_ARCHER("otp_archer"),
+    OTP_SCOUT("otp_scout"),
 
     ;
 }
@@ -19,5 +21,7 @@ enum class AiType(
 
 fun AiType.create(gameApi: GameApi, playerId: String): Ai = when (this) {
     AiType.IDLE -> IdleAi(gameApi, playerId)
-    AiType.EASY -> WarriorAi(gameApi, playerId)
+    AiType.OTP_WARRIOR -> WarriorAi(gameApi, playerId)
+    AiType.OTP_ARCHER -> ArcherAi(gameApi, playerId)
+    AiType.OTP_SCOUT -> ScoutAi(gameApi, playerId)
 }

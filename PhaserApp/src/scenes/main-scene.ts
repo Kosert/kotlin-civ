@@ -1,3 +1,4 @@
+import { Projectile } from "../gameobjects/projectile"
 import { Tile } from "../gameobjects/tile"
 import { Unit } from "../gameobjects/unit"
 import FpsText from "../ui/fpsText"
@@ -28,11 +29,13 @@ export class MainScene extends Phaser.Scene {
     private pathHighlights: civ.hex.Coordinates[] = []
     private moveHighlights: civ.hex.Coordinates[] = []
     private selectedCityRange: civ.hex.Coordinates[] = []
+    private justAttackedUnit?: civ.model.CivUnit
 
     private tiles: Tile[] = []
     private units = new Map<string, Unit>()
     private ui: Ui
     private fpsText: FpsText
+    private scrollingTween: Phaser.Tweens.Tween
 
     preload(): void {
         this.load.image("attack", "assets/icons/attack.png")
@@ -60,6 +63,7 @@ export class MainScene extends Phaser.Scene {
 
         this.load.image("village", "assets/village.png")
         this.load.image("town", "assets/town.png")
+        this.load.image("city", "assets/city.png")
 
         const self = this
         this.load.on(Phaser.Loader.Events.FILE_LOAD_ERROR, function(file: Phaser.Loader.File) {
@@ -119,14 +123,18 @@ export class MainScene extends Phaser.Scene {
                         if (target.unit) {
                             const targetUnitCoords = target.unit.coordinates
                             const gameAction = new civ.action.Attack(selectedUnitId, targetUnitCoords)
+                            self.justAttackedUnit = self.selected
                             if (self.tryExecute(gameAction)) {
+                                self.select(null)
+                            }
+                            // if (self.tryExecute(gameAction)) {
                                 // const updatedUnit = self.gameApi.unitsFor(self.player.playerId)
                                 //     .asJsReadonlyArrayView()
                                 //     .find(it => it.unitId == selectedUnitId)
                                 // self.select(updatedUnit)
-                                const updatedTile = self.gameApi.tilesForPlayer(self.player.playerId).asJsReadonlyArrayView().find(it => it.unit?.unitId == selectedUnitId)
-                                self.select(updatedTile?.unit)
-                            }
+                                // const updatedTile = self.gameApi.tilesForPlayer(self.player.playerId).asJsReadonlyArrayView().find(it => it.unit?.unitId == selectedUnitId)
+                                // self.select(updatedTile?.unit)
+                            // }
                             //todo
                         } else {
                             self.gameApi.execute(self.player.playerId, new civ.action.Move(selectedUnitId, target.coordinates))
@@ -222,20 +230,81 @@ export class MainScene extends Phaser.Scene {
             const tile = this.tiles.find(tile => tile.coordinates.equals(event.unit.coordinates))
             const unitColor = this.playersMap.get(event.unit.playerId).color
             this.units.set(event.unitId, new Unit(this, event.unit, unitColor, tile.x, tile.y))
+            this.scrollToTile(tile.coordinates)
 
         } else if (event instanceof civ.events.UnitEvent.Moved) {
+            //todo unlock visionChanged events
             const tile = this.tiles.find(tile => tile.coordinates.equals(event.newCoordinates))
             const unit = this.units.get(event.unitId)
-            unit.updateUnitPosition(tile.x, tile.y)
+            unit.updateUnitPosition(tile.x, tile.y, tile.coordinates)
+            this.scrollToTile(tile.coordinates)
 
         } else if (event instanceof civ.events.UnitEvent.Updated) {
-            const unit = this.units.get(event.unitId)
-            unit.updateUnitHp(event.unit.hp)
+            //noop
 
         } else if (event instanceof civ.events.UnitEvent.Vanish) {
             const unit = this.units.get(event.unitId)
             unit.destroy()
             this.units.delete(unit.unitId)
+
+        } else if (event instanceof civ.events.AttackEvent) {
+            //todo prevent visionChanged events until animations finish
+            const tileFrom = this.tiles.find(tile => tile.coordinates.equals(event.from))
+            const tileTo = this.tiles.find(tile => tile.coordinates.equals(event.to))
+            this.scrollToTile(event.from)
+
+            const allUnits = this.gameApi.tilesForPlayer(this.player.playerId).asJsReadonlyArrayView()
+                .map(it => it.unit)
+                .filter(it => it)
+            const attacker = allUnits.find(it => it.coordinates.equals(event.from))
+            // not in api -> unit was killed and removed -> hp = 0
+            const updatedAttackerHp = allUnits.find(it => it.coordinates.equals(event.from))?.hp ?? 0
+            const updatedDefenderHp = allUnits.find(it => it.coordinates.equals(event.to))?.hp ?? 0
+            
+            const localUnits = [...this.units.values()]
+            const attackerUnit: Unit = localUnits.find(it => it.getCoordinates().equals(event.from))
+            const defenderUnit: Unit = localUnits.find(it => it.getCoordinates().equals(event.to))
+
+            let shouldReselect = false
+            if (this.justAttackedUnit && attacker?.unitId == this.justAttackedUnit?.unitId) {
+                shouldReselect = true
+                this.justAttackedUnit = null
+            }
+
+            const self = this
+            if (event.isRanged) {
+                const angleFrom = Phaser.Math.Angle.BetweenPoints(tileFrom, tileTo)
+                defenderUnit?.updateUnitHp(updatedDefenderHp, 400)
+                const projectile = new Projectile(this, tileFrom.x, tileFrom.y, angleFrom, tileTo.x, tileTo.y, () => {
+                    if (shouldReselect) {
+                        self.select(attacker)
+                    }
+                })
+                this.add.existing(projectile)
+            } else {
+                if (attackerUnit) {
+                    const angleFrom = Phaser.Math.Angle.BetweenPoints(tileFrom, tileTo)
+                    attackerUnit.bump(angleFrom, 100)
+                    defenderUnit?.updateUnitHp(updatedDefenderHp, 200)
+                } else {
+                    defenderUnit?.updateUnitHp(updatedDefenderHp)
+                }
+
+                if (defenderUnit && defenderUnit.unitType.defense > 0) {
+                    const angleTo = Phaser.Math.Angle.BetweenPoints(tileTo, tileFrom)
+                    attackerUnit?.updateUnitHp(updatedAttackerHp, 500)
+                    defenderUnit.bump(angleTo, 400, () => { 
+                        if (shouldReselect) {
+                            this.select(attacker)
+                        }
+                    })
+                } else {
+                    attackerUnit?.updateUnitHp(updatedAttackerHp)
+                    if (shouldReselect) {
+                        this.select(attacker)
+                    }
+                }
+            }
         }
     }
 
@@ -281,6 +350,44 @@ export class MainScene extends Phaser.Scene {
         })
     }
 
+    private isTileVisible(coordinates: civ.hex.Coordinates): boolean {
+        //todo padding?
+        const viewport = new Phaser.Geom.Rectangle(
+            this.cameras.main.scrollX,// - this.cameras.main.width / 2,
+            this.cameras.main.scrollY,// - this.cameras.main.height / 2,
+            this.cameras.main.width,
+            this.cameras.main.height - Ui.uiHeight
+        )
+
+        const tile = this.tiles.find(tile => tile.coordinates.equals(coordinates))
+        console.log(viewport, tile.x, tile.y)
+        return viewport.contains(tile.x, tile.y)
+    }
+
+    private scrollToTile(coordinates: civ.hex.Coordinates, force: boolean = false) {
+        if (this.isTileVisible(coordinates) && !force)
+            return
+
+        const startCameraX = this.cameras.main.scrollX
+        const startCameraY = this.cameras.main.scrollY
+
+        const tile = this.tiles.find(tile => tile.coordinates.equals(coordinates))
+        const targetX = tile.x - this.cameras.main.width / 2
+        const targetY = tile.y - this.cameras.main.height / 2
+
+        this.scrollingTween?.destroy()
+        this.scrollingTween = this.tweens.addCounter({
+            ease: 'Cubic',
+            duration: 300,
+        })
+        const self = this
+        this.scrollingTween.on(Phaser.Tweens.Events.TWEEN_UPDATE, function(tween, key, target, current: number , previous) {
+            self.cameras.main.scrollX = startCameraX + (targetX - startCameraX) * current
+            self.cameras.main.scrollY = startCameraY + (targetY - startCameraY) * current
+            self.input.activePointer.updateWorldPoint(self.cameras.main)
+        })
+    }
+
     select(entity: civ.model.PlayerTileData | civ.model.CivUnit) {
         this.selected = entity
         this.selectedUnitPaths = null
@@ -314,7 +421,7 @@ export class MainScene extends Phaser.Scene {
         const mouseX = Phaser.Math.Clamp(this.input.activePointer.x, 0, gameW)
         const mouseY = Phaser.Math.Clamp(this.input.activePointer.y, 0, gameH)
 
-        const mouseScrollThreshold = NaN//25
+        const mouseScrollThreshold = NaN//todo 25
         if (mouseX - mouseScrollThreshold < 0) {
             horizontalMove = -1
         } else if (mouseX + mouseScrollThreshold > gameW) {
@@ -339,9 +446,12 @@ export class MainScene extends Phaser.Scene {
             verticalMove = -1
         }
 
-        this.cameras.main.scrollX += horizontalMove * delta
-        this.cameras.main.scrollY += verticalMove * delta
-        this.input.activePointer.updateWorldPoint(this.cameras.main)
+        if (horizontalMove != 0 || verticalMove != 0) {
+            this.scrollingTween?.destroy()
+            this.cameras.main.scrollX += horizontalMove * delta
+            this.cameras.main.scrollY += verticalMove * delta
+            this.input.activePointer.updateWorldPoint(this.cameras.main)
+        }
 
         if (this.escKey.isDown()) {
             this.select(null)
@@ -382,7 +492,16 @@ export class MainScene extends Phaser.Scene {
             this.gameApi.registerEventListener(this.player.playerId, function(event) { self.onGameEvent(event) })
             this.ui.setStockpiles(this.gameApi.stocksFor(this.player.playerId), this.gameApi.incomeFor(this.player.playerId))
             this.updateUnitsFromTiles()
-            console.log("player switched")
+            
+            const firstCity = this.gameApi.citiesFor(this.player.playerId).asJsReadonlyArrayView().values().next().value
+            if (firstCity) {
+                this.scrollToTile(firstCity.coordinates)
+            } else {
+                const firstUnit = this.gameApi.unitsFor(this.player.playerId).asJsReadonlyArrayView().values().next().value
+                if (firstUnit) {
+                    this.scrollToTile(firstUnit.coordinates)
+                }
+            }
         }
 
         this.ui.disableEndTurn(this.gameApi.currentPlayer.playerId != this.player.playerId)

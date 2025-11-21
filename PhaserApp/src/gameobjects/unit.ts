@@ -2,6 +2,7 @@ import { civ } from "kotlin-civ";
 import { Scene } from "phaser";
 import { UnitIcons } from "../ui/icons";
 import { Ui } from "../ui/ui";
+import { Tile } from "./tile";
 
 
 export class Unit extends Phaser.GameObjects.Image {
@@ -12,12 +13,14 @@ export class Unit extends Phaser.GameObjects.Image {
 
     readonly unitId: string
     readonly unitType: civ.model.UnitType
+    private coordinates: civ.hex.Coordinates
     private targetHp: number
     private targetX: number
     private targetY: number
 
     private positionTween: Phaser.Tweens.Tween
     private hpTween: Phaser.Tweens.Tween
+    private bumpTween: Phaser.Tweens.Tween
 
     constructor(
         readonly scene: Scene,
@@ -32,6 +35,7 @@ export class Unit extends Phaser.GameObjects.Image {
         this.setDepth(7) //todo 6
         scene.add.existing(this)
 
+        this.coordinates = unit.coordinates
         this.unitId = unit.unitId
         this.unitType = unit.unitType
 
@@ -44,7 +48,10 @@ export class Unit extends Phaser.GameObjects.Image {
                 color = 0x8B0000
                 break
             case civ.model.PlayerColor.GREEN:
-                color = 0x006400
+                color = 0x00c800
+                break;
+            case civ.model.PlayerColor.YELLOW:
+                color = 0xE3BE00
                 break;
             default:
                 break;
@@ -66,20 +73,61 @@ export class Unit extends Phaser.GameObjects.Image {
             .setDepth(20)
 
         this.targetHp = hp
-        this.updateUnitPosition(x, y)
+        this.updateUnitPosition(x, y, this.coordinates)
         this.updateUnitHp(hp)
     }
 
-    updateUnitPosition(x: number, y: number) {
+    getCoordinates(): civ.hex.Coordinates {
+        return this.coordinates
+    }
+
+    updateUnitPosition(x: number, y: number, coordinates: civ.hex.Coordinates) {
         if (this.targetX != x || this.targetY != y) {
+            this.coordinates = coordinates
             this.animatePosition(x, y)
         }
     }
 
-    updateUnitHp(hp: number) {
+    updateUnitHp(hp: number, delay: number = 0) {
         if (this.targetHp != hp) {
-            this.animateHp(hp)
+            this.animateHp(hp, delay)
         }
+    }
+
+    // setPosition(x: number = 0, y: number = x, z: number = 0, w: number = 0): this {
+    //     super.setPosition(x, y, z, w)
+    //     // const barX = x - 32
+    //     // const barY = y - this.height
+    //     // this.heathBarBorder?.setPosition(barX, barY)
+    //     // this.heathLeftover?.setPosition(barX, barY)
+    //     // this.heathBar?.setPosition(barX, barY)
+    //     return this
+    // }
+
+    bump(angle: number, delay: number = 0, onComplete?: () => void) {
+        const sourceX = this.targetX
+        const sourceY = this.targetY
+        const rotatedVector = Phaser.Math.Rotate(new Phaser.Geom.Point(Tile.HEX_SIZE, 0), angle)
+        const animateTarget = {
+            x: sourceX + rotatedVector.x,
+            y: sourceY + rotatedVector.y
+        }
+
+        const self = this
+        this.positionTween?.destroy()
+        this.bumpTween = this.scene.tweens.addCounter({
+            delay: delay,
+            ease: 'Cubic',       // 'Cubic', 'Elastic', 'Bounce', 'Back'
+            duration: 100,
+            repeat: 0,            // -1: infinity
+            yoyo: true,
+            "onComplete": onComplete
+        })
+        this.bumpTween.on(Phaser.Tweens.Events.TWEEN_UPDATE, function(tween, key, target, current: number , previous) {
+            const newX = sourceX + (animateTarget.x - sourceX) * current
+            const newY = sourceY + (animateTarget.y - sourceY) * current
+            self.setPosition(newX, newY)
+        })
     }
 
     private animatePosition(x: number, y: number) {
@@ -89,6 +137,7 @@ export class Unit extends Phaser.GameObjects.Image {
         this.targetY = y
 
         const self = this
+        this.bumpTween?.destroy()
         this.positionTween?.destroy()
         this.positionTween = this.scene.tweens.addCounter({
             ease: 'Cubic',       // 'Cubic', 'Elastic', 'Bounce', 'Back'
@@ -97,36 +146,41 @@ export class Unit extends Phaser.GameObjects.Image {
             yoyo: false,
         })
 
-        this.positionTween.on(Phaser.Tweens.Events.TWEEN_UPDATE, function(tween, key, target, current: number , previous) {
+        this.positionTween.on(Phaser.Tweens.Events.TWEEN_UPDATE, function(tween, key, target, current: number, previous) {
             const newX = sourceX + (self.targetX - sourceX) * current
             const newY = sourceY + (self.targetY - sourceY) * current
             const barX = newX - 32
             const barY = newY - self.height
-
+            self.heathBarBorder?.setPosition(barX, barY)
+            self.heathLeftover?.setPosition(barX, barY)
+            self.heathBar?.setPosition(barX, barY)
             self.setPosition(newX, newY)
-            self.heathBarBorder.setPosition(barX, barY)
-            self.heathLeftover.setPosition(barX, barY)
-            self.heathBar.setPosition(barX, barY)
         })
     }
 
-    private animateHp(hp: number) {
+    private animateHp(hp: number, delay: number) {
         const sourceHp = this.targetHp
         this.targetHp = hp
         
-        const percent = this.targetHp / this.unitType.maxHp
-        this.heathBar.setSize(64 * percent, 10)
+        const startPercent = this.targetHp / this.unitType.maxHp
 
         const self = this
         this.hpTween?.destroy()
         this.hpTween = this.scene.tweens.addCounter({
+            delay: delay,
             ease: 'Cubic',       // 'Cubic', 'Elastic', 'Bounce', 'Back'
             duration: 1000,
             repeat: 0,            // -1: infinity
             yoyo: false,
         })
 
+        let started = false //fixme start event
         this.hpTween.on(Phaser.Tweens.Events.TWEEN_UPDATE, function(tween, key, target, current: number, previous) {
+            if (!started) {
+                self.heathBar.setSize(64 * startPercent, 10)
+                started = true
+            }
+
             const newHp = sourceHp + (self.targetHp - sourceHp) * current
             const percent = newHp / self.unitType.maxHp
 
@@ -149,7 +203,9 @@ export class Unit extends Phaser.GameObjects.Image {
     }
 
     destroy() {
+        this.positionTween?.destroy()
         this.hpTween?.destroy()
+        this.bumpTween?.destroy()
         this.heathBar.destroy()
         this.heathLeftover.destroy()
         this.heathBarBorder.destroy()

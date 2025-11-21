@@ -261,7 +261,7 @@ export class Ui {
                 this.recruitTitle.setVisible(false)
                 civ.model.UnitType.values().forEach(it => {
                     const button = this.recruitButtons.get(it)
-                    const canBuy = it.buildingRequirement(entity.tile.buildings) && !entity.tile.isBusy
+                    const canBuy = it.buildingRequirement(entity.tile.buildings)// && !entity.tile.isBusy
                     button.setup(canBuy ? "clickable" : "locked")
                 })
             }
@@ -314,7 +314,7 @@ export class Ui {
             this.recruitTitle.setVisible(false)
             this.recruitButtons.forEach(it => it.hide())
 
-            this.selectedTitle.setText(entity.unitType.name)
+            this.selectedTitle.setText(Texts.unitName(entity.unitType))
             this.selectedIcon.setTexture(UnitIcons.get(entity.unitType))
             this.selectedText.setText(Texts.selectedUnitStats(entity))
 

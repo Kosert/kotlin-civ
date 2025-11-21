@@ -1,4 +1,5 @@
 import { civ } from "kotlin-civ";
+import "../util/util"
 
 export class Texts {
 
@@ -54,7 +55,7 @@ export class Texts {
             case civ.model.Building.WINDMILL:
                 return "Windmill"
             case civ.model.Building.RIVERLAND_FARM:
-                return "Riverland farm"
+                return "Irrigated farm"
             case civ.model.Building.WATERMILL:
                 return "Watermill"
             case civ.model.Building.HUNTERS_CAMP:
@@ -196,7 +197,7 @@ export class Texts {
             `^ ${unit.hp}/${unit.maxHp}`,
             unit.attack > 0 ? ((unit.attackRange > 1 ? "%" : "@") + ` ${unit.attack}`) : "",
             unit.defense > 0 ? `| ${unit.defense}` : "",
-            "Movement left: " + (unit.movementLeft / 10).toPrecision(2),
+            "Movement left: " + (unit.movementLeft / 10).coerceAtLeast(0).toPrecision(2),
             "Action points: " + (unit.actionPoint ? "1" : "0")
             //todo action points
         ].filter(it => it).join("\n")

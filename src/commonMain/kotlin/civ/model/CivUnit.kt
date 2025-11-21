@@ -56,7 +56,7 @@ enum class UnitType(
 
     ARCHER(
         value = "archer",
-        attack = 4,
+        attack = 3,
         range = 2,
         defense = 1,
         maxHp = 10,
@@ -94,7 +94,7 @@ enum class UnitType(
 
     CROSSBOWMAN(
         value = "crossbowman",
-        attack = 7,
+        attack = 6,
         range = 2,
         defense = 1,
         maxHp = 15,
@@ -140,7 +140,7 @@ enum class UnitType(
         maxHp = 10,
         speed = 1,
         visionRange = 3,
-        cost = Stockpiles(food = 50, gold = 150),
+        cost = Stockpiles(food = 50, gold = 100),
         requiredBuildings = setOf(Building.SIEGE_WORKSHOP)
     ),
 
@@ -172,11 +172,7 @@ data class CivUnit(
     val visionRange: Int = unitType.visionRange
 
     companion object {
-        fun speedToMovement(speed: Int): Int {
-            if (speed == 1)
-                return 11
-            return speed * 10
-        }
+        fun speedToMovement(speed: Int): Int = speed * 10
     }
 }
 

@@ -78,7 +78,7 @@ data class Grass(
 
     override val baseMovementCost: Int
         get() = when {
-            river || forest -> 11
+            river || forest -> 20
             else -> 10
         }
 
@@ -103,7 +103,7 @@ data class Mountains(
     val gold: Boolean = false,
 ) : Tile() {
     override val baseMovementCost: Int
-        get() = 11
+        get() = 100
 
     override fun updated(
         isBusy: Boolean,

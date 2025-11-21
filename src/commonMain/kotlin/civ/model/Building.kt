@@ -10,7 +10,7 @@ import kotlin.js.JsExport
 
 sealed interface TileBonus
 
-data class OverrideMovementCost(val movementCost: Int, val leaveCost: Int) : TileBonus
+data class OverrideMovementCost(val movementCost: Int) : TileBonus
 data class StockCollectBonus(val amount: Stockpiles) : TileBonus
 data class DefenseBonus(val amount: Int) : TileBonus
 
@@ -29,6 +29,7 @@ enum class Building(
         tileRequirement = { false }, // built by settlers
         cost = Stockpiles(),
         bonuses = listOf(
+            OverrideMovementCost(5),
             StockCollectBonus(Stockpiles(gold = 1)),
         ),
     ),
@@ -37,6 +38,7 @@ enum class Building(
         replaces = VILLAGE_HALL,
         cost = Stockpiles(food = 100, gold = 50),
         bonuses = listOf(
+            OverrideMovementCost(5),
             StockCollectBonus(Stockpiles(gold = 3)),
             DefenseBonus(1),
         ),
@@ -46,6 +48,7 @@ enum class Building(
         replaces = TOWN_HALL,
         cost = Stockpiles(food = 300, gold = 100),
         bonuses = listOf(
+            OverrideMovementCost(5),
             StockCollectBonus(Stockpiles(gold = 5)),
             DefenseBonus(2),
         )
@@ -53,10 +56,12 @@ enum class Building(
 
     // ECONOMY AND CIVILIAN
     ROAD(
-        tileRequirement = { it is Grass },
+        tileRequirement = { it is Grass && it.isNotACity() },
         cost = Stockpiles(gold = 5),
-        bonus = OverrideMovementCost(5, 0)
+        bonus = OverrideMovementCost(5)
     ),
+
+    //todo another gold income building for cities
     MARKET(
         tileRequirement = { it.isACity() },
         buildingRequirements = setOf(TOWN_HALL),
@@ -66,9 +71,10 @@ enum class Building(
 
     FISHING_SHIP(
         tileRequirement = { it is Water },
-        cost = Stockpiles(wood = 20),
+        cost = Stockpiles(wood = 30),
         bonus = StockCollectBonus(Stockpiles(food = 3))
     ),
+    //todo fish trap
 
     FISHING_HUT(
         tileRequirement = { it.isNotACity() && it is Grass && it.coast },
@@ -90,7 +96,7 @@ enum class Building(
     SAWMILL(
         tileRequirement = { LUMBERCAMP.tileRequirement(it) },
         buildingRequirements = setOf(LUMBERCAMP),
-        cost = Stockpiles(wood = 20),
+        cost = Stockpiles(wood = 30),
         bonus = StockCollectBonus(Stockpiles(wood = 3))
     ),
 
@@ -102,7 +108,7 @@ enum class Building(
     WINDMILL(
         tileRequirement = { FARM.tileRequirement(it) },
         buildingRequirements = setOf(FARM),
-        cost = Stockpiles(wood = 20),
+        cost = Stockpiles(wood = 30),
         bonus = StockCollectBonus(Stockpiles(food = 3))
     ),
 
@@ -114,8 +120,8 @@ enum class Building(
     WATERMILL(
         tileRequirement = { RIVERLAND_FARM.tileRequirement(it) },
         buildingRequirements = setOf(RIVERLAND_FARM),
-        cost = Stockpiles(wood = 20),
-        bonus = StockCollectBonus(Stockpiles(food = 4))
+        cost = Stockpiles(wood = 30),
+        bonus = StockCollectBonus(Stockpiles(food = 3))
     ),
 
     HUNTERS_CAMP(
@@ -126,10 +132,11 @@ enum class Building(
     BUTCHERY(
         tileRequirement = { HUNTERS_CAMP.tileRequirement(it) },
         buildingRequirements = setOf(HUNTERS_CAMP),
-        cost = Stockpiles(wood = 20),
+        cost = Stockpiles(wood = 30),
         bonus = StockCollectBonus(Stockpiles(food = 3, gold = 1))
     ),
 
+    //todo something else for mountains?
     MINE(
         tileRequirement = { it is Mountains && it.gold },
         cost = Stockpiles(wood = 40),
@@ -147,20 +154,19 @@ enum class Building(
     ), //todo knight's stables?
     ARCHERY_RANGE(
         tileRequirement = { it.isACity() },
-//        buildingRequirements = setOf(TOWN_HALL, BARRACKS),
         cost = Stockpiles(wood = 30),
     ),
 
     GUARD_TOWERS(
         tileRequirement = { it.isACity() },
         buildingRequirements = setOf(TOWN_HALL),
-        cost = Stockpiles(wood = 50),
+        cost = Stockpiles(wood = 40),
         bonus = DefenseBonus(1),
     ),
     WALLS(
         tileRequirement = { it.isACity() },
         buildingRequirements = setOf(CASTLE, GUARD_TOWERS),
-        cost = Stockpiles(wood = 100),
+        cost = Stockpiles(wood = 60),
         bonus = DefenseBonus(2),
     ),
 
@@ -190,7 +196,16 @@ enum class Building(
         replaces: Building? = null
     ) : this(tileRequirement, buildingRequirements, cost, listOf(bonus), replaces)
 
-    fun unlockRequirement(tile: Tile): Boolean = tile.buildings.containsAll(buildingRequirements)
+    private fun getAllReplacements(): Set<Building> = buildSet {
+        this@Building.replaces?.let {
+            add(it)
+            addAll(it.getAllReplacements())
+        }
+    }
+
+    fun unlockRequirement(tile: Tile): Boolean = buildingRequirements.all { requiredBuilding ->
+        tile.buildings.any { it == requiredBuilding || requiredBuilding in it.getAllReplacements() }
+    }
 
     companion object {
         val cityMainBuildings: Array<Building>
