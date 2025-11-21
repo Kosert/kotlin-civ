@@ -251,7 +251,11 @@ export class MainScene extends Phaser.Scene {
             //todo prevent visionChanged events until animations finish
             const tileFrom = this.tiles.find(tile => tile.coordinates.equals(event.from))
             const tileTo = this.tiles.find(tile => tile.coordinates.equals(event.to))
-            this.scrollToTile(event.from)
+            if (!this.isTileVisible(event.from)) {
+                this.scrollToTile(event.from)
+            } else {
+                this.scrollToTile(event.to)
+            }
 
             const allUnits = this.gameApi.tilesForPlayer(this.player.playerId).asJsReadonlyArrayView()
                 .map(it => it.unit)
@@ -360,7 +364,6 @@ export class MainScene extends Phaser.Scene {
         )
 
         const tile = this.tiles.find(tile => tile.coordinates.equals(coordinates))
-        console.log(viewport, tile.x, tile.y)
         return viewport.contains(tile.x, tile.y)
     }
 

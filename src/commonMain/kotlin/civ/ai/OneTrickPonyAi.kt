@@ -8,12 +8,14 @@ import civ.core.require
 import civ.hex.Coordinates
 import civ.hex.dijkstra
 import civ.hex.distanceTo
+import civ.hex.getAllInRange
 import civ.hex.neighbors
 import civ.model.*
 import civ.onFailure
 import civ.onSuccess
+import civ.tile.Grass
+import civ.tile.IMPASSABLE_COST
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.withTimeoutOrNull
 
 sealed class OneTrickPonyAi(
     gameApi: GameApi,
@@ -26,9 +28,18 @@ sealed class OneTrickPonyAi(
     private val unitLimit = 10
 
     private fun shouldFocusOnArmy(): Boolean {
-        val visibleEnemies = gameApi.tilesForPlayer(playerId)
-            .count { it.unit?.takeUnless { it.playerId == playerId } != null }
-        return visibleEnemies > 1
+        var ownUnits = 0
+        var enemyUnits = 0
+        gameApi.tilesForPlayer(playerId).forEach {
+            when {
+                it.unit == null -> Unit
+                it.unit.unitType == UnitType.SETTLERS -> Unit
+                it.unit.playerId == playerId -> ownUnits++
+                else -> enemyUnits++
+            }
+        }
+
+        return enemyUnits > ownUnits || ownUnits == 0
     }
 
     private fun isUnitLimitReached(): Boolean {
@@ -61,7 +72,18 @@ sealed class OneTrickPonyAi(
         item(Building.FISHING_HUT)
         item(Building.PORT)
 
-        item(otpUnitType, Condition.Predicate({ !isUnitLimitReached() && (shouldFocusOnArmy() || isCityLimitReached()) }))
+        item(otpUnitType, Condition.Predicate({
+            if (isUnitLimitReached())
+                return@Predicate false
+
+            if (shouldFocusOnArmy())
+                return@Predicate true
+
+            if (!isCityLimitReached())
+                return@Predicate false
+
+            return@Predicate true
+        }))
         item(UnitType.SETTLERS, Condition.Predicate({ !isCityLimitReached() }))
     }
 
@@ -73,9 +95,11 @@ sealed class OneTrickPonyAi(
 
 
     private fun findPossibleTargets(tiles: List<PlayerTileData>, targets: List<Coordinates>): List<Coordinates> {
-        targets.filter { target -> tiles.find { it.coordinates == target }?.tile?.isBusy != true }
+        targets.filter { target -> tiles.find { it.coordinates == target }?.tile?.movementCost() != IMPASSABLE_COST }
             .takeIf { it.isNotEmpty() }
             ?.let { return it }
+
+        println("Valid targets not found for ${targets.joinToString()}")
 
         return findPossibleTargets(
             tiles,
@@ -83,24 +107,58 @@ sealed class OneTrickPonyAi(
         )
     }
 
+    var aiActive = true
+
     override suspend fun takeTurn() {
         //todo looks good?
         delay(1000)
 
+        if (!aiActive)
+            return
+
         // Settlers - try to settle > move away from cities
-        val cityTiles = gameApi.tilesForPlayer(playerId).filter { it.city != null }
+        val cityTiles = gameApi.tilesForPlayer(playerId)
+            .filter { it.cityRange != null || it.city != null }
+            .map { it.coordinates }
+
         myUnits.filter { it.unitType == UnitType.SETTLERS }
             .forEach { unit ->
                 execute(Settle(unit.unitId)).onFailure {
-                    val target = gameApi.actionsForUnit(playerId, unit.unitId)
-                        .possibleTargets.allMaxBy { target ->
-                            //todo od wszystkich miast + od przeciwników?
-                            //todo find target prioritized by nearby resources
-                            cityTiles.sumOf { it.coordinates.distanceTo(target) }
-                        }.randomOrNull()
+                    val tiles = gameApi.tilesForPlayer(playerId)
 
-                    target?.let {
-                        execute(Move(unit.unitId, target))
+                    //todo od wszystkich miast + od przeciwników?
+                    //todo find target prioritized by nearby resources
+                    val target = tiles.allMaxBy { tile ->
+                        when {
+                            tile.tile != null && tile.tile !is Grass -> -1
+                            tile.coordinates.getAllInRange(3).any { cityTiles.contains(it) } -> -1
+                            else -> cityTiles.sumOf { it.distanceTo(tile.coordinates) }
+                        }
+                    }.allMinBy { unit.coordinates.distanceTo(it.coordinates) }
+                        .randomOrNull() ?: return@onFailure
+
+                    val preferredPath = runCatching {
+                        findPreferredPath(tiles, unit.coordinates, target.coordinates)
+                    }.onFailure {
+                        println("Pathing timed out after 1s")
+                        println("from ${unit.coordinates} to: $target")
+                        println("Unit: " + unit)
+                        println("Target tile" + target)
+                        return@forEach
+                    }.getOrNull()
+
+                    if (preferredPath.isNullOrEmpty()) {
+                        println("Preferred path is null or empty")
+                        aiActive = false
+                        return@forEach
+                    }
+
+                    val indexedPath = preferredPath.withIndex()
+                    val actions = gameApi.actionsForUnit(playerId, unit.unitId)
+                    actions.moveTargets.maxByOrNull { moveTarget ->
+                        indexedPath.find { it.value == moveTarget }?.index ?: -1
+                    }?.let {
+                        execute(Move(unit.unitId, it))
                         execute(Settle(unit.unitId))
                     }
                 }
@@ -145,37 +203,68 @@ sealed class OneTrickPonyAi(
                             it?.hp ?: Int.MAX_VALUE
                     }
 
-                if (attackTarget != null) {
+                //fixme extract as archer-line algorithm - if neighbor is enemy -> move away, then attack
+                if (unit.unitType.range > 1 && attackTarget != null) {
+                    if (attackTarget.coordinates.distanceTo(unit.coordinates) == 1) {
+                        val moveTargets = actions.moveTargets - attackTarget.coordinates.neighbors()
+                        moveTargets.randomOrNull()?.let {
+                            execute(Move(unit.unitId, it))
+                            execute(Attack(unit.unitId, attackTarget.coordinates))
+                        }
+                    } else {
+                        execute(Attack(unit.unitId, attackTarget.coordinates))
+                    }
+                    return@forEach
+                }
+                else if (attackTarget != null) {
                     execute(Attack(unit.unitId, attackTarget.coordinates))
                     println("Attacking executed - returning (${unit.unitId}")
                     return@forEach
                 }
 
-                println("Looking for move target for (${unit.unitId}")
-                val target = closestEnemyCity(tiles, unit.coordinates)?.coordinates
-                    ?: closestEnemy(tiles, unit.coordinates)?.coordinates
-                    ?: closestUndiscovered(tiles, unit.coordinates)?.coordinates
-                    ?: error("enemy somewhere in the fog of war, what now? select random not visible tile?")
+                println("Looking for move target for (${unit.unitId})")
+                val closestEnemyCity = closestEnemyCity(tiles, unit.coordinates)?.coordinates
+                val closestEnemy = closestEnemy(tiles, unit.coordinates)?.coordinates
+
+                val target = if (closestEnemy != null && closestEnemyCity != null) {
+                    val distanceToEnemy = unit.coordinates.distanceTo(closestEnemy)
+                    val distanceToCity = unit.coordinates.distanceTo(closestEnemyCity)
+                    if (distanceToEnemy <= distanceToCity)
+                        closestEnemy
+                    else
+                        closestEnemyCity
+                } else {
+                    closestEnemy
+                        ?: closestEnemyCity
+                        ?: closestUndiscovered(tiles, unit.coordinates)?.coordinates
+                        ?: unit.coordinates //todo enemy somewhere in the fog of war, what now? select random not visible tile?
+                }
 
                 if (unit.coordinates == target) {
                     return@forEach
                 }
 
                 val possibleTargets = findPossibleTargets(tiles, listOf(target))
-                val preferredPath = withTimeoutOrNull(1000) {
-                    dijkstra(unit.coordinates, possibleTargets, cost = {
-                        tiles.find { it.coordinates == this }?.tile?.movementCost() ?: 10
-                    }).withIndex()
-                } ?: run {
+
+                val preferredPath = runCatching {
+                    findPreferredPath(tiles, unit.coordinates, target)
+                }.onFailure {
                     println("Pathing timed out after 1s")
                     println("from ${unit.coordinates} to: $possibleTargets")
                     println("Unit: " + unit)
                     println("Target tile" + possibleTargets)
                     return@forEach
+                }.getOrNull()
+
+                if (preferredPath.isNullOrEmpty()) {
+                    aiActive = false
+                    println("Preferred path is null or empty")
+                    return@forEach
                 }
 
+                val indexedPath = preferredPath.withIndex()
                 actions.moveTargets.maxByOrNull { moveTarget ->
-                    preferredPath.find { it.value == moveTarget }?.index ?: -1
+                    indexedPath.find { it.value == moveTarget }?.index ?: -1
                 }?.let {
                     execute(Move(unit.unitId, it))
                 }
@@ -192,6 +281,18 @@ sealed class OneTrickPonyAi(
 
         println("AI done")
         gameApi.endTurn(playerId)
+    }
+
+    private fun findPreferredPath(
+        tiles: List<PlayerTileData>,
+        start: Coordinates,
+        target: Coordinates,
+    ): List<Coordinates> {
+        val possibleTargets = findPossibleTargets(tiles, listOf(target))
+        println("Dijkstring for ${possibleTargets.joinToString()}")
+        return dijkstra(start, possibleTargets, cost = {
+            tiles.find { it.coordinates == this }?.tile?.movementCost() ?: 10
+        })
     }
 
     private suspend fun processQueueItem(

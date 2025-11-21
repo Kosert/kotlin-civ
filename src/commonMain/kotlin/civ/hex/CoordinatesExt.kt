@@ -67,7 +67,13 @@ fun dijkstra(
     val totalCosts = mutableMapOf<Coordinates, Int>(start to 0)
 
     var end: Coordinates? = null
+    var iterationCount = 0
     while (frontier.isNotEmpty()) {
+        iterationCount++
+        if (iterationCount > 100_000) {
+            throw RuntimeException("Iteration count over 100_000")
+            return emptyList()
+        }
         frontier.sortBy { it.second }
         val current = frontier.removeFirst().first
 
@@ -86,6 +92,8 @@ fun dijkstra(
                 }
             }
     }
+
+    println("dijkstra iteration count: $iterationCount")
 
     var pointer = end.require()
     return buildList<Coordinates> {

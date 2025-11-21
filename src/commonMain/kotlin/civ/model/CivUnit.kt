@@ -56,7 +56,7 @@ enum class UnitType(
 
     ARCHER(
         value = "archer",
-        attack = 3,
+        attack = 3, //todo zobaczyc czy z 3 ale lepszym ai bedzie dzialac
         range = 2,
         defense = 1,
         maxHp = 10,
