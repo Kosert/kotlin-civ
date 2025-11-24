@@ -7,20 +7,25 @@ import civ.hex.HexEdge
 import civ.model.Building
 import civ.model.DefenseBonus
 import civ.model.OverrideMovementCost
+import kotlinx.serialization.Serializable
 import kotlin.js.ExperimentalJsExport
 import kotlin.js.JsExport
 
 const val IMPASSABLE_COST = 100_000
 
 @JsExport
+@Serializable //todo separate tile serializable type?
 sealed class Tile {
     abstract val coords: Coordinates
     abstract val buildings: Set<Building>
 
-    open val isBusy: Boolean = false
+    open val isBusy: Boolean
+        get() = false
 
-    protected open val baseMovementCost: Int = 10
-    protected open val baseDefenseBonus: Int = 0
+    protected open val baseMovementCost: Int
+        get() = 10
+    protected open val baseDefenseBonus: Int
+        get() = 0
 
     fun movementCost(): Int {
         return if (isBusy)
@@ -53,17 +58,21 @@ sealed class Tile {
 }
 
 @JsExport
+@Serializable
 data class Water(
     override val coords: Coordinates,
     override val buildings: Set<Building> = setOf(),
 ) : Tile() {
-    override val baseMovementCost: Int = IMPASSABLE_COST
+    override val baseMovementCost: Int
+        get() = IMPASSABLE_COST
+
     override fun updated(isBusy: Boolean, buildings: Set<Building>) = copy(buildings = buildings)
 
     override fun getVisibleName() = "Water"
 }
 
 @JsExport
+@Serializable
 data class Grass(
     override val coords: Coordinates,
     override val isBusy: Boolean = false,
@@ -96,6 +105,7 @@ data class Grass(
 }
 
 @JsExport
+@Serializable
 data class Mountains(
     override val coords: Coordinates,
     override val isBusy: Boolean = false,

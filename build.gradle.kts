@@ -4,6 +4,7 @@ import org.jetbrains.kotlin.gradle.targets.js.dsl.ExperimentalDistributionDsl
 
 plugins {
     kotlin("multiplatform") version "2.2.0"
+    kotlin("plugin.serialization") version "2.2.0"
 }
 
 group = "me.kosert.civ"
@@ -35,6 +36,7 @@ kotlin {
     sourceSets {
         commonMain.dependencies {
             implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2")
+            implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.9.0")
         }
 
         jsMain.dependencies {

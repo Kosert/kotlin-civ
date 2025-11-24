@@ -24,6 +24,7 @@ class GameApi private constructor(
     cities: Collection<City>,
     units: Collection<CivUnit>,
     stocks: Map<String, Stockpiles>,
+    visionData: Map<String, GameStateVisionData>? = null,
 ) {
     //todo initial sort?
     private val turns = players.toMutableList()
@@ -81,8 +82,19 @@ class GameApi private constructor(
     }
 
     init {
-        //todo load discovered data
+        verifyIntegrity()
+        visionData?.let {
+            visionCalculator.importData(it)
+        }
+
+        log.write("GameApi initialised - starting")
         recalculateVision()
+        ais[currentPlayer.playerId]?.let { ai ->
+            //fixme
+            GlobalScope.launch {
+                ai.takeTurn()
+            }
+        }
     }
 
     val currentPlayer
@@ -452,6 +464,7 @@ class GameApi private constructor(
         if (turns.first().playerId != playerId) {
             error("Not your turn")
         }
+        verifyIntegrity()
 
         val removed = turns.removeAt(0)
         turns.add(removed)
@@ -504,7 +517,6 @@ class GameApi private constructor(
             //fixme
             GlobalScope.launch {
                 ai.takeTurn()
-                verifyIntegrity()
             }
         }
     }
@@ -535,7 +547,8 @@ class GameApi private constructor(
             tileList = hexMap.tiles.values.toSet(),
             cities = cities.values.toSet(),
             units = units.values.toSet(),
-            stock = turns.associate { it.playerId to stocksManager.getFor(it.playerId) }
+            stock = turns.associate { it.playerId to stocksManager.getFor(it.playerId) },
+            visionData = visionCalculator.exportData(),
         )
     }
 
@@ -545,7 +558,8 @@ class GameApi private constructor(
             tileList = state.tileList,
             cities = state.cities,
             units = state.units,
-            stocks = state.stock
+            stocks = state.stock,
+            visionData = state.visionData,
         )
     }
 }

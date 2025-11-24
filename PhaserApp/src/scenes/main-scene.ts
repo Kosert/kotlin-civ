@@ -80,8 +80,14 @@ export class MainScene extends Phaser.Scene {
         this.load.bitmapFont("civ_font", "assets/fonts/civ_font.png", "assets/fonts/civ_font.xml")
     }
 
+    //todo setGameApi
+
     create(): void {
         const self = this
+        // @ts-expect-error
+        window.generateGameState = () => {
+            return self.gameApi.generateGameState().toJson()
+        }
 
         this.fpsText = new FpsText(this)
         this.ui = new Ui(this, this.gameApi)
@@ -526,5 +532,4 @@ export class MainScene extends Phaser.Scene {
             }
         })
     }
-
 }

@@ -7,4 +7,10 @@ actual object WindowHelper {
 
     actual fun createBoolFunction(name: String, declaration: (arg: Boolean) -> Unit) {
     }
+
+    actual fun createStringFunction(name: String, declaration: (String) -> Unit) {
+    }
+
+    actual fun createFunctionString(name: String, declaration: () -> String) {
+    }
 }

@@ -1,5 +1,6 @@
 package civ.hex
 
+import kotlinx.serialization.Serializable
 import kotlin.math.abs
 import kotlin.math.roundToInt
 import kotlin.js.ExperimentalJsExport
@@ -7,6 +8,7 @@ import kotlin.js.JsExport
 
 @OptIn(ExperimentalJsExport::class)
 @JsExport
+@Serializable
 data class Coordinates(
     val q: Int,
     val r: Int,

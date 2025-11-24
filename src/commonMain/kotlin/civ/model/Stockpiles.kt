@@ -1,10 +1,12 @@
 package civ.model
 
+import kotlinx.serialization.Serializable
 import kotlin.js.ExperimentalJsExport
 import kotlin.js.JsExport
 
 @OptIn(ExperimentalJsExport::class)
 @JsExport
+@Serializable
 data class Stockpiles(
     val food: Int = 0,
     val wood: Int = 0,

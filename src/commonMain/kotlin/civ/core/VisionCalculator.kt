@@ -40,7 +40,18 @@ class VisionCalculator(
         }
 
         val updatedDiscovered = getVisionFor(playerId).discovered + visible
-        data.put(playerId, VisionData(visible, updatedDiscovered))
+        data[playerId] = VisionData(visible, updatedDiscovered)
+    }
+
+    fun importData(visionData: Map<String, GameStateVisionData>) {
+        this.data.clear()
+        visionData.forEach { (playerId, data) ->
+            this.data[playerId] = VisionData(data.visible, data.discovered)
+        }
+    }
+
+    fun exportData(): Map<String, GameStateVisionData> = data.mapValues { (_, data) ->
+        GameStateVisionData(data.visible, data.discovered)
     }
 
     class VisionData(

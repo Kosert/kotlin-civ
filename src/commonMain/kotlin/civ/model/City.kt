@@ -1,6 +1,7 @@
 package civ.model
 
 import civ.hex.Coordinates
+import kotlinx.serialization.Serializable
 import kotlin.uuid.Uuid
 import kotlin.js.ExperimentalJsExport
 import kotlin.js.JsExport
@@ -37,6 +38,7 @@ enum class CityLevel( //todo city level vs main building
 
 @OptIn(ExperimentalJsExport::class)
 @JsExport
+@Serializable
 data class City(
     val cityId: String = Uuid.random().toHexString(),
     val playerId: String,
