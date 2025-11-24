@@ -60,6 +60,7 @@ export class MainScene extends Phaser.Scene {
         this.load.image("forest_animals", "assets/forest_animals.png")
         this.load.image("mountains", "assets/mountains.png")
         this.load.image("mountains_gold", "assets/mountains_gold.png")
+        this.load.image("roads", "assets/roads.png")
 
         this.load.image("village", "assets/village.png")
         this.load.image("town", "assets/town.png")

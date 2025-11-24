@@ -146,7 +146,7 @@ object TestData {
         val playerList = listOf(
 //            Player(name = "Pierwszy", color = PlayerColor.BLUE),
 //            Player(name = "Drugi", color = PlayerColor.RED),
-            Player(name = "Pierwszy", color = PlayerColor.BLUE, aiType = AiType.OTP_SCOUT),
+            Player(name = "Pierwszy", color = PlayerColor.BLUE),
             Player(name = "Drugi", color = PlayerColor.RED, aiType = AiType.OTP_ARCHER),
             Player(name = "Trzeci", color = PlayerColor.GREEN, aiType = AiType.OTP_WARRIOR),
 //            Player(name = "Czwarty", color = PlayerColor.YELLOW, aiType = AiType.OTP_SCOUT),

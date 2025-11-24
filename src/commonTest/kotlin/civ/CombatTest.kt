@@ -53,8 +53,8 @@ class CombatTest {
     @Test
     fun simpleTest() {
         val warrior = createUnit(UnitType.WARRIOR)
-        val heavySwordsman = createUnit(UnitType.HEAVY_SWORDSMAN)
-        oneSidedFight(warrior, heavySwordsman)
+        val defender = createUnit(UnitType.ARCHER)
+        oneSidedFight(warrior, defender)
     }
 
     @Test

@@ -25,6 +25,7 @@ export class Tile extends Phaser.GameObjects.Polygon {
 
     private terrainGraphics: Phaser.GameObjects.Image
     private cityGraphics: Phaser.GameObjects.Image
+    private roadsGraphics: Phaser.GameObjects.Image
     private mainOverlay: Phaser.GameObjects.Polygon
     private cityRangeOverlay: Phaser.GameObjects.Polygon
     private highlight: Phaser.GameObjects.Arc
@@ -103,7 +104,7 @@ export class Tile extends Phaser.GameObjects.Polygon {
                         this.rivers.set(
                             edge, 
                             this.scene.add.image(this.x, this.y, "river_" + edge.name.toLowerCase())
-                                .setDepth(2)
+                                .setDepth(1)
                         )
                     })
                 }
@@ -128,7 +129,7 @@ export class Tile extends Phaser.GameObjects.Polygon {
             this.terrainGraphics?.destroy()
             if (terrainTextureName) {
                 this.terrainGraphics = this.scene.add.image(this.x, this.y, terrainTextureName)
-                .setDepth(3)
+                .setDepth(4)
             }
         } 
 
@@ -189,25 +190,11 @@ export class Tile extends Phaser.GameObjects.Polygon {
             this.cityRangeOverlay.setFillStyle(0x000000, 0)
         }
 
-        // if (data.unit) {
-            // this.unit.setVisible(true)
-            // const color = this.playersMap.get(data.unit.playerId).color
-            // switch (color) {
-                // case civ.model.PlayerColor.BLUE:
-                    // this.unit.setFillStyle(0x0000ff)
-                    // break
-                // case civ.model.PlayerColor.RED:
-                    // this.unit.setFillStyle(0x8B0000)
-                    // break
-                // case civ.model.PlayerColor.GREEN:
-                    // this.unit.setFillStyle(0x6666ff)
-                    // break;
-                // default:
-                    // break;
-            // }
-        // } else {
-            // this.unit.setVisible(false)
-        // }
+        if (data.tile.buildings.asJsReadonlySetView().has(civ.model.Building.ROAD)) {
+            if (!this.roadsGraphics){
+                this.roadsGraphics = this.scene.add.image(this.x, this.y, "roads").setDepth(2)
+            }            
+        }
     }
 
     setStates(hovered: boolean, selected: boolean) {
@@ -217,6 +204,11 @@ export class Tile extends Phaser.GameObjects.Polygon {
     }
 
     setHighlight(move: boolean, path: boolean, attack: boolean) {
+        if (this.mainOverlay.fillAlpha == 1) {
+            this.highlightMode = "none"
+            return
+        }
+
         this.isHighlightAttack = attack
         if (path) {
             this.highlightMode = "path"

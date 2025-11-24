@@ -69,12 +69,16 @@ enum class Building(
         bonus = StockCollectBonus(Stockpiles(gold = 3))
     ),
 
+    FISH_TRAP(
+        tileRequirement = { it is Water },
+        cost = Stockpiles(wood = 10),
+        bonus = StockCollectBonus(Stockpiles(food = 2))
+    ),
     FISHING_SHIP(
         tileRequirement = { it is Water },
         cost = Stockpiles(wood = 30),
         bonus = StockCollectBonus(Stockpiles(food = 3))
     ),
-    //todo fish trap
 
     FISHING_HUT(
         tileRequirement = { it.isNotACity() && it is Grass && it.coast },

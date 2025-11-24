@@ -107,19 +107,22 @@ sealed class OneTrickPonyAi(
         )
     }
 
+    //fixme only for debugging
     var aiActive = true
 
     override suspend fun takeTurn() {
-        //todo looks good?
         delay(1000)
 
         if (!aiActive)
             return
 
         // Settlers - try to settle > move away from cities
-        val cityTiles = gameApi.tilesForPlayer(playerId)
-            .filter { it.cityRange != null || it.city != null }
-            .map { it.coordinates }
+        val (cityTiles, cityRangeTiles) = gameApi.tilesForPlayer(playerId)
+            .filter { it.city != null || it.cityRange != null }
+            .partition { it.city != null }
+            .toList()
+            .map { list -> list.map { it.coordinates } }
+        val cityAndRangeTiles = (cityTiles + cityRangeTiles).toSet()
 
         myUnits.filter { it.unitType == UnitType.SETTLERS }
             .forEach { unit ->
@@ -131,7 +134,7 @@ sealed class OneTrickPonyAi(
                     val target = tiles.allMaxBy { tile ->
                         when {
                             tile.tile != null && tile.tile !is Grass -> -1
-                            tile.coordinates.getAllInRange(3).any { cityTiles.contains(it) } -> -1
+                            tile.coordinates.getAllInRange(3).any { cityAndRangeTiles.contains(it) } -> -1
                             else -> cityTiles.sumOf { it.distanceTo(tile.coordinates) }
                         }
                     }.allMinBy { unit.coordinates.distanceTo(it.coordinates) }
@@ -346,12 +349,7 @@ class ScoutAi(gameApi: GameApi, playerId: String) : OneTrickPonyAi(gameApi, play
 // victory/lose - endgame conditions
 
 //todo ui improvements:
-// showing roads on map
 // unit move/action available indicator
 // dont show attack move for ranged units?
 // delay vision updates until attack animations are finished
 // button states: not unlocked yet, unlocked but tile is busy/not enough res, can be bought
-
-// gameplay notes:
-// need more ways to get gold?
-// more building for water tile

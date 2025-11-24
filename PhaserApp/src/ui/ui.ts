@@ -66,7 +66,7 @@ export class Ui {
         .set(civ.model.Building.WATERMILL, civ.model.Building.RIVERLAND_FARM)
         .set(civ.model.Building.WINDMILL, civ.model.Building.FARM)
         .set(civ.model.Building.BUTCHERY, civ.model.Building.HUNTERS_CAMP)
-        .set(civ.model.Building.MARKET, civ.model.Building.ROAD)
+        .set(civ.model.Building.FISHING_SHIP, civ.model.Building.FISH_TRAP)
         .set(civ.model.Building.PORT, civ.model.Building.FISHING_HUT)
         .set(civ.model.Building.WALLS, civ.model.Building.GUARD_TOWERS)
         .set(civ.model.Building.BLACKSMITH, civ.model.Building.BARRACKS)
