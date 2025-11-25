@@ -193,10 +193,14 @@ class GameApi private constructor(
     private fun executeAttack(attacker: CivUnit, defender: CivUnit) {
         val isRangedAttack = defender.coordinates !in attacker.coordinates.neighbors()
 
+        val defenseBonus = hexMap.get(defender.coordinates).require().defenseBonus()
+            .takeIf { cities[defender.coordinates]?.let { it.playerId == defender.playerId } ?: true }
+            ?: 0
+
         val (updatedAttacker, updatedDefender) = combatCalculator.calculate(
             attacker = attacker,
             defender = defender,
-            defenseBonus = hexMap.get(defender.coordinates).require().defenseBonus()
+            defenseBonus = defenseBonus
         )
 
         if (isRangedAttack) {
@@ -499,6 +503,7 @@ class GameApi private constructor(
                 val updatedUnit = it.copy(
                     movementLeft = CivUnit.speedToMovement(it.speed),
                     actionPoint = true,
+                    //todo town, castle +1 required occupying time
                     conquerState = if (it.conquerState == ConquerState.OCCUPYING) ConquerState.CAN_CONQUER else it.conquerState
                 )
                 units.put(it.coordinates, updatedUnit)

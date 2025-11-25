@@ -11,7 +11,7 @@ import kotlin.js.JsExport
 @JsExport
 enum class UnitType(
     val value: String,
-    val attack: Int, //todo attack range? actions?
+    val attack: Int,
     val range: Int,
     val defense: Int,
     val maxHp: Int,
@@ -39,7 +39,7 @@ enum class UnitType(
         maxHp = 15,
         speed = 1,
         visionRange = 1,
-        cost = Stockpiles(food = 40), //todo warrior line cheaper than scout line?
+        cost = Stockpiles(food = 40),
         requiredBuildings = setOf(Building.BARRACKS)
     ),
 
@@ -57,7 +57,7 @@ enum class UnitType(
 
     ARCHER(
         value = "archer",
-        attack = 3, //todo zobaczyc czy z 3 ale lepszym ai bedzie dzialac
+        attack = 3,
         range = 2,
         defense = 1,
         maxHp = 10,
@@ -78,7 +78,7 @@ enum class UnitType(
         speed = 1,
         visionRange = 1,
         cost = Stockpiles(food = 50, gold = 10),
-        requiredBuildings = setOf(Building.BARRACKS, Building.BLACKSMITH)
+        requiredBuildings = setOf(Building.BLACKSMITH)
     ),
 
     RIDER(
@@ -90,7 +90,7 @@ enum class UnitType(
         speed = 2,
         visionRange = 1,
         cost = Stockpiles(food = 60, gold = 10),
-        requiredBuildings = setOf(Building.STABLE, Building.BLACKSMITH)
+        requiredBuildings = setOf(Building.WARHORSE_STABLES)
     ),
 
     CROSSBOWMAN(
@@ -102,7 +102,7 @@ enum class UnitType(
         speed = 1,
         visionRange = 2,
         cost = Stockpiles(food = 50, gold = 25),
-        requiredBuildings = setOf(Building.ARCHERY_RANGE, Building.BLACKSMITH)
+        requiredBuildings = setOf(Building.ARBALEST_GUILD)
     ),
 
     // CASTLE LEVEL UNITS
@@ -116,7 +116,7 @@ enum class UnitType(
         speed = 1,
         visionRange = 1,
         cost = Stockpiles(food = 100, gold = 50),
-        requiredBuildings = setOf(Building.BARRACKS, Building.ARMORERS_WORKSHOP)
+        requiredBuildings = setOf(Building.ARMORERS_WORKSHOP)
     ),
 
     KNIGHT(
@@ -128,8 +128,7 @@ enum class UnitType(
         speed = 2,
         visionRange = 2,
         cost = Stockpiles(food = 100, gold = 80),
-        requiredBuildings = setOf(Building.STABLE, Building.ARMORERS_WORKSHOP)
-        //todo knights' stables? royal stables?
+        requiredBuildings = setOf(Building.KNIGHTS_HALL)
     ),
 
     //todo ballista?

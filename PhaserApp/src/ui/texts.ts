@@ -38,8 +38,8 @@ export class Texts {
                 return "Castle"
             case civ.model.Building.ROAD:
                 return "Road"
-            case civ.model.Building.MARKET:
-                return "Market"
+            case civ.model.Building.WATCH_TOWER:
+                return "Watch Tower"
             case civ.model.Building.FISHING_SHIP:
                 return "Fishing Ship"
             case civ.model.Building.FISHING_HUT:
@@ -64,20 +64,28 @@ export class Texts {
                 return "Butchery"
             case civ.model.Building.MINE:
                 return "Mine"
-            case civ.model.Building.BARRACKS:
-                return "Barracks"
-            case civ.model.Building.STABLE:
-                return "Stable"
-            case civ.model.Building.ARCHERY_RANGE:
-                return "Archery Range"
+            case civ.model.Building.MARKET:
+                return "Market"
             case civ.model.Building.GUARD_TOWERS:
                 return "Guard Towers"
             case civ.model.Building.WALLS:
                 return "City Walls"
+            case civ.model.Building.BARRACKS:
+                return "Barracks"
             case civ.model.Building.BLACKSMITH:
                 return "Blacksmith"
             case civ.model.Building.ARMORERS_WORKSHOP:
                 return "Armorer's Workshop"
+            case civ.model.Building.STABLE:
+                return "Stable"
+            case civ.model.Building.WARHORSE_STABLES:
+                return "Warhorse Stables"
+            case civ.model.Building.KNIGHTS_HALL:
+                return "Knights Hall"
+            case civ.model.Building.ARCHERY_RANGE:
+                return "Archery Range"
+            case civ.model.Building.ARBALEST_GUILD:
+                return "Arbalest Guild"
             case civ.model.Building.SIEGE_WORKSHOP:
                 return "Siege Workshop"
             default:
@@ -97,18 +105,23 @@ export class Texts {
     
     }
 
+    //TODO update texts with actual values
     static buildingDescription(building: civ.model.Building): string {
         switch (building) {
             case civ.model.Building.VILLAGE_HALL:
-                return "Main building of a village."
+                return "Main building of a village.\nProduces 1$ each turn."
             case civ.model.Building.TOWN_HALL:
-                return "Town Hall"
+                return "Town Hall\nProduces 3$ each turn."
             case civ.model.Building.CASTLE:
-                return "Castle"
+                return "Castle\nProduces 5$ each turn."
             case civ.model.Building.ROAD:
                 return "Units move faster through tiles with roads."
+            case civ.model.Building.WATCH_TOWER:
+                return "Units can see 3 tiles away from tiles with a Watch Tower."
             case civ.model.Building.MARKET:
                 return "Produces 3$ each turn."
+            case civ.model.Building.FISH_TRAP:
+                return "Produces 2{ each turn."
             case civ.model.Building.FISHING_SHIP:
                 return "Produces 3{ each turn."
             case civ.model.Building.FISHING_HUT:
@@ -126,27 +139,33 @@ export class Texts {
             case civ.model.Building.RIVERLAND_FARM:
                 return "Produces 3{ each turn."
             case civ.model.Building.WATERMILL:
-                return "Produces 4{ each turn."
+                return "Produces 3{ each turn."
              case civ.model.Building.HUNTERS_CAMP:
                 return "Produces 2{ and 1$ each turn."
             case civ.model.Building.BUTCHERY:
                 return "Produces 3{ and 1$ each turn."
             case civ.model.Building.MINE:
                 return "Produces 5$ each turn. Can only be built on a mountain with gold."
+            case civ.model.Building.GUARD_TOWERS:
+                return "Ally units have +1 to defense stat."
+            case civ.model.Building.WALLS:
+                return "Ally units have +2 to defense stat."
             case civ.model.Building.BARRACKS:
                 return "Barracks"
-            case civ.model.Building.STABLE:
-                return "Stable"
-            case civ.model.Building.ARCHERY_RANGE:
-                return "Archery Range"
-            case civ.model.Building.GUARD_TOWERS:
-                return "Guard Towers"
-            case civ.model.Building.WALLS:
-                return "City Walls"
             case civ.model.Building.BLACKSMITH:
                 return "Blacksmith"
             case civ.model.Building.ARMORERS_WORKSHOP:
                 return "Armorer's Workshop"
+            case civ.model.Building.STABLE:
+                return "Stable"
+            case civ.model.Building.WARHORSE_STABLES:
+                return "Warhorse Stables"
+            case civ.model.Building.KNIGHTS_HALL:
+                return "Knights Hall"
+            case civ.model.Building.ARCHERY_RANGE:
+                return "Archery Range"
+            case civ.model.Building.ARBALEST_GUILD:
+                return "Arbalest Guild"
             case civ.model.Building.SIEGE_WORKSHOP:
                 return "Siege Workshop"
             default:
@@ -172,8 +191,6 @@ export class Texts {
                 return "Knight"
             case civ.model.UnitType.CROSSBOWMAN:
                 return "Crossbowman"
-            // case civ.model.UnitType.HEAVY_PIKEMAN:
-            //     return "Heavy Pikeman"
             case civ.model.UnitType.HEAVY_SWORDSMAN:
                 return "Heavy Swordsman"
             case civ.model.UnitType.TREBUCHET:

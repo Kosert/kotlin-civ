@@ -12,8 +12,12 @@ export class BuildingIcons {
                 return "castle"
             case civ.model.Building.ROAD:
                 return "road"
+            case civ.model.Building.WATCH_TOWER:
+                return "watch_tower"
             case civ.model.Building.MARKET:
                 return "market"
+            case civ.model.Building.FISH_TRAP:
+                return "fish_trap"
             case civ.model.Building.FISHING_SHIP:
                 return "fishing_ship"
             case civ.model.Building.FISHING_HUT:
@@ -38,20 +42,26 @@ export class BuildingIcons {
                 return "butchery"
             case civ.model.Building.MINE:
                 return "mine"
-            case civ.model.Building.BARRACKS:
-                return "barracks"
-            case civ.model.Building.STABLE:
-                return "stable"
-            case civ.model.Building.ARCHERY_RANGE:
-                return "archery_range"
             case civ.model.Building.GUARD_TOWERS:
                 return "guard_towers"
             case civ.model.Building.WALLS:
                 return "walls"
+            case civ.model.Building.BARRACKS:
+                return "barracks"
             case civ.model.Building.BLACKSMITH:
                 return "blacksmith"
             case civ.model.Building.ARMORERS_WORKSHOP:
                 return "armorers_workshop"
+            case civ.model.Building.STABLE:
+                return "stable"
+            case civ.model.Building.WARHORSE_STABLES:
+                return "warhorse_stables"
+            case civ.model.Building.KNIGHTS_HALL:
+                return "knights_hall"
+            case civ.model.Building.ARCHERY_RANGE:
+                return "archery_range"
+            case civ.model.Building.ARBALEST_GUILD:
+                return "arbalest_guild"
             case civ.model.Building.SIEGE_WORKSHOP:
                 return "siege_workshop"
             default:

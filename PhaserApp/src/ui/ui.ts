@@ -75,6 +75,11 @@ export class Ui {
         .set(civ.model.Building.TOWN_HALL, civ.model.Building.VILLAGE_HALL)
         .set(civ.model.Building.CASTLE, civ.model.Building.TOWN_HALL)
 
+    //todo
+    //1			2		3			4			5					6					7				8
+    //village	Market	GuardTower	barracks	blacksmith			armorers workshop	archery_range	siege workshop
+    //Town		X?		CityWalls	stable		warhorse stables	knights' halls		arbalest guild
+
     private stocks: civ.model.Stockpiles
 
     constructor(

@@ -14,6 +14,9 @@ data class OverrideMovementCost(val movementCost: Int) : TileBonus
 data class StockCollectBonus(val amount: Stockpiles) : TileBonus
 data class DefenseBonus(val amount: Int) : TileBonus
 
+//todo
+data class UnitVisionBonus(val amount: Int) : TileBonus
+
 @OptIn(ExperimentalJsExport::class)
 @JsExport
 enum class Building(
@@ -60,13 +63,10 @@ enum class Building(
         cost = Stockpiles(gold = 5),
         bonus = OverrideMovementCost(5)
     ),
-
-    //todo another gold income building for cities
-    MARKET(
-        tileRequirement = { it.isACity() },
-        buildingRequirements = setOf(TOWN_HALL),
-        cost = Stockpiles(wood = 30, gold = 10),
-        bonus = StockCollectBonus(Stockpiles(gold = 3))
+    WATCH_TOWER(
+        tileRequirement = { false }, //todo { it is Grass && it.isNotACity() },
+        cost = Stockpiles(wood = 10, gold = 5),
+        bonus = UnitVisionBonus(3)
     ),
 
     FISH_TRAP(
@@ -147,18 +147,14 @@ enum class Building(
         bonus = StockCollectBonus(Stockpiles(gold = 5))
     ),
 
-    // MILITARY
-    BARRACKS(
+    // City buildings
+
+    //todo another gold income building for cities
+    MARKET(
         tileRequirement = { it.isACity() },
-        cost = Stockpiles(wood = 20),
-    ),
-    STABLE(
-        tileRequirement = { it.isACity() },
-        cost = Stockpiles(wood = 30),
-    ), //todo knight's stables?
-    ARCHERY_RANGE(
-        tileRequirement = { it.isACity() },
-        cost = Stockpiles(wood = 30),
+        buildingRequirements = setOf(TOWN_HALL),
+        cost = Stockpiles(wood = 30, gold = 10),
+        bonus = StockCollectBonus(Stockpiles(gold = 3))
     ),
 
     GUARD_TOWERS(
@@ -174,9 +170,14 @@ enum class Building(
         bonus = DefenseBonus(2),
     ),
 
+    // MILITARY
+    BARRACKS(
+        tileRequirement = { it.isACity() },
+        cost = Stockpiles(wood = 20),
+    ),
     BLACKSMITH(
         tileRequirement = { it.isACity() },
-        buildingRequirements = setOf(TOWN_HALL),
+        buildingRequirements = setOf(TOWN_HALL, BARRACKS),
         cost = Stockpiles(wood = 50, gold = 20),
     ),
     ARMORERS_WORKSHOP(
@@ -184,9 +185,34 @@ enum class Building(
         buildingRequirements = setOf(CASTLE, BLACKSMITH),
         cost = Stockpiles(wood = 50, gold = 50),
     ),
+
+    STABLE(
+        tileRequirement = { it.isACity() },
+        cost = Stockpiles(wood = 30),
+    ),
+    WARHORSE_STABLES(
+        tileRequirement = { it.isACity() },
+        buildingRequirements = setOf(TOWN_HALL, STABLE),
+        cost = Stockpiles(wood = 50, gold = 20),
+    ),
+    KNIGHTS_HALL(
+        tileRequirement = { it.isACity() },
+        buildingRequirements = setOf(CASTLE, WARHORSE_STABLES),
+        cost = Stockpiles(wood = 50, gold = 50),
+    ),
+
+    ARCHERY_RANGE(
+        tileRequirement = { it.isACity() },
+        cost = Stockpiles(wood = 30),
+    ),
+    ARBALEST_GUILD(
+        tileRequirement = { it.isACity() },
+        buildingRequirements = setOf(TOWN_HALL, ARCHERY_RANGE),
+        cost = Stockpiles(wood = 50, gold = 20),
+    ),
     SIEGE_WORKSHOP(
         tileRequirement = { it.isACity() },
-        buildingRequirements = setOf(CASTLE, BLACKSMITH),
+        buildingRequirements = setOf(CASTLE, ARBALEST_GUILD),
         cost = Stockpiles(wood = 50, gold = 50),
     ),
 

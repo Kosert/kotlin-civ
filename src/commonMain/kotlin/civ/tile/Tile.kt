@@ -114,6 +114,8 @@ data class Mountains(
 ) : Tile() {
     override val baseMovementCost: Int
         get() = 100
+    override val baseDefenseBonus: Int
+        get() = 1
 
     override fun updated(
         isBusy: Boolean,
