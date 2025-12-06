@@ -7,6 +7,8 @@ import { Ui } from "../ui/ui"
 import { UiAction, UiActionEvent } from "../ui/ui-actions"
 import MultiKey from "../util/multi-key"
 import { civ } from "kotlin-civ"
+import { TestJson } from "./test-json"
+import { Menu } from "../ui/menu"
 
 export class MainScene extends Phaser.Scene {
     constructor() {
@@ -19,7 +21,7 @@ export class MainScene extends Phaser.Scene {
     private upKey: MultiKey
     private downKey: MultiKey
 
-    private gameApi = civ.core.GameApi.Companion.fromGameState(civ.TestData.generated)
+    private gameApi?: civ.core.GameApi = null//civ.core.GameApi.Companion.fromGameState(civ.core.GameState.Companion.fromJson(new TestJson().json))
     private playersMap = new Map<string, civ.model.Player>()
     private player: civ.model.Player
 
@@ -28,7 +30,6 @@ export class MainScene extends Phaser.Scene {
     private selectedUnitPaths?: civ.hex.Paths
     private pathHighlights: civ.hex.Coordinates[] = []
     private moveHighlights: civ.hex.Coordinates[] = []
-    private selectedCityRange: civ.hex.Coordinates[] = []
     private justAttackedUnit?: civ.model.CivUnit
 
     private tiles: Tile[] = []
@@ -36,6 +37,9 @@ export class MainScene extends Phaser.Scene {
     private ui: Ui
     private fpsText: FpsText
     private scrollingTween: Phaser.Tweens.Tween
+    private menu: Menu
+    
+    private playerSwitchingEnabled: boolean = false//true
 
     preload(): void {
         this.load.image("attack", "assets/icons/attack.png")
@@ -81,8 +85,6 @@ export class MainScene extends Phaser.Scene {
         this.load.bitmapFont("civ_font", "assets/fonts/civ_font.png", "assets/fonts/civ_font.xml")
     }
 
-    //todo setGameApi
-
     create(): void {
         const self = this
         // @ts-expect-error
@@ -91,7 +93,8 @@ export class MainScene extends Phaser.Scene {
         }
 
         this.fpsText = new FpsText(this)
-        this.ui = new Ui(this, this.gameApi)
+        this.ui = new Ui(this)
+        this.menu = new Menu(this)
         const { LEFT, RIGHT, UP, DOWN, S, A, D, W, ESC } = Phaser.Input.Keyboard.KeyCodes
         this.escKey = new MultiKey(this, ESC)
         this.leftKey = new MultiKey(this, LEFT, A)
@@ -101,9 +104,10 @@ export class MainScene extends Phaser.Scene {
 
         this.input.mouse.disableContextMenu()
 
-        civ.TestData.generated.players.asJsReadonlyArrayView().forEach(it => {
-            this.playersMap.set(it.playerId, it)
-        })
+
+        // this.gameApi.allPlayers().asJsReadonlyArrayView().forEach(it => {
+        //     this.playersMap.set(it.playerId, it)
+        // })
 
         this.input.on(Phaser.Input.Events.POINTER_DOWN, function(pointer: Phaser.Input.Pointer) {
             if (self.ui.isPointerInside(pointer)) {
@@ -134,15 +138,6 @@ export class MainScene extends Phaser.Scene {
                             if (self.tryExecute(gameAction)) {
                                 self.select(null)
                             }
-                            // if (self.tryExecute(gameAction)) {
-                                // const updatedUnit = self.gameApi.unitsFor(self.player.playerId)
-                                //     .asJsReadonlyArrayView()
-                                //     .find(it => it.unitId == selectedUnitId)
-                                // self.select(updatedUnit)
-                                // const updatedTile = self.gameApi.tilesForPlayer(self.player.playerId).asJsReadonlyArrayView().find(it => it.unit?.unitId == selectedUnitId)
-                                // self.select(updatedTile?.unit)
-                            // }
-                            //todo
                         } else {
                             self.gameApi.execute(self.player.playerId, new civ.action.Move(selectedUnitId, target.coordinates))
                             const updatedUnit = self.gameApi.unitsFor(self.player.playerId).asJsReadonlyArrayView().find(it => it.unitId == selectedUnitId)
@@ -155,16 +150,17 @@ export class MainScene extends Phaser.Scene {
                 }
             }
         })
+        
+        //fixme player that should be the player, not current
+        // this.player = this.gameApi.currentPlayer //civ.TestData.generated.players.asJsReadonlyArrayView()[0]
+        // this.gameApi.tilesForPlayer(this.player.playerId).asJsReadonlyArrayView().map(it => {
+        //     this.tiles.push(new Tile(this, it, this.playersMap))
+        //     // this.tiles.set(it.coordinates, new Tile(this, it, this.playersMap))
+        // })
 
-        this.player = civ.TestData.generated.players.asJsReadonlyArrayView()[0]
-        this.gameApi.tilesForPlayer(this.player.playerId).asJsReadonlyArrayView().map(it => {
-            this.tiles.push(new Tile(this, it, this.playersMap))
-            // this.tiles.set(it.coordinates, new Tile(this, it, this.playersMap))
-        })
-
-        this.tiles.forEach(it =>
-            this.add.existing(it)
-        )
+        // this.tiles.forEach(it =>
+        //     this.add.existing(it)
+        // )
 
         this.events.on(UiActionEvent, function(action: UiAction, arg) {
             const seletedCoordinates = self.selected?.coordinates
@@ -209,9 +205,49 @@ export class MainScene extends Phaser.Scene {
 
         // @ts-ignore fixme
         // this.player = { playerId: "" }
-        this.gameApi.registerEventListener(this.player.playerId, function(event) { self.onGameEvent(event) })
+        // this.gameApi.registerEventListener(this.player.playerId, function(event) { self.onGameEvent(event) })
+        // this.ui.setStockpiles(this.gameApi.stocksFor(this.player.playerId), this.gameApi.incomeFor(this.player.playerId))
+        // this.updateUnitsFromTiles()
+        
+        this.initGameApi(civ.core.GameState.Companion.fromJson(new TestJson().json))
+    }
+
+    private initGameApi(gameState: civ.core.GameState) {
+        this.select(null)
+        this.gameApi?.unregisterEventListeners(this.player.playerId)
+        this.tiles.forEach(it => it.destroy())
+        this.tiles = []
+        this.units.forEach(it => it.destroy())
+        this.units.clear()
+        this.playersMap.clear()
+        this.player = null
+        this.ui.gameApi = null
+
+        this.gameApi = civ.core.GameApi.Companion.fromGameState(gameState)
+        this.gameApi.allPlayers().asJsReadonlyArrayView().forEach(it => {
+            this.playersMap.set(it.playerId, it)
+        })
+        this.player = this.gameApi.allPlayers().asJsReadonlyArrayView().find(it => it.aiType == null )
+
+        this.gameApi.tilesForPlayer(this.player.playerId).asJsReadonlyArrayView().map(it => {
+            this.tiles.push(new Tile(this, it, this.playersMap))
+        })
+        this.tiles.forEach(it => this.add.existing(it))
+        this.ui.gameApi = this.gameApi
         this.ui.setStockpiles(this.gameApi.stocksFor(this.player.playerId), this.gameApi.incomeFor(this.player.playerId))
+        const self = this
+        this.gameApi.registerEventListener(this.player.playerId, function(event) { self.onGameEvent(event) })
         this.updateUnitsFromTiles()
+
+        const firstCity = this.gameApi.citiesFor(this.player.playerId).asJsReadonlyArrayView().values().next().value
+        if (firstCity) {
+            this.scrollToTile(firstCity.coordinates)
+        } else {
+            const firstUnit = this.gameApi.unitsFor(this.player.playerId).asJsReadonlyArrayView().values().next().value
+            if (firstUnit) {
+                this.scrollToTile(firstUnit.coordinates)
+            }
+        }
     }
 
     private tryExecute(gameAction: civ.action.Action): boolean {
@@ -403,7 +439,6 @@ export class MainScene extends Phaser.Scene {
         this.selectedUnitPaths = null
         this.moveHighlights = []
         this.pathHighlights = []
-        this.selectedCityRange = []
         this.ui.setSelection(entity)
         console.log("Select", entity)
 
@@ -428,10 +463,10 @@ export class MainScene extends Phaser.Scene {
         let horizontalMove = 0
         let verticalMove = 0
 
-        const mouseX = Phaser.Math.Clamp(this.input.activePointer.x, 0, gameW)
-        const mouseY = Phaser.Math.Clamp(this.input.activePointer.y, 0, gameH)
+        const mouseX = this.input.activePointer.x
+        const mouseY = this.input.activePointer.y
 
-        const mouseScrollThreshold = NaN//todo 25
+        const mouseScrollThreshold = this.input.activePointer.locked ? 20 : NaN
         if (mouseX - mouseScrollThreshold < 0) {
             horizontalMove = -1
         } else if (mouseX + mouseScrollThreshold > gameW) {
@@ -463,12 +498,16 @@ export class MainScene extends Phaser.Scene {
             this.input.activePointer.updateWorldPoint(this.cameras.main)
         }
 
-        if (this.escKey.isDown()) {
-            this.select(null)
+        if (this.escKey.isJustDown()) {
+            if (this.selected != null) {
+                this.select(null)
+            } else {
+                this.menu.setVisible(!this.menu.isVisible())
+            }
         }
 
         let hoveredCoordinates: civ.hex.Coordinates
-        if (!this.ui.isPointerInside(this.input.activePointer)) {
+        if (!this.ui.isPointerInside(this.input.activePointer) && !this.menu.isVisible()) {
             const x = (this.input.activePointer.worldX - Tile.HEX_OFFSET) / Tile.HEX_SIZE
             const y = (this.input.activePointer.worldY - Tile.HEX_OFFSET) / Tile.HEX_SIZE
             const q = (Tile.SQRT3/3 * x - 1.0/3 * y)
@@ -493,8 +532,12 @@ export class MainScene extends Phaser.Scene {
 
         this.hovered = null
 
+        if (!this.gameApi) {
+            return
+        }
+
         // PLAYER SWAPPING
-        if (this.player.playerId != this.gameApi.currentPlayer.playerId) {
+        if (this.playerSwitchingEnabled && this.player.playerId != this.gameApi.currentPlayer.playerId) {
             this.gameApi.unregisterEventListeners(this.player.playerId)
             this.player = this.gameApi.currentPlayer
             const self = this
@@ -514,7 +557,7 @@ export class MainScene extends Phaser.Scene {
             }
         }
 
-        this.ui.disableEndTurn(this.gameApi.currentPlayer.playerId != this.player.playerId)
+        this.ui.disableEndTurn(this.gameApi.currentPlayer.playerId != this.player.playerId || this.menu.isVisible())
 
         this.gameApi.tilesForPlayer(this.player.playerId).asJsReadonlyArrayView().forEach((data, index) => {
             const tile = this.tiles[index]

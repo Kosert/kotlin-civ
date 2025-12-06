@@ -17,7 +17,7 @@ export class Button {
         textContent: string,
         private clickListener: () => void
     ) {
-        this.text = scene.add.text(x, y, textContent, { font: "bold 20px Arial", color: Ui.colorAccent.rgba })
+        this.text = scene.add.text(x, y, textContent, { font: "bold 20px Arial", color: Ui.colorAccent.rgba, padding: { bottom: 2 } })
             .setOrigin(0.5, 0.5)
             .setDepth(92)
             .setScrollFactor(0);
@@ -106,6 +106,14 @@ export class Button {
             return 0
     }
 
+    setDepth(depth: number): Button {
+        this.text.setDepth(depth + 2)
+        this.background.setDepth(depth + 1)
+        this.frontLines.forEach(it => it.setDepth(depth + 2))
+        this.overlay.setDepth(depth + 3)
+        return this
+    }
+
     setFixedWidth(width: number): Button {
         this.background.setSize(width, this.background.height)
         this.text.setPosition(this.background.x + this.background.width / 2, this.background.y + this.background.height / 2)
@@ -126,6 +134,11 @@ export class Button {
         this.text.setVisible(value)
         this.frontLines.forEach(it => it.setVisible(value))
         this.overlay.setVisible(value && this.disabled)
+        return this
+    }
+
+    setY(y: number): Button {
+        this.setPosition(this.background.x, y)
         return this
     }
 

@@ -86,7 +86,8 @@ export class Tile extends Phaser.GameObjects.Polygon {
             this.mainOverlay.fillAlpha = 1
             this.borderLines.forEach(it => it.setVisible(false))
             this.cityRangeOverlay.setFillStyle(0x000000, 0)
-            //this.rivers.forEach(it => it.setVisible(false))
+            // this.rivers?.forEach(it => it.setVisible(false))
+            this.roadsGraphics?.setVisible(false)
             this.setFillStyle(0x888888)
             return
         }
@@ -193,7 +194,9 @@ export class Tile extends Phaser.GameObjects.Polygon {
         if (data.tile.buildings.asJsReadonlySetView().has(civ.model.Building.ROAD)) {
             if (!this.roadsGraphics){
                 this.roadsGraphics = this.scene.add.image(this.x, this.y, "roads").setDepth(2)
-            }            
+            }
+        } else {
+            this.roadsGraphics?.setVisible(false)
         }
     }
 

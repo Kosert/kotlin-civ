@@ -25,7 +25,7 @@ export class Ui {
     static stockX = 0
     static stocksWidth = 150
     static uiMainStart = Ui.stockX + Ui.stocksWidth
-    static uiMainWidth = 400
+    static uiMainWidth = 462
     static uiMainEnd = Ui.uiMainStart + Ui.uiMainWidth
     static uiRecruitmentWidth = 230
     static uiRecruitmentEnd = Ui.uiMainEnd + Ui.uiRecruitmentWidth
@@ -69,22 +69,17 @@ export class Ui {
         .set(civ.model.Building.FISHING_SHIP, civ.model.Building.FISH_TRAP)
         .set(civ.model.Building.PORT, civ.model.Building.FISHING_HUT)
         .set(civ.model.Building.WALLS, civ.model.Building.GUARD_TOWERS)
-        .set(civ.model.Building.BLACKSMITH, civ.model.Building.BARRACKS)
-        .set(civ.model.Building.SIEGE_WORKSHOP, civ.model.Building.ARCHERY_RANGE)
-        .set(civ.model.Building.ARMORERS_WORKSHOP, civ.model.Building.STABLE)
+        .set(civ.model.Building.STABLE, civ.model.Building.BARRACKS)
+        .set(civ.model.Building.WARHORSE_STABLES, civ.model.Building.BLACKSMITH)
+        .set(civ.model.Building.KNIGHTS_HALL, civ.model.Building.ARMORERS_WORKSHOP)
+        .set(civ.model.Building.ARBALEST_GUILD, civ.model.Building.ARCHERY_RANGE)
         .set(civ.model.Building.TOWN_HALL, civ.model.Building.VILLAGE_HALL)
         .set(civ.model.Building.CASTLE, civ.model.Building.TOWN_HALL)
 
-    //todo
-    //1			2		3			4			5					6					7				8
-    //village	Market	GuardTower	barracks	blacksmith			armorers workshop	archery_range	siege workshop
-    //Town		X?		CityWalls	stable		warhorse stables	knights' halls		arbalest guild
-
-    private stocks: civ.model.Stockpiles
+    public gameApi: civ.core.GameApi
 
     constructor(
         private scene: Scene,
-        private gameApi: civ.core.GameApi
     ) {
         const self = this
         const stockX = Ui.stockX

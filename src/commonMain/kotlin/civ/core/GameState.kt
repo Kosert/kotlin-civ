@@ -13,7 +13,6 @@ import kotlinx.serialization.json.Json
 import kotlin.js.ExperimentalJsExport
 import kotlin.js.JsExport
 
-//TODO kotlin serialization json/protobuf?
 // todo check if all types will serialize properly
 @JsExport
 @Serializable
@@ -25,8 +24,10 @@ data class GameState(
     val stock: Map<String, Stockpiles>,
     val visionData: Map<String, GameStateVisionData>? = null,
 ) {
-    fun toJson(): String {
-        return Json.encodeToString(this)
+    fun toJson(): String = Json.encodeToString(this)
+
+    companion object {
+        fun fromJson(json: String): GameState = Json.decodeFromString(json)
     }
 }
 

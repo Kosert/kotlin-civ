@@ -16,7 +16,7 @@ class StockpilesManager(
     private val stocks = stocks.toMutableMap()
     private val income = mutableMapOf<String, Stockpiles>()
 
-    fun getFor(playerId: String) = stocks[playerId].require()
+    fun getFor(playerId: String) = stocks[playerId] ?: error("Stocks not found for player: $playerId")
     fun incomeFor(playerId: String) = income[playerId] ?: Stockpiles()
 
     fun substract(playerId: String, amount: Stockpiles) {

@@ -26,7 +26,6 @@ class GameApi private constructor(
     stocks: Map<String, Stockpiles>,
     visionData: Map<String, GameStateVisionData>? = null,
 ) {
-    //todo initial sort?
     private val turns = players.toMutableList()
     private val eventListeners = mutableListOf<EventListener>()
     private val cheatEngine = CheatEngine(players)
@@ -45,6 +44,7 @@ class GameApi private constructor(
     private val cities = cities.associateBy { it.coordinates }.toMutableMap()
     private val units = units.associateBy { it.coordinates }.toMutableMap()
 
+    fun allPlayers() = turns.toList()
     fun citiesFor(playerId: String) = cities.values.filter { it.playerId == playerId }
     fun unitsFor(playerId: String) = units.values.filter { it.playerId == playerId }
     fun stocksFor(playerId: String) = stocksManager.getFor(playerId)
@@ -473,6 +473,7 @@ class GameApi private constructor(
         val removed = turns.removeAt(0)
         turns.add(removed)
         log.write(removed, "ended turn")
+        //todo record turn as list of events/commands, send to ui to handle them sequentially, filter not visible events
 
         //todo extract to some class
         turns.sortedBy { it.color.ordinal }.forEach { player ->

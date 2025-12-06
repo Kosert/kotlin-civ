@@ -7,13 +7,23 @@ export default class MultiKey {
         ...keyCodes: number[]
     ) {
         this.keys = keyCodes.map(key => scene.input.keyboard.addKey(key))
+
     }
 
-    isDown() {
+    private wasDown = false
+
+    isJustDown(): boolean {
+        const isDown = this.isDown()
+        const isJustDown = !this.wasDown && isDown
+        this.wasDown = isDown
+        return isJustDown
+    }
+
+    isDown(): boolean {
         return this.keys.some(key => key.isDown)
     }
 
-    isUp() {
+    isUp(): boolean {
         return this.keys.every(key => key.isUp)
     }
 }
