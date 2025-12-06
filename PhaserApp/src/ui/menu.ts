@@ -11,7 +11,8 @@ export class Menu {
     static mainTopY = 200
     static mainHeight = 240
     static bigWidth = 500
-    static bigHeight = 300
+    static bigTopY = 100
+    static bigHeight = 550
 
     private state: "none" | "main" | "new" | "save" | "load" = "none"
 
@@ -37,8 +38,8 @@ export class Menu {
 
     //save game menu
     private saveSlotButtons: SaveSlotView[] = []
-
     //load game menu
+    private loadSlotButtons: SaveSlotView[] = []
 
     private gameApi: civ.core.GameApi
 
@@ -77,7 +78,7 @@ export class Menu {
         }).setFixedWidth(150).setDepth(101).setVisible(false)
 
         const bigStartX = (screenWidth - Menu.bigWidth) / 2
-        this.bigBackground = scene.add.rectangle(bigStartX, Menu.mainTopY, Menu.bigWidth, Menu.bigHeight, Ui.colorMedium, 0.99)
+        this.bigBackground = scene.add.rectangle(bigStartX, Menu.bigTopY, Menu.bigWidth, Menu.bigHeight, Ui.colorMedium, 0.99)
             .setOrigin(0, 0).setDepth(101).setScrollFactor(0).setVisible(false)
 
         const playerOptions = [
@@ -107,6 +108,24 @@ export class Menu {
             //todo scene.events
         }).setFixedWidth(150).setDepth(101).setVisible(false)
 
+
+        for (let i = 0; i < 5; i++) {
+            const prev = this.saveSlotButtons[i - 1]
+            const y = prev ? prev.y() + prev.height() + 10 : Menu.bigTopY + 50
+            const saveSlot = new SaveSlotView(scene, bigStartX + 25, y, i + 1, "save")
+                .setVisible(false).setDepth(101)
+            this.saveSlotButtons.push(saveSlot)
+        }
+
+        for (let i = 0; i < 5; i++) {
+            const prev = this.loadSlotButtons[i - 1]
+            const y = prev ? prev.y() + prev.height() + 10 : Menu.bigTopY + 50
+            const loadSlot = new SaveSlotView(scene, bigStartX + 25, y, i + 1, "load")
+                .setVisible(false).setDepth(101)
+            this.loadSlotButtons.push(loadSlot)
+        }
+
+
         this.setGameApi(null)
     }
 
@@ -117,22 +136,32 @@ export class Menu {
             case "none":
                 this.setMainVisible(false)
                 this.setNewGameVisible(false)
+                this.setSaveGameVisible(false)
+                this.setLoadGameVisible(false)
                 break;
             case "main":
                 this.setNewGameVisible(false)
+                this.setSaveGameVisible(false)
+                this.setLoadGameVisible(false)
                 this.setMainVisible(true)
                 break
             case "new":
                 this.setMainVisible(false)
+                this.setSaveGameVisible(false)
+                this.setLoadGameVisible(false)
                 this.setNewGameVisible(true)
                 break
             case "save":
                 this.setMainVisible(false)
                 this.setNewGameVisible(false)
+                this.setLoadGameVisible(false)
+                this.setSaveGameVisible(true)
                 break
             case "load":
                 this.setMainVisible(false)
                 this.setNewGameVisible(false)
+                this.setSaveGameVisible(false)
+                this.setLoadGameVisible(true)
                 break
         }
     }
@@ -161,23 +190,33 @@ export class Menu {
         if (visible && this.playerChoosers[0].y() == 0) {
             this.playerChoosers.forEach((it, index) => {
                 const prev = this.playerChoosers[index - 1]
-                const y = prev ? prev.y() + prev.height() + 10 : Menu.mainTopY + 50
+                const y = prev ? prev.y() + prev.height() + 10 : Menu.bigTopY + 50
                 it.setY(y)
             })
 
             this.colorChoosers.forEach((it, index) => {
                 const prev = this.colorChoosers[index - 1]
-                const y = prev ? prev.y() + prev.height() + 10 : Menu.mainTopY + 50
+                const y = prev ? prev.y() + prev.height() + 10 : Menu.bigTopY + 50
                 it.setY(y)
             })
             
-            this.startButton.setY(Menu.mainTopY + Menu.bigHeight - this.startButton.height() - 10)
+            this.startButton.setY(Menu.bigTopY + Menu.bigHeight - this.startButton.height() - 10)
         }
+    }
+
+    private setSaveGameVisible(visible: boolean) {
+        this.bigBackground.setVisible(visible)
+        this.saveSlotButtons.forEach(it => it.setVisible(visible))
+    }
+
+    private setLoadGameVisible(visible: boolean) {
+        this.bigBackground.setVisible(visible)
+        this.loadSlotButtons.forEach(it => it.setVisible(visible))
     }
 
     setGameApi(gameApi: civ.core.GameApi) {
         this.gameApi = gameApi
-        this.saveGameButton.setDisabled(this.gameApi == null)
+        // this.saveGameButton.setDisabled(this.gameApi == null)
         this.cancelButton.setDisabled(this.gameApi == null)
     }
 
@@ -208,13 +247,59 @@ export class Menu {
 
 class SaveSlotView {
 
+    private outline: Phaser.GameObjects.Rectangle
+    private slotTitle: Phaser.GameObjects.Text
+    private button: Button
+
     constructor(
         scene: Scene,
         x: number,
         y: number,
+        slotNumber: number,
+        mode: "save" | "load", 
+        gameState?: civ.core.GameState
     ) {
-        
+        const width = Menu.bigWidth - 50
+        const height = 80
 
+        this.outline = scene.add.rectangle(x ,y, width, height, 0x000000, 0)
+        .setOrigin(0, 0).setStrokeStyle(1, Ui.colorAccent.color, 1).setScrollFactor(0)
+        const text = gameState ? "Save slot" : "Empty slot" + " #" + slotNumber
+        this.slotTitle = scene.add.text(x + 10, y + 10, text, { font: "bold 16px Arial", color: "#FFFFFF" }).setDepth(91).setScrollFactor(0)
+
+        const buttonText = mode == "save" ? "Save game" : "Load game"
+        this.button = new Button(scene, x + width - 125, y + height - 40, buttonText, function() {
+            //todo
+        }).setFixedWidth(120).setDepth(101).setDisabled(mode == "load" && !gameState)
+
+        //todo show: turn number, list players, map type and size, save timestapm
     }
 
+    y(): number {
+        return this.outline.y
+    }
+
+    height(): number {
+        return this.outline.height
+    }
+
+    setDepth(depth: number): SaveSlotView {
+        this.outline.setDepth(depth)
+        this.slotTitle.setDepth(depth)
+        this.button.setDepth(depth)
+        return this
+    }
+
+    setVisible(value: boolean): SaveSlotView {
+        this.outline.setVisible(value)
+        this.slotTitle.setVisible(value)
+        this.button.setVisible(value)
+        return this
+    }
+
+    destroy() {
+        this.outline.destroy()
+        this.slotTitle.destroy()
+        this.button.destroy()
+    }
 }
