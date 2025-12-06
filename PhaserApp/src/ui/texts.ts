@@ -40,6 +40,8 @@ export class Texts {
                 return "Road"
             case civ.model.Building.WATCH_TOWER:
                 return "Watch Tower"
+            case civ.model.Building.FISH_TRAP:
+                return "Fish trap"
             case civ.model.Building.FISHING_SHIP:
                 return "Fishing Ship"
             case civ.model.Building.FISHING_HUT:

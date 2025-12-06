@@ -209,7 +209,8 @@ export class MainScene extends Phaser.Scene {
         // this.ui.setStockpiles(this.gameApi.stocksFor(this.player.playerId), this.gameApi.incomeFor(this.player.playerId))
         // this.updateUnitsFromTiles()
         
-        this.initGameApi(civ.core.GameState.Companion.fromJson(new TestJson().json))
+        // this.initGameApi(civ.core.GameState.Companion.fromJson(new TestJson().json))
+        this.menu.onEscClicked()
     }
 
     private initGameApi(gameState: civ.core.GameState) {
@@ -222,6 +223,10 @@ export class MainScene extends Phaser.Scene {
         this.playersMap.clear()
         this.player = null
         this.ui.gameApi = null
+        this.menu.setGameApi(null)
+
+        if (!gameState)
+            return
 
         this.gameApi = civ.core.GameApi.Companion.fromGameState(gameState)
         this.gameApi.allPlayers().asJsReadonlyArrayView().forEach(it => {
@@ -234,6 +239,7 @@ export class MainScene extends Phaser.Scene {
         })
         this.tiles.forEach(it => this.add.existing(it))
         this.ui.gameApi = this.gameApi
+        this.menu.setGameApi(this.gameApi)
         this.ui.setStockpiles(this.gameApi.stocksFor(this.player.playerId), this.gameApi.incomeFor(this.player.playerId))
         const self = this
         this.gameApi.registerEventListener(this.player.playerId, function(event) { self.onGameEvent(event) })
@@ -502,7 +508,7 @@ export class MainScene extends Phaser.Scene {
             if (this.selected != null) {
                 this.select(null)
             } else {
-                this.menu.setVisible(!this.menu.isVisible())
+                this.menu.onEscClicked()
             }
         }
 

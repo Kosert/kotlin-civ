@@ -77,6 +77,7 @@ export class Ui {
         .set(civ.model.Building.CASTLE, civ.model.Building.TOWN_HALL)
 
     public gameApi: civ.core.GameApi
+    //todo if gameApi == null hide everything
 
     constructor(
         private scene: Scene,

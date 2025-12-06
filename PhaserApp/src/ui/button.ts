@@ -15,7 +15,8 @@ export class Button {
         x: number,
         y: number,
         textContent: string,
-        private clickListener: () => void
+        private clickListener: () => void,
+        private rightClickListener?: () => void
     ) {
         this.text = scene.add.text(x, y, textContent, { font: "bold 20px Arial", color: Ui.colorAccent.rgba, padding: { bottom: 2 } })
             .setOrigin(0.5, 0.5)
@@ -57,26 +58,30 @@ export class Button {
 
         const self = this;
         this.background.on(Phaser.Input.Events.POINTER_DOWN, function (pointer: Phaser.Input.Pointer) {
-            if (pointer.leftButtonDown() && !self.disabled) {
+            if (!self.disabled && pointer.leftButtonDown() || (pointer.rightButtonDown() && rightClickListener)) {
                 self.background.fillColor = Ui.colorDarkest;
                 self.background.strokeColor = Ui.colorAccentDark.color;
                 self.frontLines.forEach(it => it.strokeColor = Ui.colorAccent.color)
             }
         });
         this.background.on(Phaser.Input.Events.POINTER_UP, function (pointer: Phaser.Input.Pointer) {
-            if (pointer.leftButtonReleased() && !self.disabled) {
-                self.clickListener();
+            if (!self.disabled) {
+                if (pointer.leftButtonReleased()) {
+                    self.clickListener()
+                } else if (pointer.rightButtonReleased() && rightClickListener) {
+                    self.rightClickListener()
+                }
             }
         });
         scene.input.on(Phaser.Input.Events.POINTER_UP, function (pointer: Phaser.Input.Pointer) {
-            if (pointer.leftButtonReleased() && !self.disabled) {
+            if (!self.disabled && pointer.leftButtonReleased() || (pointer.rightButtonReleased() && rightClickListener)) {
                 self.background.fillColor = Ui.colorLightest;
                 self.background.strokeColor = Ui.colorAccent.color;
                 self.frontLines.forEach(it => it.strokeColor = Ui.colorAccentDark.color)
             }
         });
         scene.input.on(Phaser.Input.Events.POINTER_UP_OUTSIDE, function (pointer: Phaser.Input.Pointer) {
-            if (pointer.leftButtonReleased() && !self.disabled) {
+            if (!self.disabled && pointer.leftButtonReleased() || (pointer.rightButtonReleased() && rightClickListener)) {
                 self.background.fillColor = Ui.colorLightest;
                 self.background.strokeColor = Ui.colorAccent.color;
                 self.frontLines.forEach(it => it.strokeColor = Ui.colorAccentDark.color)
@@ -152,6 +157,11 @@ export class Button {
 
     setText(textContent: string): Button {
         this.text.setText(textContent)
+        return this
+    }
+
+    setTextColor(customColor: string): Button {
+        this.text.setColor(customColor)
         return this
     }
 

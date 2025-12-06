@@ -23,6 +23,7 @@ data class GameState(
     val units: Set<CivUnit>,
     val stock: Map<String, Stockpiles>,
     val visionData: Map<String, GameStateVisionData>? = null,
+    val gameVersion: Pair<String, Int> = "0.1" to 1,
 ) {
     fun toJson(): String = Json.encodeToString(this)
 
