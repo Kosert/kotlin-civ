@@ -54,6 +54,10 @@ export class ChooserButton {
         }
     }
 
+    getSelected(): { id: string, name: string } {
+        return this.selectedValue
+    }
+
     setValues(values: { id: string, name: string }[]) {
         this.values = values
         //todo handle removed value

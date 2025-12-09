@@ -1,5 +1,6 @@
 package civ.core
 
+import civ.LongWrapper
 import civ.action.*
 import civ.ai.create
 import civ.cheats.Cheat
@@ -19,11 +20,13 @@ import kotlin.js.JsExport
 @OptIn(ExperimentalJsExport::class)
 @JsExport
 class GameApi private constructor(
+    private val mapSeed: Long,
     players: List<Player>,
     tileList: Collection<Tile>,
     cities: Collection<City>,
     units: Collection<CivUnit>,
     stocks: Map<String, Stockpiles>,
+    statistics: Map<String, GameStatistics>,
     visionData: Map<String, GameStateVisionData>? = null,
 ) {
     private val turns = players.toMutableList()
@@ -40,6 +43,7 @@ class GameApi private constructor(
     private val combatCalculator = CombatCalculator()
 
     private val stocksManager = StockpilesManager(hexMap, eventListeners, stocks)
+    private val statCounter = StatisticsCounter(statistics, hexMap.tiles.size)
 
     private val cities = cities.associateBy { it.coordinates }.toMutableMap()
     private val units = units.associateBy { it.coordinates }.toMutableMap()
@@ -73,6 +77,7 @@ class GameApi private constructor(
             )
         }
         borderCalculator.recalculate(turns, cities.values)
+        statCounter.onVisionChanged(visionCalculator.getDiscoveredCount())
         eventListeners.forEach { it.listener(VisionChanged) }
     }
 
@@ -473,6 +478,7 @@ class GameApi private constructor(
         val removed = turns.removeAt(0)
         turns.add(removed)
         log.write(removed, "ended turn")
+        statCounter.onTurnEnded(removed.playerId)
         //todo record turn as list of events/commands, send to ui to handle them sequentially, filter not visible events
 
         //todo extract to some class
@@ -527,7 +533,7 @@ class GameApi private constructor(
         }
     }
 
-    fun verifyIntegrity() {
+    private fun verifyIntegrity() {
         val reports = mutableListOf<String>()
 
         units.values.groupingBy { it.unitId }.eachCount()
@@ -554,17 +560,21 @@ class GameApi private constructor(
             cities = cities.values.toSet(),
             units = units.values.toSet(),
             stock = turns.associate { it.playerId to stocksManager.getFor(it.playerId) },
+            mapSeed = LongWrapper.fromLong(mapSeed),
             visionData = visionCalculator.exportData(),
+            statistics = statCounter.exportData()
         )
     }
 
     companion object {
         fun fromGameState(state: GameState): GameApi = GameApi(
+            mapSeed = state.mapSeed.toLong(),
             players = state.players,
             tileList = state.tileList,
             cities = state.cities,
             units = state.units,
             stocks = state.stock,
+            statistics = state.statistics ?: state.players.associate { it.playerId to GameStatistics() },
             visionData = state.visionData,
         )
     }

@@ -11,10 +11,10 @@ import kotlin.js.JsExport
 @JsExport
 @Serializable
 data class Player(
-    val playerId: String = Uuid.random().toHexString(),
     val name: String,
     val color: PlayerColor,
     val aiType: AiType? = null,
+    val playerId: String = Uuid.random().toHexString(),
 )
 
 @JsExport

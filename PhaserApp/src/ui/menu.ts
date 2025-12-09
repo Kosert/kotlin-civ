@@ -2,8 +2,9 @@ import { Scene } from "phaser";
 import { Ui } from "./ui";
 import { Button } from "./button";
 import { UiAction, UiActionEvent } from "./ui-actions";
-import { civ } from "kotlin-civ";
+import { civ, kotlin } from "kotlin-civ";
 import { ChooserButton } from "./chooser-button";
+import { StorageItem } from "../const";
 
 
 export class Menu {
@@ -36,10 +37,8 @@ export class Menu {
     //todo map size
     private startButton: Button
 
-    //save game menu
+    //save/load game menu
     private saveSlotButtons: SaveSlotView[] = []
-    //load game menu
-    private loadSlotButtons: SaveSlotView[] = []
 
     private gameApi: civ.core.GameApi
 
@@ -84,9 +83,9 @@ export class Menu {
         const playerOptions = [
             { id: "none", name: "Empty slot" },
             { id: "player", name: "Player" },
-            { id: "aiWarrior", name: "AI (Warrior)" },
-            { id: "aiScout", name: "AI (Scout)" },
-            { id: "aiArcher", name: "AI (Archer)" },
+            { id: civ.ai.AiType.OTP_WARRIOR.value, name: "AI (Warrior)" },
+            { id: civ.ai.AiType.OTP_SCOUT.value, name: "AI (Scout)" },
+            { id: civ.ai.AiType.OTP_ARCHER.value, name: "AI (Archer)" },
         ]
         for (let i = 0; i < 4; i++) {
             const chooserButton = new ChooserButton(scene, bigStartX + 30, 0, playerOptions, function(id: string) {
@@ -104,29 +103,67 @@ export class Menu {
         }
 
         this.startButton = new Button(scene, bigStartX + Menu.bigWidth - 160, 0, "Start game", function() {
-            //todo generate map
-            //todo scene.events
+            const players = self.playerChoosers
+            .filter(it => it.getSelected().id != "none" )
+            .map((player, index) => {
+                const colorId = self.colorChoosers[index].getSelected().id
+                const color = civ.model.PlayerColor.valueOf(colorId)
+                const ai = civ.ai.AiType.values().find(it => {
+                    return it.value == player.getSelected().id
+                })
+                return new civ.model.Player(player.getSelected().name, color, ai)
+            })
+
+            //todo show progress?
+            const newGameState = civ.creator.GameCreator.createNewGame(
+                kotlin.collections.KtList.fromJsArray(players),
+                civ.creator.CreatorMapSize.SMALL,
+                kotlin.collections.KtList.fromJsArray([civ.model.UnitType.SETTLERS, civ.model.UnitType.SCOUT]),
+                new civ.model.Stockpiles(40, 40, 20)
+            )
+
+            scene.events.emit(UiActionEvent, UiAction.LOAD_GAME_STATE, newGameState)
+            self.state = "none"
+            self.setupState()
         }).setFixedWidth(150).setDepth(101).setVisible(false)
 
 
         for (let i = 0; i < 5; i++) {
             const prev = this.saveSlotButtons[i - 1]
             const y = prev ? prev.y() + prev.height() + 10 : Menu.bigTopY + 50
-            const saveSlot = new SaveSlotView(scene, bigStartX + 25, y, i + 1, "save")
-                .setVisible(false).setDepth(101)
+            const saveSlot = new SaveSlotView(scene, bigStartX + 25, y, i + 1, function() {
+                const slot = StorageItem.getSaveSlot(i + 1)
+
+                if (self.state == "save") {
+                    console.log("save", slot)
+                    const gameState = self.gameApi.generateGameState()
+                    localStorage.setItem(slot, gameState.toJson())
+                    self.refreshGameStates()
+                } else {
+                    console.log("load", slot)
+                    const json = localStorage.getItem(slot)
+                    const gameState = civ.core.GameState.Companion.fromJson(json)
+                    self.scene.events.emit(UiActionEvent, UiAction.LOAD_GAME_STATE, gameState)
+                    self.state = "none"
+                    self.setupState()
+                }
+            }).setVisible(false).setDepth(101)
             this.saveSlotButtons.push(saveSlot)
         }
 
-        for (let i = 0; i < 5; i++) {
-            const prev = this.loadSlotButtons[i - 1]
-            const y = prev ? prev.y() + prev.height() + 10 : Menu.bigTopY + 50
-            const loadSlot = new SaveSlotView(scene, bigStartX + 25, y, i + 1, "load")
-                .setVisible(false).setDepth(101)
-            this.loadSlotButtons.push(loadSlot)
-        }
-
-
         this.setGameApi(null)
+        this.refreshGameStates()
+    }
+
+    private refreshGameStates() {
+        for (let i = 0; i < 5; i++) {
+            const storageItem = StorageItem.getSaveSlot(i + 1)
+            const json = localStorage.getItem(storageItem)
+            if (json) {
+                const gameState = civ.core.GameState.Companion.fromJson(json)
+                this.saveSlotButtons[i].setGameState(gameState)
+            }
+        }
     }
 
     private setupState() {
@@ -136,32 +173,27 @@ export class Menu {
             case "none":
                 this.setMainVisible(false)
                 this.setNewGameVisible(false)
-                this.setSaveGameVisible(false)
-                this.setLoadGameVisible(false)
+                this.setSaveLoadGameVisible(false)
                 break;
             case "main":
                 this.setNewGameVisible(false)
-                this.setSaveGameVisible(false)
-                this.setLoadGameVisible(false)
+                this.setSaveLoadGameVisible(false)
                 this.setMainVisible(true)
                 break
             case "new":
                 this.setMainVisible(false)
-                this.setSaveGameVisible(false)
-                this.setLoadGameVisible(false)
+                this.setSaveLoadGameVisible(false)
                 this.setNewGameVisible(true)
                 break
             case "save":
                 this.setMainVisible(false)
                 this.setNewGameVisible(false)
-                this.setLoadGameVisible(false)
-                this.setSaveGameVisible(true)
+                this.setSaveLoadGameVisible(true, this.state)
                 break
             case "load":
                 this.setMainVisible(false)
                 this.setNewGameVisible(false)
-                this.setSaveGameVisible(false)
-                this.setLoadGameVisible(true)
+                this.setSaveLoadGameVisible(true, this.state)
                 break
         }
     }
@@ -204,19 +236,16 @@ export class Menu {
         }
     }
 
-    private setSaveGameVisible(visible: boolean) {
+    private setSaveLoadGameVisible(visible: boolean, mode?: "save" | "load") {
         this.bigBackground.setVisible(visible)
-        this.saveSlotButtons.forEach(it => it.setVisible(visible))
-    }
-
-    private setLoadGameVisible(visible: boolean) {
-        this.bigBackground.setVisible(visible)
-        this.loadSlotButtons.forEach(it => it.setVisible(visible))
-    }
+        this.saveSlotButtons.forEach(it => { 
+            it.setVisible(visible)
+            if (mode) it.setMode(mode)
+    })}
 
     setGameApi(gameApi: civ.core.GameApi) {
         this.gameApi = gameApi
-        // this.saveGameButton.setDisabled(this.gameApi == null)
+        this.saveGameButton.setDisabled(this.gameApi == null)
         this.cancelButton.setDisabled(this.gameApi == null)
     }
 
@@ -252,27 +281,40 @@ class SaveSlotView {
     private button: Button
 
     constructor(
-        scene: Scene,
+        private scene: Scene,
         x: number,
         y: number,
-        slotNumber: number,
-        mode: "save" | "load", 
-        gameState?: civ.core.GameState
+        private slotNumber: number,
+        private onActionClicked: () => void,
+        private gameState?: civ.core.GameState,
+        private mode: "save" | "load" = "save"
     ) {
         const width = Menu.bigWidth - 50
         const height = 80
 
         this.outline = scene.add.rectangle(x ,y, width, height, 0x000000, 0)
         .setOrigin(0, 0).setStrokeStyle(1, Ui.colorAccent.color, 1).setScrollFactor(0)
-        const text = gameState ? "Save slot" : "Empty slot" + " #" + slotNumber
-        this.slotTitle = scene.add.text(x + 10, y + 10, text, { font: "bold 16px Arial", color: "#FFFFFF" }).setDepth(91).setScrollFactor(0)
+        this.slotTitle = scene.add.text(x + 10, y + 10, "", { font: "bold 16px Arial", color: "#FFFFFF" }).setDepth(91).setScrollFactor(0)
 
-        const buttonText = mode == "save" ? "Save game" : "Load game"
-        this.button = new Button(scene, x + width - 125, y + height - 40, buttonText, function() {
-            //todo
-        }).setFixedWidth(120).setDepth(101).setDisabled(mode == "load" && !gameState)
+        const self = this
+        this.button = new Button(scene, x + width - 125, y + height - 40, "", function() { self.onActionClicked() }).setFixedWidth(120).setDepth(101)
+
+        this.setGameState(gameState)
 
         //todo show: turn number, list players, map type and size, save timestapm
+    }
+
+    setGameState(gameState?: civ.core.GameState) {
+        this.gameState = gameState
+        this.button.setDisabled(this.mode == "load" && !gameState)
+
+        this.slotTitle.text = (gameState ? "Save slot" : "Empty slot") + " #" + this.slotNumber
+    }
+
+    setMode(mode: "save" | "load") {
+        this.button
+            .setText(mode == "save" ? "Save game" : "Load game")
+            .setDisabled(mode == "load" && !this.gameState)
     }
 
     y(): number {

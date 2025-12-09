@@ -55,6 +55,7 @@ class MapGenerator(
         width: Int = 50,
         height: Int = 50,
         players: List<Player>,
+        startingUnits: List<UnitType>
     ): MapData {
         val layout = HexLayouts.rectangle(width, height)
 
@@ -87,13 +88,20 @@ class MapGenerator(
         val distanceBetweenPlayers = 5
         val playerSafeZone = borderWaterTiles.flatMap { it.getAllInRange(2) }.toMutableSet()
         players.forEach { player ->
-            val settlersPosition = (freeTiles - playerSafeZone).random(random)
-            val scoutPosition = settlersPosition.neighbors().filter { it in freeTiles }.random(unitPlacementRandom)
-            units[settlersPosition] = player.playerId to UnitType.SETTLERS
-            units[scoutPosition] = player.playerId to UnitType.SCOUT
-            playerSafeZone.addAll(settlersPosition.getAllInRange(distanceBetweenPlayers))
-            freeTiles.remove(settlersPosition)
-            freeTiles.remove(scoutPosition)
+            val playerPosition = (freeTiles - playerSafeZone).random(random)
+            val neighbors = playerPosition.neighbors().toSet()
+            val neighbors2 = playerPosition.getAllInRange(2) - neighbors - playerPosition
+            val placeableTiles = listOf(playerPosition)
+                .plus(neighbors.filter { it in freeTiles }.shuffled(unitPlacementRandom))
+                .plus(neighbors2.filter { it in freeTiles }.shuffled(unitPlacementRandom))
+
+            startingUnits.forEachIndexed { index, unitType ->
+                val coordinates = placeableTiles[index]
+                units[coordinates] = player.playerId to unitType
+                freeTiles.remove(coordinates)
+            }
+
+            playerSafeZone.addAll(playerPosition.getAllInRange(distanceBetweenPlayers))
         }
 
         val forestTiles = generateGroup(freeTiles, forests)
@@ -109,7 +117,6 @@ class MapGenerator(
         val riverOrigins = mutableSetOf<Coordinates>()
         println("Rivers = $rivers")
 
-        //todo fixed amount of rivers?
         while (riverTiles.size < rivers) {
             val origin = if (riverOrigins.isEmpty())
                 borderWaterTiles.random(random)

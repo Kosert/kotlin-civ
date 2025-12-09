@@ -198,6 +198,8 @@ export class MainScene extends Phaser.Scene {
                     self.gameApi.endTurn(self.player.playerId)
                     self.select(null)
                     break
+                case UiAction.LOAD_GAME_STATE:
+                    self.initGameApi(arg as civ.core.GameState)
                 default:
                     break;
             }
@@ -232,7 +234,7 @@ export class MainScene extends Phaser.Scene {
         this.gameApi.allPlayers().asJsReadonlyArrayView().forEach(it => {
             this.playersMap.set(it.playerId, it)
         })
-        this.player = this.gameApi.allPlayers().asJsReadonlyArrayView().find(it => it.aiType == null )
+        this.player = this.gameApi.allPlayers().asJsReadonlyArrayView().find(it => !it.aiType )
 
         this.gameApi.tilesForPlayer(this.player.playerId).asJsReadonlyArrayView().map(it => {
             this.tiles.push(new Tile(this, it, this.playersMap))

@@ -1,21 +1,44 @@
 package civ.core
 
-import civ.model.Building
-import civ.model.Player
-import civ.model.UnitType
+import civ.model.CivUnit
+import kotlinx.serialization.Serializable
+import kotlin.js.ExperimentalJsExport
+import kotlin.js.JsExport
+
+fun<K, V> MutableMap<K, V>.edit(key: K, block: (V) -> V) {
+    this[key] = block(this.getValue(key))
+}
 
 class StatisticsCounter(
-    val players: List<Player>
+    initial: Map<String, GameStatistics>,
+    private val totalTileCount: Int,
 ) {
-    //todo
-    val turnNumer = 0
+    private val stats = initial.toMutableMap()
 
-//    fun points() {
-//        players.sortedBy { it.color.ordinal }.forEach { player ->
-//            val unitScore = unitsFor(player.playerId)
-//                .sumOf { it.unitType.cost.total } * 0.2
-//
-//            val buildingScore = citiesFor(player.playerId).sumOf { city ->
+    fun onTurnEnded(playerId: String) {
+        stats.edit(playerId) {
+            it.copy(turnNumber = it.turnNumber + 1)
+        }
+    }
+
+    fun onVisionChanged(discoveredCounts: Map<String, Int>) {
+        discoveredCounts.forEach { (playerId, count) ->
+            stats.edit(playerId) {
+                it.copy(tilesDiscovered = count)
+            }
+        }
+    }
+
+    fun calculatePoints(
+        unitsFor: (String) -> Collection<CivUnit>,
+    ): Map<String, Int> {
+        return stats.mapValues { (playerId, stats) ->
+            val unitScore = unitsFor(playerId)
+                .sumOf { it.unitType.cost.total } * 0.2
+
+            val buildingScore = 0
+            //todo
+//            val buildingScore = citiesFor(playerId).sumOf { city ->
 //                hexMap.range(city.coordinates, city.borderRange)
 //                    .mapNotNull { hexMap.get(it) }
 //                    .flatMap { it.buildings.toList() }
@@ -25,15 +48,28 @@ class StatisticsCounter(
 //                        else it.cost.total
 //                    }
 //            } * 0.2
-//
-//            val discoveredHexes = visionCalculator.getVisionFor(player.playerId).discovered.size
-//            val discoveredPercent = discoveredHexes / hexMap.tiles.size.toDouble()
-//            println("Discovered: $discoveredHexes / ${hexMap.tiles.size.toDouble()}, percent: $discoveredPercent")
-//            val visionScore = discoveredPercent * 100
-//            val totalScore = unitScore + buildingScore + visionScore
-//
-//            log.write("Player ${player.color}, score: $unitScore + $buildingScore + $visionScore = $totalScore")
-//        }
-//    }
 
+            val discoveredPercent = stats.tilesDiscovered / totalTileCount.toDouble()
+            val visionScore = discoveredPercent * 100
+            (unitScore + buildingScore + visionScore).toInt()
+        }
+    }
+
+    fun exportData(): Map<String, GameStatistics> = stats
 }
+
+@OptIn(ExperimentalJsExport::class)
+@JsExport
+@Serializable
+data class GameStatistics(
+    val turnNumber: Int = 0,
+
+    // vision
+    val tilesDiscovered: Int = 0,
+
+    //todo
+    // units - trained, killed, lost
+    // buildings - built, roads built
+    // resources - collected
+    // cities - found, conquered
+)

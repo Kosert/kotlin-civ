@@ -43,6 +43,8 @@ class VisionCalculator(
         data[playerId] = VisionData(visible, updatedDiscovered)
     }
 
+    fun getDiscoveredCount() = data.mapValues { it.value.discovered.size }
+
     fun importData(visionData: Map<String, GameStateVisionData>) {
         this.data.clear()
         visionData.forEach { (playerId, data) ->

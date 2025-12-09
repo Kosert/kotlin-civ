@@ -25,3 +25,11 @@ export class Game extends Phaser.Game {
 window.addEventListener("load", () => {
     var game = new Game(config)
 })
+
+
+window.initStorage = function(type: string, defaultValue: string) {
+    const current = localStorage.getItem(type)
+    if (current != null) return current
+    localStorage.setItem(type, defaultValue)
+    return defaultValue
+}

@@ -1,5 +1,10 @@
 declare global {
 
+    export interface Window {
+        initStorage: (type: string, defaultValue: string) => string
+
+    }
+
     export interface Number {
         coerceAtLeast(limit: number): number
         coerceAtMost(limit: number): number

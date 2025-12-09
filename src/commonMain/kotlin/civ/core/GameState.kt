@@ -2,6 +2,7 @@
 
 package civ.core
 
+import civ.LongWrapper
 import civ.hex.Coordinates
 import civ.model.City
 import civ.model.CivUnit
@@ -13,7 +14,6 @@ import kotlinx.serialization.json.Json
 import kotlin.js.ExperimentalJsExport
 import kotlin.js.JsExport
 
-// todo check if all types will serialize properly
 @JsExport
 @Serializable
 data class GameState(
@@ -22,13 +22,18 @@ data class GameState(
     val cities: Set<City>,
     val units: Set<CivUnit>,
     val stock: Map<String, Stockpiles>,
+    val mapSeed: LongWrapper,
     val visionData: Map<String, GameStateVisionData>? = null,
-    val gameVersion: Pair<String, Int> = "0.1" to 1,
+    val statistics: Map<String, GameStatistics>? = null,
+    val gameVersion: String = "0.1",
 ) {
     fun toJson(): String = Json.encodeToString(this)
 
     companion object {
-        fun fromJson(json: String): GameState = Json.decodeFromString(json)
+        fun fromJson(json: String): GameState? = runCatching {
+            Json.decodeFromString<GameState>(json)
+        }.onFailure { println("Failed to load game state: $it") }
+            .getOrNull()
     }
 }
 

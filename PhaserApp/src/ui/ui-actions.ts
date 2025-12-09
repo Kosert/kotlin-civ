@@ -10,4 +10,6 @@ export enum UiAction {
     RECRUIT,
     CONQUER,// arg: UnitType
     DISBAND,
+
+    LOAD_GAME_STATE, //arg: GameState
 }

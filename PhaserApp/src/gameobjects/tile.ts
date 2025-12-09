@@ -259,6 +259,15 @@ export class Tile extends Phaser.GameObjects.Polygon {
     }
 
     destroy(): void {
-        //todo
+        this.terrainGraphics?.destroy()
+        this.cityGraphics?.destroy()
+        this.roadsGraphics?.destroy()
+        this.mainOverlay.destroy()
+        this.cityRangeOverlay.destroy()
+        this.highlight.destroy()
+        this.pathHighlight.destroy()
+        this.borderLines.forEach(it => it.destroy())
+        this.rivers?.forEach(it => it.destroy())
+        super.destroy()
     }
 }
