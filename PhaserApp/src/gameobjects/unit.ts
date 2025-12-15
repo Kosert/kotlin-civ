@@ -13,6 +13,7 @@ export class Unit extends Phaser.GameObjects.Image {
 
     readonly unitId: string
     readonly unitType: civ.model.UnitType
+    readonly playerId: string
     private coordinates: civ.hex.Coordinates
     private targetHp: number
     private targetX: number
@@ -38,6 +39,7 @@ export class Unit extends Phaser.GameObjects.Image {
         this.coordinates = unit.coordinates
         this.unitId = unit.unitId
         this.unitType = unit.unitType
+        this.playerId = unit.playerId
 
         let color = 0xff0000
         switch (this.playerColor) {

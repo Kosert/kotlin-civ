@@ -69,6 +69,8 @@ enum class Building(
         bonus = UnitVisionBonus(3)
     ),
 
+    //FIXME powinno sie bardziej opłacać budować droższe budynki
+
     FISH_TRAP(
         tileRequirement = { it is Water },
         cost = Stockpiles(wood = 10),

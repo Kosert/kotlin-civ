@@ -33,9 +33,13 @@ export class Tile extends Phaser.GameObjects.Polygon {
     private borderLines = new Map<civ.hex.HexEdge, Phaser.GameObjects.Line>()
     private rivers: Map<civ.hex.HexEdge, Phaser.GameObjects.Image>
 
+    getTileData(): civ.model.PlayerTileData {
+        return this.tileData
+    }
+    
     constructor(
         readonly scene: Scene,
-        tileData: civ.model.PlayerTileData,
+        private tileData: civ.model.PlayerTileData,
         private playersMap: Map<String, civ.model.Player>
     ) {
         const weirdOffsetFix = { x: Tile.HEX_WIDTH / 2, y: Tile.HEX_SIZE }
@@ -82,6 +86,7 @@ export class Tile extends Phaser.GameObjects.Polygon {
     } 
 
     updateTileData(data: civ.model.PlayerTileData) {
+        this.tileData = data
         if (!data.tile) {
             this.mainOverlay.fillAlpha = 1
             this.borderLines.forEach(it => it.setVisible(false))

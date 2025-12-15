@@ -7,7 +7,6 @@ import { Ui } from "../ui/ui"
 import { UiAction, UiActionEvent } from "../ui/ui-actions"
 import MultiKey from "../util/multi-key"
 import { civ } from "kotlin-civ"
-import { TestJson } from "./test-json"
 import { Menu } from "../ui/menu"
 
 export class MainScene extends Phaser.Scene {
@@ -21,10 +20,11 @@ export class MainScene extends Phaser.Scene {
     private upKey: MultiKey
     private downKey: MultiKey
 
-    private gameApi?: civ.core.GameApi = null//civ.core.GameApi.Companion.fromGameState(civ.core.GameState.Companion.fromJson(new TestJson().json))
+    private gameApi?: civ.core.GameApi = null
     private playersMap = new Map<string, civ.model.Player>()
     private player: civ.model.Player
 
+    private hoveredCoordinates?: civ.hex.Coordinates
     private hovered?: civ.model.PlayerTileData
     private selected?: civ.model.PlayerTileData | civ.model.CivUnit
     private selectedUnitPaths?: civ.hex.Paths
@@ -38,7 +38,7 @@ export class MainScene extends Phaser.Scene {
     private fpsText: FpsText
     private scrollingTween: Phaser.Tweens.Tween
     private menu: Menu
-    
+
     private playerSwitchingEnabled: boolean = false//true
 
     preload(): void {
@@ -71,7 +71,7 @@ export class MainScene extends Phaser.Scene {
         this.load.image("city", "assets/city.png")
 
         const self = this
-        this.load.on(Phaser.Loader.Events.FILE_LOAD_ERROR, function(file: Phaser.Loader.File) {
+        this.load.on(Phaser.Loader.Events.FILE_LOAD_ERROR, function (file: Phaser.Loader.File) {
             this.load.image(file.key, "assets/icons/placeholder50.png")
         }, this)
 
@@ -109,7 +109,7 @@ export class MainScene extends Phaser.Scene {
         //     this.playersMap.set(it.playerId, it)
         // })
 
-        this.input.on(Phaser.Input.Events.POINTER_DOWN, function(pointer: Phaser.Input.Pointer) {
+        this.input.on(Phaser.Input.Events.POINTER_DOWN, function (pointer: Phaser.Input.Pointer) {
             if (self.ui.isPointerInside(pointer)) {
                 return
             }
@@ -123,7 +123,7 @@ export class MainScene extends Phaser.Scene {
                     self.select(self.hovered)
                 }
             }
-            
+
             if (pointer.rightButtonDown()) {
                 const target = self.hovered
 
@@ -146,11 +146,11 @@ export class MainScene extends Phaser.Scene {
                     } else {
                         //selected enemy unit
                     }
-                    
+
                 }
             }
         })
-        
+
         //fixme player that should be the player, not current
         // this.player = this.gameApi.currentPlayer //civ.TestData.generated.players.asJsReadonlyArrayView()[0]
         // this.gameApi.tilesForPlayer(this.player.playerId).asJsReadonlyArrayView().map(it => {
@@ -162,7 +162,7 @@ export class MainScene extends Phaser.Scene {
         //     this.add.existing(it)
         // )
 
-        this.events.on(UiActionEvent, function(action: UiAction, arg) {
+        this.events.on(UiActionEvent, function (action: UiAction, arg) {
             const seletedCoordinates = self.selected?.coordinates
             let gameAction
             switch (action) {
@@ -182,13 +182,13 @@ export class MainScene extends Phaser.Scene {
                 case UiAction.BUILD:
                     gameAction = new civ.action.Build(seletedCoordinates, arg as civ.model.Building)
                     if (self.tryExecute(gameAction)) {
-                        self.select(self.gameApi.tilesForPlayer(self.player.playerId).asJsReadonlyArrayView().find(it => it.coordinates.equals(seletedCoordinates)))                    
+                        self.select(self.gameApi.tilesForPlayer(self.player.playerId).asJsReadonlyArrayView().find(it => it.coordinates.equals(seletedCoordinates)))
                     }
                     break
                 case UiAction.CONQUER:
                     gameAction = new civ.action.Conquer(seletedCoordinates)
                     if (self.tryExecute(gameAction)) {
-                        self.select(self.gameApi.tilesForPlayer(self.player.playerId).asJsReadonlyArrayView().find(it => it.coordinates.equals(seletedCoordinates)))                    
+                        self.select(self.gameApi.tilesForPlayer(self.player.playerId).asJsReadonlyArrayView().find(it => it.coordinates.equals(seletedCoordinates)))
                     }
                     break
                 case UiAction.DISBAND:
@@ -210,7 +210,7 @@ export class MainScene extends Phaser.Scene {
         // this.gameApi.registerEventListener(this.player.playerId, function(event) { self.onGameEvent(event) })
         // this.ui.setStockpiles(this.gameApi.stocksFor(this.player.playerId), this.gameApi.incomeFor(this.player.playerId))
         // this.updateUnitsFromTiles()
-        
+
         // this.initGameApi(civ.core.GameState.Companion.fromJson(new TestJson().json))
         this.menu.onEscClicked()
     }
@@ -234,7 +234,7 @@ export class MainScene extends Phaser.Scene {
         this.gameApi.allPlayers().asJsReadonlyArrayView().forEach(it => {
             this.playersMap.set(it.playerId, it)
         })
-        this.player = this.gameApi.allPlayers().asJsReadonlyArrayView().find(it => !it.aiType )
+        this.player = this.gameApi.allPlayers().asJsReadonlyArrayView().find(it => !it.aiType)
 
         this.gameApi.tilesForPlayer(this.player.playerId).asJsReadonlyArrayView().map(it => {
             this.tiles.push(new Tile(this, it, this.playersMap))
@@ -244,7 +244,7 @@ export class MainScene extends Phaser.Scene {
         this.menu.setGameApi(this.gameApi)
         this.ui.setStockpiles(this.gameApi.stocksFor(this.player.playerId), this.gameApi.incomeFor(this.player.playerId))
         const self = this
-        this.gameApi.registerEventListener(this.player.playerId, function(event) { self.onGameEvent(event) })
+        this.gameApi.registerEventListener(this.player.playerId, function (event) { self.onGameEvent(event) })
         this.updateUnitsFromTiles()
 
         const firstCity = this.gameApi.citiesFor(this.player.playerId).asJsReadonlyArrayView().values().next().value
@@ -274,8 +274,12 @@ export class MainScene extends Phaser.Scene {
         if (event instanceof civ.events.StockUpdated) {
             this.ui.setStockpiles(event.stock, event.income)
 
-        } else if (event == civ.events.VisionChanged) {
-            this.updateUnitsFromTiles()
+        } else if (event instanceof civ.events.VisionChanged) {
+            event.tiles.asJsReadonlyArrayView().forEach((data, index) => {
+                const tile = this.tiles[index]
+                tile.updateTileData(data)
+            })
+            this.updateUnitsFromTiles(event.tiles.asJsReadonlyArrayView())
 
         } else if (event instanceof civ.events.UnitEvent.Created) {
             const tile = this.tiles.find(tile => tile.coordinates.equals(event.unit.coordinates))
@@ -284,7 +288,7 @@ export class MainScene extends Phaser.Scene {
             this.scrollToTile(tile.coordinates)
 
         } else if (event instanceof civ.events.UnitEvent.Moved) {
-            //todo unlock visionChanged events
+
             const tile = this.tiles.find(tile => tile.coordinates.equals(event.newCoordinates))
             const unit = this.units.get(event.unitId)
             unit.updateUnitPosition(tile.x, tile.y, tile.coordinates)
@@ -308,14 +312,8 @@ export class MainScene extends Phaser.Scene {
                 this.scrollToTile(event.to)
             }
 
-            const allUnits = this.gameApi.tilesForPlayer(this.player.playerId).asJsReadonlyArrayView()
-                .map(it => it.unit)
-                .filter(it => it)
-            const attacker = allUnits.find(it => it.coordinates.equals(event.from))
-            // not in api -> unit was killed and removed -> hp = 0
-            const updatedAttackerHp = allUnits.find(it => it.coordinates.equals(event.from))?.hp ?? 0
-            const updatedDefenderHp = allUnits.find(it => it.coordinates.equals(event.to))?.hp ?? 0
-            
+            const attacker = event.updatedAttacker
+
             const localUnits = [...this.units.values()]
             const attackerUnit: Unit = localUnits.find(it => it.getCoordinates().equals(event.from))
             const defenderUnit: Unit = localUnits.find(it => it.getCoordinates().equals(event.to))
@@ -329,7 +327,7 @@ export class MainScene extends Phaser.Scene {
             const self = this
             if (event.isRanged) {
                 const angleFrom = Phaser.Math.Angle.BetweenPoints(tileFrom, tileTo)
-                defenderUnit?.updateUnitHp(updatedDefenderHp, 400)
+                defenderUnit?.updateUnitHp(event.updatedDefender.hp, 400)
                 const projectile = new Projectile(this, tileFrom.x, tileFrom.y, angleFrom, tileTo.x, tileTo.y, () => {
                     if (shouldReselect) {
                         self.select(attacker)
@@ -340,21 +338,21 @@ export class MainScene extends Phaser.Scene {
                 if (attackerUnit) {
                     const angleFrom = Phaser.Math.Angle.BetweenPoints(tileFrom, tileTo)
                     attackerUnit.bump(angleFrom, 100)
-                    defenderUnit?.updateUnitHp(updatedDefenderHp, 200)
+                    defenderUnit?.updateUnitHp(event.updatedDefender.hp, 200)
                 } else {
-                    defenderUnit?.updateUnitHp(updatedDefenderHp)
+                    defenderUnit?.updateUnitHp(event.updatedDefender.hp)
                 }
 
                 if (defenderUnit && defenderUnit.unitType.defense > 0) {
                     const angleTo = Phaser.Math.Angle.BetweenPoints(tileTo, tileFrom)
-                    attackerUnit?.updateUnitHp(updatedAttackerHp, 500)
-                    defenderUnit.bump(angleTo, 400, () => { 
+                    attackerUnit?.updateUnitHp(event.updatedAttacker.hp, 500)
+                    defenderUnit.bump(angleTo, 400, () => {
                         if (shouldReselect) {
                             this.select(attacker)
                         }
                     })
                 } else {
-                    attackerUnit?.updateUnitHp(updatedAttackerHp)
+                    attackerUnit?.updateUnitHp(event.updatedAttacker.hp)
                     if (shouldReselect) {
                         this.select(attacker)
                     }
@@ -363,21 +361,23 @@ export class MainScene extends Phaser.Scene {
         }
     }
 
-    private updateUnitsFromTiles() {
+    private updateUnitsFromTiles(tiles?: readonly civ.model.PlayerTileData[]) {
         const unitsFromApi: civ.model.CivUnit[] = []
-        this.gameApi.tilesForPlayer(this.player.playerId).asJsReadonlyArrayView().forEach((data, index) => {
-            const tile = this.tiles[index]
+        const tilesFromApi = tiles ?? this.gameApi.tilesForPlayer(this.player.playerId).asJsReadonlyArrayView()
+
+        tilesFromApi.forEach((data, index) => {
+            // const tile = this.tiles[index]
             // tile.updateTileData(data)
             // tile.setHighlight(
-                // this.moveHighlights.some(it => it.equals(data.coordinates)),
-                // this.pathHighlights.some(it => it.equals(data.coordinates)),
-                // data.unit && data.unit.playerId != this.player.playerId,
+            // this.moveHighlights.some(it => it.equals(data.coordinates)),
+            // this.pathHighlights.some(it => it.equals(data.coordinates)),
+            // data.unit && data.unit.playerId != this.player.playerId,
             // )
             // const isHovered = tile.coordinates.equals(hoveredCoordinates)
             // const isSelected = tile.coordinates.equals(this.selected?.coordinates)
             // tile.setStates(isHovered, isSelected)
             // if (isHovered) {
-                // this.hovered = data
+            // this.hovered = data
             // }
 
             if (data.unit) {
@@ -435,7 +435,7 @@ export class MainScene extends Phaser.Scene {
             duration: 300,
         })
         const self = this
-        this.scrollingTween.on(Phaser.Tweens.Events.TWEEN_UPDATE, function(tween, key, target, current: number , previous) {
+        this.scrollingTween.on(Phaser.Tweens.Events.TWEEN_UPDATE, function (tween, key, target, current: number, previous) {
             self.cameras.main.scrollX = startCameraX + (targetX - startCameraX) * current
             self.cameras.main.scrollY = startCameraY + (targetY - startCameraY) * current
             self.input.activePointer.updateWorldPoint(self.cameras.main)
@@ -457,7 +457,7 @@ export class MainScene extends Phaser.Scene {
             }
         } else if (entity instanceof civ.model.PlayerTileData) {
 
-            
+
         } else {
 
         }
@@ -514,23 +514,24 @@ export class MainScene extends Phaser.Scene {
             }
         }
 
-        let hoveredCoordinates: civ.hex.Coordinates
         if (!this.ui.isPointerInside(this.input.activePointer) && !this.menu.isVisible()) {
             const x = (this.input.activePointer.worldX - Tile.HEX_OFFSET) / Tile.HEX_SIZE
             const y = (this.input.activePointer.worldY - Tile.HEX_OFFSET) / Tile.HEX_SIZE
-            const q = (Tile.SQRT3/3 * x - 1.0/3 * y)
-            const r = (2.0/3.0 * y)
-            const s = -q-r
-            hoveredCoordinates = civ.hex.Coordinates.Companion.fromDoubles(q, r, s)    
+            const q = (Tile.SQRT3 / 3 * x - 1.0 / 3 * y)
+            const r = (2.0 / 3.0 * y)
+            const s = -q - r
+            this.hoveredCoordinates = civ.hex.Coordinates.Companion.fromDoubles(q, r, s)
+        } else {
+            this.hoveredCoordinates = null
         }
 
         let hoverChanged = false
-        if (!this.hovered?.coordinates.equals(hoveredCoordinates)) {
+        if (!this.hovered?.coordinates.equals(this.hoveredCoordinates)) {
             hoverChanged = true
         }
 
-        if (hoverChanged && this.selectedUnitPaths && hoveredCoordinates) {
-            const path = this.selectedUnitPaths.getPath(hoveredCoordinates)
+        if (hoverChanged && this.selectedUnitPaths && this.hoveredCoordinates) {
+            const path = this.selectedUnitPaths.getPath(this.hoveredCoordinates)
             if (path) {
                 this.pathHighlights = path.asJsReadonlyArrayView().map(segment => segment.coordinates)
             } else {
@@ -539,6 +540,22 @@ export class MainScene extends Phaser.Scene {
         }
 
         this.hovered = null
+
+        const localUnits = [...this.units.values()]
+        this.tiles.forEach((tile, index) => {
+            const unit = localUnits.find(it => it.getCoordinates().equals(tile.coordinates))
+            tile.setHighlight(
+                this.moveHighlights.some(it => it.equals(tile.coordinates)),
+                this.pathHighlights.some(it => it.equals(tile.coordinates)),
+                unit && unit.playerId != this.player.playerId,
+            )
+            const isHovered = tile.coordinates.equals(this.hoveredCoordinates)
+            const isSelected = tile.coordinates.equals(this.selected?.coordinates)
+            tile.setStates(isHovered, isSelected)
+            if (isHovered) {
+                this.hovered = tile.getTileData()
+            }
+        })
 
         if (!this.gameApi) {
             return
@@ -550,10 +567,10 @@ export class MainScene extends Phaser.Scene {
             this.player = this.gameApi.currentPlayer
             const self = this
 
-            this.gameApi.registerEventListener(this.player.playerId, function(event) { self.onGameEvent(event) })
+            this.gameApi.registerEventListener(this.player.playerId, function (event) { self.onGameEvent(event) })
             this.ui.setStockpiles(this.gameApi.stocksFor(this.player.playerId), this.gameApi.incomeFor(this.player.playerId))
             this.updateUnitsFromTiles()
-            
+
             const firstCity = this.gameApi.citiesFor(this.player.playerId).asJsReadonlyArrayView().values().next().value
             if (firstCity) {
                 this.scrollToTile(firstCity.coordinates)
@@ -565,23 +582,7 @@ export class MainScene extends Phaser.Scene {
             }
         }
 
+        //todo migrate to TurnChangedEvent
         this.ui.disableEndTurn(this.gameApi.currentPlayer.playerId != this.player.playerId || this.menu.isVisible())
-
-        this.gameApi.tilesForPlayer(this.player.playerId).asJsReadonlyArrayView().forEach((data, index) => {
-            const tile = this.tiles[index]
-            //todo migrate from update() to events
-            tile.updateTileData(data)
-            tile.setHighlight(
-                this.moveHighlights.some(it => it.equals(tile.coordinates)),
-                this.pathHighlights.some(it => it.equals(tile.coordinates)),
-                data.unit && data.unit.playerId != this.player.playerId,
-            )
-            const isHovered = tile.coordinates.equals(hoveredCoordinates)
-            const isSelected = tile.coordinates.equals(this.selected?.coordinates)
-            tile.setStates(isHovered, isSelected)
-            if (isHovered) {
-                this.hovered = data
-            }
-        })
     }
 }

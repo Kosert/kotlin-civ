@@ -4,6 +4,7 @@ package civ.events
 
 import civ.hex.Coordinates
 import civ.model.CivUnit
+import civ.model.PlayerTileData
 import civ.model.Stockpiles
 import kotlin.js.ExperimentalJsExport
 import kotlin.js.JsExport
@@ -15,17 +16,20 @@ interface GameEvent
 data class StockUpdated(
     val stock: Stockpiles,
     val income: Stockpiles?,
-):  GameEvent
+): GameEvent
 
 @JsExport
-object VisionChanged: GameEvent
+data class VisionChanged(
+    val tiles: List<PlayerTileData>,
+): GameEvent
 
 @JsExport
 data class AttackEvent(
     val from: Coordinates,
     val to: Coordinates,
     val isRanged: Boolean,
-    //todo attack type?
+    val updatedAttacker: CivUnit?,
+    val updatedDefender: CivUnit?,
 ): GameEvent
 
 @JsExport
@@ -45,3 +49,8 @@ sealed class UnitEvent(
 
     override fun toString(): String = "UnitEvent.${this::class.simpleName}(unitId='$unitId')"
 }
+
+@JsExport
+data class TurnEndedEvent(
+    val newCurrentPlayerId: String
+): GameEvent

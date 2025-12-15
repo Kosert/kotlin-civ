@@ -78,7 +78,11 @@ class GameApi private constructor(
         }
         borderCalculator.recalculate(turns, cities.values)
         statCounter.onVisionChanged(visionCalculator.getDiscoveredCount())
-        eventListeners.forEach { it.listener(VisionChanged) }
+
+        eventListeners.forEach {
+            val tiles = tilesForPlayer(playerId = it.playerId)
+            it.listener(VisionChanged(tiles))
+        }
     }
 
     private fun isTileVisible(playerId: String, coordinates: Coordinates): Boolean {
@@ -239,14 +243,22 @@ class GameApi private constructor(
 //            UnitEvent.Updated(updatedDefender)
 //        )
 
-        triggerEvent(
-            visionCalculator.getPlayersThatCanSee(attacker.coordinates, defender.coordinates),
-            AttackEvent(
-                attacker.coordinates,
-                defender.coordinates,
-                isRangedAttack,
-            )
-        )
+        val playersSeeingAttacker = visionCalculator.getPlayersThatCanSee(attacker.coordinates)
+        val playersSeeingDefender = visionCalculator.getPlayersThatCanSee(defender.coordinates)
+
+        eventListeners.filter {
+            it.playerId in playersSeeingAttacker || it.playerId in playersSeeingDefender
+        }.forEach { listener ->
+            listener.listener(
+                AttackEvent(
+                    from = attacker.coordinates,
+                    to = defender.coordinates,
+                    isRanged = isRangedAttack,
+                    updatedAttacker = updatedAttacker.takeIf { listener.playerId in playersSeeingAttacker },
+                    updatedDefender = updatedDefender.takeIf { listener.playerId in playersSeeingDefender },
+            ))
+        }
+
         recalculateVision()
         stocksManager.recalculateIncome(
             playerCities = citiesFor(currentPlayer.playerId),
@@ -361,8 +373,10 @@ class GameApi private constructor(
                 }?.let { newCityLevel ->
                     val city = cities.getValue(action.coordinates)
                     cities[action.coordinates] = city.copy(level = newCityLevel)
-                    recalculateVision()
+//                    recalculateVision()
                 }
+                //fixme only update the updated tile?
+                recalculateVision()
                 stocksManager.recalculateIncome(
                     playerCities = citiesFor(currentPlayer.playerId),
                     allUnits = units.values
@@ -524,6 +538,9 @@ class GameApi private constructor(
             playerCities = citiesFor(currentPlayer.playerId),
             allUnits = units.values
         )
+        eventListeners.forEach {
+            it.listener(TurnEndedEvent(newCurrentPlayerId = currentPlayer.playerId))
+        }
 
         ais.get(currentPlayer.playerId)?.let { ai ->
             //fixme
