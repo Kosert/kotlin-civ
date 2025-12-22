@@ -22,7 +22,7 @@ abstract class Ai(
     protected suspend fun execute(action: Action): ActionResult {
         val result = gameApi.execute(playerId, action)
         if (result.isSuccess) {
-            delay(actionDelay)
+//            delay(actionDelay)
         }
         return result
     }

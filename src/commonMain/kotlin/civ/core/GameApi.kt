@@ -68,7 +68,7 @@ class GameApi private constructor(
         eventListeners.filter { it.playerId in recipientIds }.forEach { it.listener(event) }
     }
 
-    private fun recalculateVision() {
+    private fun recalculateVision(sendEvents: Boolean = true) {
         turns.forEach { player ->
             visionCalculator.recalculate(
                 player.playerId,
@@ -79,9 +79,11 @@ class GameApi private constructor(
         borderCalculator.recalculate(turns, cities.values)
         statCounter.onVisionChanged(visionCalculator.getDiscoveredCount())
 
-        eventListeners.forEach {
-            val tiles = tilesForPlayer(playerId = it.playerId)
-            it.listener(VisionChanged(tiles))
+        if (sendEvents) {
+            eventListeners.forEach {
+                val tiles = tilesForPlayer(playerId = it.playerId)
+                it.listener(VisionChanged(tiles))
+            }
         }
     }
 
@@ -215,10 +217,6 @@ class GameApi private constructor(
         if (isRangedAttack) {
             val updated = attacker.copy(actionPoint = false)
             units[attacker.coordinates] = updated
-//            triggerEvent(
-//                visionCalculator.getPlayersThatCanSee(updated.coordinates),
-//                UnitEvent.Updated(updated)
-//            )
         } else {
             if (updatedAttacker.hp <= 0) {
                 hexMap.markBusy(updatedAttacker.coordinates, false)
@@ -226,10 +224,6 @@ class GameApi private constructor(
             } else {
                 units[updatedAttacker.coordinates] = updatedAttacker.copy(actionPoint = false)
             }
-//            triggerEvent(
-//                visionCalculator.getPlayersThatCanSee(updatedAttacker.coordinates),
-//                UnitEvent.Updated(updatedAttacker)
-//            )
         }
 
         if (updatedDefender.hp <= 0) {
@@ -238,10 +232,6 @@ class GameApi private constructor(
         } else {
             units[updatedDefender.coordinates] = updatedDefender
         }
-//        triggerEvent(
-//            visionCalculator.getPlayersThatCanSee(updatedDefender.coordinates),
-//            UnitEvent.Updated(updatedDefender)
-//        )
 
         val playersSeeingAttacker = visionCalculator.getPlayersThatCanSee(attacker.coordinates)
         val playersSeeingDefender = visionCalculator.getPlayersThatCanSee(defender.coordinates)
@@ -282,6 +272,7 @@ class GameApi private constructor(
                 val path = paths.getPath(action.destination)
                     ?: return ActionResult.exception("Path to ${action.destination} not found")
 
+                val combinedEvents = eventListeners.associate { it.playerId to listOf<GameEvent>() }.toMutableMap()
                 path.forEach {
                     val updatedUnit = units.values.first { it.unitId == action.unitId }
                     val current = updatedUnit.coordinates
@@ -299,13 +290,35 @@ class GameApi private constructor(
                         movementLeft = updatedUnit.movementLeft - it.cost,
                         conquerState = if (isOccupying) ConquerState.OCCUPYING else ConquerState.NONE
                     )
-                    recalculateVision()
-                    triggerEvent(
-                        visionCalculator.getPlayersThatCanSee(current, it.coordinates),
-                        UnitEvent.Moved(units.getValue(it.coordinates))
-                    )
+                    recalculateVision(sendEvents = false)
+                    val playersThatCanSee = visionCalculator.getPlayersThatCanSee(current, it.coordinates)
+                    combinedEvents.keys.forEach { playerId ->
+                        if (playerId !in playersThatCanSee){
+                            return@forEach
+                        }
+
+                        val tiles = tilesForPlayer(playerId = playerId)
+                        combinedEvents.edit(playerId) { events ->
+                            events + VisionChanged(tiles) + UnitEvent.Moved(units.getValue(it.coordinates))
+                        }
+                    }
+//                    triggerEvent(
+//                        visionCalculator.getPlayersThatCanSee(current, it.coordinates),
+//                        UnitEvent.Moved(units.getValue(it.coordinates))
+//                    )
                     log.write(currentPlayer, "Moved", updatedUnit, "from", current, "to", it.coordinates)
                 }
+
+                combinedEvents
+                    .filter { it.value.isNotEmpty() }
+                    .forEach { (playerId, events) ->
+                        val combinedEvent = UnitEvent.CombinedMove(
+                            units.getValue(action.destination),
+                            visionEvents = events.filterIsInstance<VisionChanged>(),
+                            movedEvents = events.filterIsInstance<UnitEvent.Moved>(),
+                        )
+                        eventListeners.first { it.playerId == playerId }.listener(combinedEvent)
+                    }
             }
             is Settle -> {
                 val unit = units.values.firstOrNull { it.unitId == action.settlersId }
@@ -362,7 +375,7 @@ class GameApi private constructor(
                     )
                 }
 
-                stocksManager.substract(currentPlayer.playerId, action.building.cost)
+                stocksManager.subtract(currentPlayer.playerId, action.building.cost, sendEvent = false)
                 hexMap.build(action.coordinates, action.building)
                 log.write(currentPlayer, "Built", action.building, "at", action.coordinates)
 
@@ -400,7 +413,7 @@ class GameApi private constructor(
                     )
                 }
 
-                stocksManager.substract(currentPlayer.playerId, action.unitType.cost)
+                stocksManager.subtract(currentPlayer.playerId, action.unitType.cost)
                 val newUnit = CivUnit(
                     unitType = action.unitType,
                     playerId = currentPlayer.playerId,
@@ -445,11 +458,12 @@ class GameApi private constructor(
                     units[attacker.coordinates] = attacker.copy(actionPoint = false)
 
                     execute(playerId, Move(attacker.unitId, it.coordinates))
-                    GlobalScope.launch {
-                        delay(500)
+//                    GlobalScope.launch {
+                        //fixme should be fine to remove the delay, scope and above hax
+//                        delay(500)
                         val movedAttacker = units.values.first { it.unitId == attacker.unitId }
                         executeAttack(movedAttacker, defender)
-                    }
+//                    }
                 } ?: run {
                     executeAttack(attacker, defender)
                 }

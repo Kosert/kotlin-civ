@@ -19,11 +19,13 @@ class StockpilesManager(
     fun getFor(playerId: String) = stocks[playerId] ?: error("Stocks not found for player: $playerId")
     fun incomeFor(playerId: String) = income[playerId] ?: Stockpiles()
 
-    fun substract(playerId: String, amount: Stockpiles) {
+    fun subtract(playerId: String, amount: Stockpiles, sendEvent: Boolean = true) {
         val updatedStocks = getFor(playerId) - amount
         stocks[playerId] = updatedStocks
-        eventListeners.filter { it.playerId == playerId }.forEach {
-            it.listener(StockUpdated(updatedStocks, incomeFor(playerId)))
+        if (sendEvent) {
+            eventListeners.filter { it.playerId == playerId }.forEach {
+                it.listener(StockUpdated(updatedStocks, incomeFor(playerId)))
+            }
         }
     }
 

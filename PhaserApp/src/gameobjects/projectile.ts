@@ -2,6 +2,8 @@ import { Scene, Tweens } from "phaser";
 
 export class Projectile extends Phaser.GameObjects.Image {
 
+    static readonly FLIGHT_DURATION = 400
+
     private tween: Tweens.Tween
 
     constructor(
@@ -24,7 +26,7 @@ export class Projectile extends Phaser.GameObjects.Image {
             x: targetX,
             y: targetY,
             ease: 'Sine',
-            duration: 400,
+            duration: Projectile.FLIGHT_DURATION,
             repeat: 0,            // -1: infinity
             yoyo: false,
             "onComplete": () => {

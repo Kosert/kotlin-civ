@@ -23,6 +23,8 @@ export class MainScene extends Phaser.Scene {
     private gameApi?: civ.core.GameApi = null
     private playersMap = new Map<string, civ.model.Player>()
     private player: civ.model.Player
+    private eventQueue: civ.events.GameEvent[] = []
+    private eventTimeout: number = 0
 
     private hoveredCoordinates?: civ.hex.Coordinates
     private hovered?: civ.model.PlayerTileData
@@ -218,6 +220,8 @@ export class MainScene extends Phaser.Scene {
     private initGameApi(gameState: civ.core.GameState) {
         this.select(null)
         this.gameApi?.unregisterEventListeners(this.player.playerId)
+        this.eventQueue = []
+        this.eventTimeout = 0
         this.tiles.forEach(it => it.destroy())
         this.tiles = []
         this.units.forEach(it => it.destroy())
@@ -244,7 +248,7 @@ export class MainScene extends Phaser.Scene {
         this.menu.setGameApi(this.gameApi)
         this.ui.setStockpiles(this.gameApi.stocksFor(this.player.playerId), this.gameApi.incomeFor(this.player.playerId))
         const self = this
-        this.gameApi.registerEventListener(this.player.playerId, function (event) { self.onGameEvent(event) })
+        this.gameApi.registerEventListener(this.player.playerId, function (event) { self.eventQueue.push(event) })
         this.updateUnitsFromTiles()
 
         const firstCity = this.gameApi.citiesFor(this.player.playerId).asJsReadonlyArrayView().values().next().value
@@ -289,10 +293,34 @@ export class MainScene extends Phaser.Scene {
 
         } else if (event instanceof civ.events.UnitEvent.Moved) {
 
-            const tile = this.tiles.find(tile => tile.coordinates.equals(event.newCoordinates))
+            // const tile = this.tiles.find(tile => tile.coordinates.equals(event.newCoordinates))
+            // const unit = this.units.get(event.unitId)
+            // unit.updateUnitPosition(tile.x, tile.y, tile.coordinates)
+            // this.scrollToTile(tile.coordinates)
+            // this.eventTimeout = 500
+        } else if (event instanceof civ.events.UnitEvent.CombinedMove) {
+            const self = this
+            let finalCoordinates: civ.hex.Coordinates
+            const positions = event.movedEvents.asJsReadonlyArrayView().map(move => {
+                const tile = self.tiles.find(tile => tile.coordinates == move.newCoordinates)
+                finalCoordinates = move.newCoordinates
+                return { x: tile.x, y: tile.y }
+            })
+            
             const unit = this.units.get(event.unitId)
-            unit.updateUnitPosition(tile.x, tile.y, tile.coordinates)
-            this.scrollToTile(tile.coordinates)
+            unit.updatePositionByPath(positions, finalCoordinates, function(index: number) {
+                const visionEvent = event.visionEvents.asJsReadonlyArrayView()[Phaser.Math.Clamp(index + 1, 0, event.visionEvents.asJsReadonlyArrayView().length - 1)]
+                visionEvent.tiles.asJsReadonlyArrayView().forEach((data, index) => {
+                    const tile = self.tiles[index]
+                    tile.updateTileData(data)
+                })
+                self.updateUnitsFromTiles(visionEvent.tiles.asJsReadonlyArrayView())
+
+                const currentCoordinates = event.movedEvents.asJsReadonlyArrayView()[index].newCoordinates
+                self.scrollToTile(currentCoordinates)
+            })
+
+            this.eventTimeout = event.movedEvents.asJsReadonlyArrayView().length * Unit.MOVE_ANIMATION_LENGTH
 
         } else if (event instanceof civ.events.UnitEvent.Updated) {
             //noop
@@ -327,32 +355,38 @@ export class MainScene extends Phaser.Scene {
             const self = this
             if (event.isRanged) {
                 const angleFrom = Phaser.Math.Angle.BetweenPoints(tileFrom, tileTo)
-                defenderUnit?.updateUnitHp(event.updatedDefender.hp, 400)
+                defenderUnit?.updateUnitHp(event.updatedDefender.hp, Projectile.FLIGHT_DURATION)
                 const projectile = new Projectile(this, tileFrom.x, tileFrom.y, angleFrom, tileTo.x, tileTo.y, () => {
                     if (shouldReselect) {
                         self.select(attacker)
                     }
                 })
                 this.add.existing(projectile)
+                this.eventTimeout = Projectile.FLIGHT_DURATION + Unit.HP_ANIMATION_LENGTH
             } else {
                 if (attackerUnit) {
                     const angleFrom = Phaser.Math.Angle.BetweenPoints(tileFrom, tileTo)
                     attackerUnit.bump(angleFrom, 100)
-                    defenderUnit?.updateUnitHp(event.updatedDefender.hp, 200)
+                    defenderUnit?.updateUnitHp(event.updatedDefender.hp, 100 + Unit.BUMP_ANIMATION_LENGTH)
+                    this.eventTimeout = 100 + Unit.BUMP_ANIMATION_LENGTH + Unit.HP_ANIMATION_LENGTH
                 } else {
                     defenderUnit?.updateUnitHp(event.updatedDefender.hp)
+                    this.eventTimeout = Unit.HP_ANIMATION_LENGTH
                 }
 
                 if (defenderUnit && defenderUnit.unitType.defense > 0) {
                     const angleTo = Phaser.Math.Angle.BetweenPoints(tileTo, tileFrom)
-                    attackerUnit?.updateUnitHp(event.updatedAttacker.hp, 500)
-                    defenderUnit.bump(angleTo, 400, () => {
+                    const counterAttackDelay = 100 + Unit.BUMP_ANIMATION_LENGTH * 2 + 100
+                    attackerUnit?.updateUnitHp(event.updatedAttacker.hp, counterAttackDelay + Unit.BUMP_ANIMATION_LENGTH)
+                    defenderUnit.bump(angleTo, counterAttackDelay, () => {
                         if (shouldReselect) {
                             this.select(attacker)
                         }
                     })
+                    this.eventTimeout = counterAttackDelay + Unit.BUMP_ANIMATION_LENGTH + Unit.HP_ANIMATION_LENGTH
                 } else {
-                    attackerUnit?.updateUnitHp(event.updatedAttacker.hp)
+                    //todo not needed?
+                    // attackerUnit?.updateUnitHp(event.updatedAttacker.hp)
                     if (shouldReselect) {
                         this.select(attacker)
                     }
@@ -559,6 +593,15 @@ export class MainScene extends Phaser.Scene {
 
         if (!this.gameApi) {
             return
+        }
+
+        if (this.eventTimeout <= 0) {
+            const event = this.eventQueue.shift()
+            if (event) {
+                this.onGameEvent(event)
+            }
+        } else {
+            this.eventTimeout -= delta
         }
 
         // PLAYER SWAPPING

@@ -43,6 +43,15 @@ sealed class UnitEvent(
         val newCoordinates: Coordinates = unit.coordinates
     }
 
+    /**
+     * @property eventList list of VisionChanged and Moved events
+     */
+    class CombinedMove(
+        unit: CivUnit,
+        val visionEvents: List<VisionChanged>,
+        val movedEvents: List<Moved>,
+    ) : UnitEvent(unit.unitId)
+
     class Updated(val unit: CivUnit) : UnitEvent(unit.unitId)
 
     class Vanish(unit: CivUnit) : UnitEvent(unit.unitId)

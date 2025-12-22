@@ -37,6 +37,7 @@ export class Ui {
     private woodText: Phaser.GameObjects.Text
     private goldIcon: Phaser.GameObjects.Image
     private goldText: Phaser.GameObjects.Text
+    private stocksTween: Phaser.Tweens.Tween
     private endTurnButton: Button
 
     private selectedBackground: Phaser.GameObjects.Rectangle
@@ -343,14 +344,48 @@ export class Ui {
         }
     }
 
+    private currentStock: civ.model.Stockpiles
     setStockpiles(newStocks: civ.model.Stockpiles, income: civ.model.Stockpiles) {
         // if (this.stocks?.equals(newStocks)) {
         //     return
         // }
 
-        this.foodText.setText(newStocks.food.toString() + " (+" + income.food.toString() + ")")
-        this.woodText.setText(newStocks.wood.toString() + " (+" + income.wood.toString() + ")")
-        this.goldText.setText(newStocks.gold.toString() + " (+" + income.gold.toString() + ")")
+        if (this.currentStock) {
+            this.stocksTween?.destroy()
+            this.stocksTween = this.scene.tweens.addCounter({
+                ease: 'Cubic',       // 'Cubic', 'Elastic', 'Bounce', 'Back'
+                duration: 500,
+                repeat: 0,            // -1: infinity
+                yoyo: false,
+            })
+
+            const sourceFood = this.currentStock.food
+            const sourceWood = this.currentStock.wood
+            const sourceGold = this.currentStock.gold
+            const self = this
+            this.stocksTween.on(Phaser.Tweens.Events.TWEEN_UPDATE, function(tween, key, target, current: number, previous) {
+                // if (!started) {
+                //     started = true
+                // }
+    
+                const newFood = sourceFood + (newStocks.food - sourceFood) * current
+                const newWood = sourceWood + (newStocks.wood - sourceWood) * current
+                const newGold = sourceGold + (newStocks.gold - sourceGold) * current
+                
+                self.foodText.setText(newFood.toFixed(0) + " (+" + income.food.toString() + ")")
+                self.woodText.setText(newWood.toFixed(0) + " (+" + income.wood.toString() + ")")
+                self.goldText.setText(newGold.toFixed(0) + " (+" + income.gold.toString() + ")")
+            })
+        } else {
+            this.foodText.setText(newStocks.food.toString() + " (+" + income.food.toString() + ")")
+            this.woodText.setText(newStocks.wood.toString() + " (+" + income.wood.toString() + ")")
+            this.goldText.setText(newStocks.gold.toString() + " (+" + income.gold.toString() + ")")
+        }
+
+        // this.foodText.setText(newStocks.food.toString() + " (+" + income.food.toString() + ")")
+        // this.woodText.setText(newStocks.wood.toString() + " (+" + income.wood.toString() + ")")
+        // this.goldText.setText(newStocks.gold.toString() + " (+" + income.gold.toString() + ")")
+        this.currentStock = newStocks
     }
 
     disableEndTurn(disabled: boolean) {

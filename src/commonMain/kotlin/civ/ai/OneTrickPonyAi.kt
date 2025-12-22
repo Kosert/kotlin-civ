@@ -345,10 +345,9 @@ class ScoutAi(gameApi: GameApi, playerId: String) : OneTrickPonyAi(gameApi, play
 // log filter recipients
 // ai activate/deactive
 // better ais
-// save + restore
 // stats - scoreboard? turn counter
 // victory/lose - endgame conditions
-// record turn as list of events/commands, send to ui to handle them sequentially, filter not visible events
+// replays
 
 //todo ui improvements:
 // unit move/action available indicator

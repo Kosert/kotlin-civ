@@ -7,6 +7,10 @@ import { Tile } from "./tile";
 
 export class Unit extends Phaser.GameObjects.Image {
 
+    static readonly HP_ANIMATION_LENGTH = 1000
+    static readonly MOVE_ANIMATION_LENGTH = 400
+    static readonly BUMP_ANIMATION_LENGTH = 100
+
     private heathBar: Phaser.GameObjects.Rectangle
     private heathLeftover: Phaser.GameObjects.Rectangle
     private heathBarBorder: Phaser.GameObjects.Rectangle
@@ -90,21 +94,50 @@ export class Unit extends Phaser.GameObjects.Image {
         }
     }
 
+    updatePositionByPath(positions: {x: number, y: number}[], finalCoordinates: civ.hex.Coordinates, onCheckPoint: (index: number) => void) {
+        this.coordinates = finalCoordinates
+
+        const self = this
+        this.bumpTween?.destroy()
+        this.positionTween?.destroy()
+
+        const duration = positions.length * Unit.MOVE_ANIMATION_LENGTH
+        const positionsX = [this.x, ...positions.map(it => it.x)]
+        const positionsY = [this.y, ...positions.map(it => it.y)]
+        this.positionTween = this.scene.tweens.addCounter({
+            ease: 'Cubic',
+            duration: duration,
+            repeat: 0,
+            yoyo: false,
+        })
+
+        let currentStepIndex = -1
+        this.positionTween.on(Phaser.Tweens.Events.TWEEN_UPDATE, function(tween, key, target, current: number, previous) {
+            const newX = Phaser.Math.Interpolation.Linear(positionsX, current)
+            const newY = Phaser.Math.Interpolation.Linear(positionsY, current)
+
+            const newStepIndex = Math.floor(current * positions.length) - 1
+            if (newStepIndex > currentStepIndex) {
+                currentStepIndex = newStepIndex
+                onCheckPoint(newStepIndex)
+            }
+
+            // const newX = sourceX + (self.targetX - sourceX) * current
+            // const newY = sourceY + (self.targetY - sourceY) * current
+            const barX = newX - 32
+            const barY = newY - self.height
+            self.heathBarBorder?.setPosition(barX, barY)
+            self.heathLeftover?.setPosition(barX, barY)
+            self.heathBar?.setPosition(barX, barY)
+            self.setPosition(newX, newY)
+        })
+    }
+
     updateUnitHp(hp: number, delay: number = 0) {
         if (this.targetHp != hp) {
             this.animateHp(hp, delay)
         }
     }
-
-    // setPosition(x: number = 0, y: number = x, z: number = 0, w: number = 0): this {
-    //     super.setPosition(x, y, z, w)
-    //     // const barX = x - 32
-    //     // const barY = y - this.height
-    //     // this.heathBarBorder?.setPosition(barX, barY)
-    //     // this.heathLeftover?.setPosition(barX, barY)
-    //     // this.heathBar?.setPosition(barX, barY)
-    //     return this
-    // }
 
     bump(angle: number, delay: number = 0, onComplete?: () => void) {
         const sourceX = this.targetX
@@ -120,7 +153,7 @@ export class Unit extends Phaser.GameObjects.Image {
         this.bumpTween = this.scene.tweens.addCounter({
             delay: delay,
             ease: 'Cubic',       // 'Cubic', 'Elastic', 'Bounce', 'Back'
-            duration: 100,
+            duration: Unit.BUMP_ANIMATION_LENGTH,
             repeat: 0,            // -1: infinity
             yoyo: true,
             "onComplete": onComplete
@@ -142,8 +175,8 @@ export class Unit extends Phaser.GameObjects.Image {
         this.bumpTween?.destroy()
         this.positionTween?.destroy()
         this.positionTween = this.scene.tweens.addCounter({
-            ease: 'Cubic',       // 'Cubic', 'Elastic', 'Bounce', 'Back'
-            duration: 500,
+            ease: 'Linear',       // 'Cubic', 'Elastic', 'Bounce', 'Back'
+            duration: Unit.MOVE_ANIMATION_LENGTH,
             repeat: 0,            // -1: infinity
             yoyo: false,
         })
@@ -171,7 +204,7 @@ export class Unit extends Phaser.GameObjects.Image {
         this.hpTween = this.scene.tweens.addCounter({
             delay: delay,
             ease: 'Cubic',       // 'Cubic', 'Elastic', 'Bounce', 'Back'
-            duration: 1000,
+            duration: Unit.HP_ANIMATION_LENGTH,
             repeat: 0,            // -1: infinity
             yoyo: false,
         })
