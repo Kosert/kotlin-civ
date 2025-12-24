@@ -32,6 +32,7 @@ export class Tile extends Phaser.GameObjects.Polygon {
     private pathHighlight: Phaser.GameObjects.Arc
     private borderLines = new Map<civ.hex.HexEdge, Phaser.GameObjects.Line>()
     private rivers: Map<civ.hex.HexEdge, Phaser.GameObjects.Image>
+    private overlayTween: Phaser.Tweens.Tween
 
     getTileData(): civ.model.PlayerTileData {
         return this.tileData
@@ -163,9 +164,9 @@ export class Tile extends Phaser.GameObjects.Polygon {
         }
 
         if (data.isVisible) {
-            this.mainOverlay.setFillStyle(0x000000, 0)
+            this.animateOverlayAlpha(0)
         } else {
-            this.mainOverlay.setFillStyle(0x000000, 0.5)
+            this.animateOverlayAlpha(0.5)
         }
         
         this.borderLines.forEach(it => it.setVisible(false))
@@ -203,6 +204,19 @@ export class Tile extends Phaser.GameObjects.Polygon {
         } else {
             this.roadsGraphics?.setVisible(false)
         }
+    }
+
+    private animateOverlayAlpha(targetAlpha: number) {
+        if (this.mainOverlay.fillAlpha == targetAlpha) return
+        this.overlayTween?.destroy()
+        this.overlayTween = this.scene.tweens.add({
+            targets: this.mainOverlay,
+            props: { fillAlpha: targetAlpha },
+            ease: 'Linear',
+            duration: 400,
+            repeat: 0,
+            yoyo: false,
+        })
     }
 
     setStates(hovered: boolean, selected: boolean) {
@@ -273,6 +287,7 @@ export class Tile extends Phaser.GameObjects.Polygon {
         this.pathHighlight.destroy()
         this.borderLines.forEach(it => it.destroy())
         this.rivers?.forEach(it => it.destroy())
+        this.overlayTween?.destroy()
         super.destroy()
     }
 }

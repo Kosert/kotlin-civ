@@ -190,7 +190,7 @@ sealed class OneTrickPonyAi(
         // military units - conquer > attack > move to enemy > scout
         myUnits.filterNot { it.unitType == UnitType.SETTLERS }
             .forEach { unit ->
-                if (unit.conquerState == ConquerState.CAN_CONQUER) {
+                if (unit.conquerState == ConquerState.CanConquer) {
                     execute(Conquer(unit.coordinates))
                 }
 
@@ -200,7 +200,7 @@ sealed class OneTrickPonyAi(
                 val attackTarget = actions.attackTargets.asSequence()
                     .map { target -> tiles.first { it.coordinates == target.key }.unit }
                     .minByOrNull {
-                        if (it?.conquerState == ConquerState.OCCUPYING)
+                        if (it?.conquerState is ConquerState.Occupying)
                             -1
                         else
                             it?.hp ?: Int.MAX_VALUE
@@ -209,7 +209,7 @@ sealed class OneTrickPonyAi(
                 //fixme extract as archer-line algorithm - if neighbor is enemy -> move away, then attack
                 if (unit.unitType.range > 1 && attackTarget != null) {
                     if (attackTarget.coordinates.distanceTo(unit.coordinates) == 1) {
-                        val moveTargets = actions.moveTargets - attackTarget.coordinates.neighbors()
+                        val moveTargets = actions.moveTargets - attackTarget.coordinates.neighbors().toSet()
                         moveTargets.randomOrNull()?.let {
                             execute(Move(unit.unitId, it))
                             execute(Attack(unit.unitId, attackTarget.coordinates))
@@ -352,5 +352,4 @@ class ScoutAi(gameApi: GameApi, playerId: String) : OneTrickPonyAi(gameApi, play
 //todo ui improvements:
 // unit move/action available indicator
 // dont show attack move for ranged units?
-// delay vision updates until attack animations are finished
 // button states: not unlocked yet, unlocked but tile is busy/not enough res, can be bought

@@ -323,8 +323,16 @@ export class Ui {
             this.buttonSettle.setVisible(entity.unitType == civ.model.UnitType.SETTLERS)
             this.buttonSettle.setDisabled(!entity.actionPoint)
             this.buttonConquer.setPosition(this.buttonSettle.x(), this.buttonSettle.y() + this.buttonSettle.height() + (this.buttonSettle.height() ? 5 : 0))
-            this.buttonConquer.setVisible(entity.conquerState != civ.model.ConquerState.NONE)
-            this.buttonConquer.setDisabled(!entity.actionPoint || entity.conquerState != civ.model.ConquerState.CAN_CONQUER)
+
+            if (entity.conquerState instanceof civ.model.ConquerState.Occupying) {
+                this.buttonConquer.setVisible(true)
+                const turnsLeftText = entity.conquerState.turnsLeft > 0 ? ` (${entity.conquerState.turnsLeft} turns left)` : ""
+                this.buttonConquer.setText("Conquer" + turnsLeftText)
+                this.buttonConquer.setDisabled(!entity.actionPoint || entity.conquerState.turnsLeft > 0)
+            } else {
+                this.buttonConquer.setVisible(false)
+            }
+
             this.buttonDisband.setPosition(this.buttonConquer.x(), this.buttonConquer.y() + this.buttonConquer.height() + (this.buttonConquer.height() ? 5 : 0))
             this.buttonDisband.setVisible(true)
 
@@ -353,9 +361,9 @@ export class Ui {
         if (this.currentStock) {
             this.stocksTween?.destroy()
             this.stocksTween = this.scene.tweens.addCounter({
-                ease: 'Cubic',       // 'Cubic', 'Elastic', 'Bounce', 'Back'
+                ease: 'Cubic',
                 duration: 500,
-                repeat: 0,            // -1: infinity
+                repeat: 0,
                 yoyo: false,
             })
 

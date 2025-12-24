@@ -163,7 +163,7 @@ data class CivUnit(
     val hp: Int = unitType.maxHp,
     val movementLeft: Int = speedToMovement(unitType.speed),
     val actionPoint: Boolean = true,
-    val conquerState: ConquerState = ConquerState.NONE,
+    val conquerState: ConquerState = ConquerState.None,
 ) {
     val attack: Int = unitType.attack
     val defense: Int = unitType.defense
@@ -178,6 +178,15 @@ data class CivUnit(
 }
 
 @JsExport
-enum class ConquerState {
-    NONE, OCCUPYING, CAN_CONQUER
+@Serializable
+sealed class ConquerState {
+    data object None: ConquerState()
+    open class Occupying(val turnsLeft: Int): ConquerState()
+    data object CanConquer: Occupying(turnsLeft = 0)
+
+    fun onTurnPassed() = when {
+        this is Occupying && this.turnsLeft == 1 -> CanConquer
+        this is Occupying -> Occupying(turnsLeft - 1)
+        else -> this
+    }
 }

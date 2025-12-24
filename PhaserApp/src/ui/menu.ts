@@ -86,6 +86,7 @@ export class Menu {
             { id: civ.ai.AiType.OTP_WARRIOR.value, name: "AI (Warrior)" },
             { id: civ.ai.AiType.OTP_SCOUT.value, name: "AI (Scout)" },
             { id: civ.ai.AiType.OTP_ARCHER.value, name: "AI (Archer)" },
+            { id: civ.ai.AiType.IDLE.value, name: "AI (Idle)" },
         ]
         for (let i = 0; i < 4; i++) {
             const chooserButton = new ChooserButton(scene, bigStartX + 30, 0, playerOptions, function(id: string) {
@@ -278,6 +279,8 @@ class SaveSlotView {
 
     private outline: Phaser.GameObjects.Rectangle
     private slotTitle: Phaser.GameObjects.Text
+    private turnText: Phaser.GameObjects.Text
+    private description: Phaser.GameObjects.BitmapText
     private button: Button
 
     constructor(
@@ -295,6 +298,8 @@ class SaveSlotView {
         this.outline = scene.add.rectangle(x ,y, width, height, 0x000000, 0)
         .setOrigin(0, 0).setStrokeStyle(1, Ui.colorAccent.color, 1).setScrollFactor(0)
         this.slotTitle = scene.add.text(x + 10, y + 10, "", { font: "bold 16px Arial", color: "#FFFFFF" }).setDepth(91).setScrollFactor(0)
+        this.turnText = scene.add.text(x + 10, this.slotTitle.getBottomLeft().y + 5, "", { font: "bold 16px Arial", color: "#FFFFFF" }).setDepth(91).setScrollFactor(0)
+        this.description = scene.add.bitmapText(x + 10, this.turnText.getBottomLeft().y + 5, "civ_font", "etstsds", 16).setDepth(91).setScrollFactor(0)
 
         const self = this
         this.button = new Button(scene, x + width - 125, y + height - 40, "", function() { self.onActionClicked() }).setFixedWidth(120).setDepth(101)
@@ -309,6 +314,41 @@ class SaveSlotView {
         this.button.setDisabled(this.mode == "load" && !gameState)
 
         this.slotTitle.text = (gameState ? "Save slot" : "Empty slot") + " #" + this.slotNumber
+
+        if (!gameState) {
+            this.turnText.setText("")
+            this.description.setText("")
+            return
+        }
+
+        const player = gameState.players.asJsReadonlyArrayView().find(it => !it.aiType)
+        const stats = gameState.statistics.asJsReadonlyMapView().get(player.playerId)
+        this.turnText.setText("Turn " + (stats.turnNumber + 1))
+
+        const playerNames = gameState.players.asJsReadonlyArrayView().map(it => it.name)
+        this.description.setText(playerNames.join(", ")).setCharacterTint(0)
+
+        let pointer = 0
+        gameState.players.asJsReadonlyArrayView().forEach(it => {
+            let color: number
+            switch (it.color) {
+                case civ.model.PlayerColor.BLUE:
+                    color = 0x405bff
+                    break
+                case civ.model.PlayerColor.RED:
+                    color = 0xff0000
+                    break
+                case civ.model.PlayerColor.GREEN:
+                    color = 0x00ff00
+                    break
+                case civ.model.PlayerColor.YELLOW:
+                    color = 0xffff00
+                    break;
+            }
+            this.description.setCharacterTint(pointer, it.name.length, false, color)
+            pointer += it.name.length + 2
+        })
+
     }
 
     setMode(mode: "save" | "load") {
@@ -329,12 +369,16 @@ class SaveSlotView {
         this.outline.setDepth(depth)
         this.slotTitle.setDepth(depth)
         this.button.setDepth(depth)
+        this.turnText.setDepth(depth)
+        this.description.setDepth(depth)
         return this
     }
 
     setVisible(value: boolean): SaveSlotView {
         this.outline.setVisible(value)
         this.slotTitle.setVisible(value)
+        this.turnText.setVisible(value)
+        this.description.setVisible(value)
         this.button.setVisible(value)
         return this
     }
@@ -342,6 +386,8 @@ class SaveSlotView {
     destroy() {
         this.outline.destroy()
         this.slotTitle.destroy()
+        this.turnText.destroy()
+        this.description.destroy()
         this.button.destroy()
     }
 }

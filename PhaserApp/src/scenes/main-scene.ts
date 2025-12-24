@@ -309,14 +309,17 @@ export class MainScene extends Phaser.Scene {
             
             const unit = this.units.get(event.unitId)
             unit.updatePositionByPath(positions, finalCoordinates, function(index: number) {
-                const visionEvent = event.visionEvents.asJsReadonlyArrayView()[Phaser.Math.Clamp(index + 1, 0, event.visionEvents.asJsReadonlyArrayView().length - 1)]
+                if (index + 1 >= event.movedEvents.asJsReadonlyArrayView().length) 
+                    return
+
+                const visionEvent = event.visionEvents.asJsReadonlyArrayView()[index + 1]//[Phaser.Math.Clamp(index + 1, 0, event.visionEvents.asJsReadonlyArrayView().length - 1)]
                 visionEvent.tiles.asJsReadonlyArrayView().forEach((data, index) => {
                     const tile = self.tiles[index]
                     tile.updateTileData(data)
                 })
                 self.updateUnitsFromTiles(visionEvent.tiles.asJsReadonlyArrayView())
 
-                const currentCoordinates = event.movedEvents.asJsReadonlyArrayView()[index].newCoordinates
+                const currentCoordinates = event.movedEvents.asJsReadonlyArrayView()[index + 1].newCoordinates
                 self.scrollToTile(currentCoordinates)
             })
 

@@ -277,9 +277,9 @@ class GameApi private constructor(
                     val updatedUnit = units.values.first { it.unitId == action.unitId }
                     val current = updatedUnit.coordinates
 
-                    val isOccupying = cities[it.coordinates]
+                    val occupiedCity = cities[it.coordinates]
                         ?.takeIf { updatedUnit.attack > 0 }
-                        ?.takeUnless { it.playerId == updatedUnit.playerId } != null
+                        ?.takeUnless { it.playerId == updatedUnit.playerId }
 
                     hexMap.markBusy(current, false)
                     hexMap.markBusy(it.coordinates, true)
@@ -288,7 +288,7 @@ class GameApi private constructor(
                     units[it.coordinates] = updatedUnit.copy(
                         coordinates = it.coordinates,
                         movementLeft = updatedUnit.movementLeft - it.cost,
-                        conquerState = if (isOccupying) ConquerState.OCCUPYING else ConquerState.NONE
+                        conquerState = occupiedCity?.let { ConquerState.Occupying(it.level.occupationTime) } ?: ConquerState.None
                     )
                     recalculateVision(sendEvents = false)
                     val playersThatCanSee = visionCalculator.getPlayersThatCanSee(current, it.coordinates)
@@ -479,7 +479,7 @@ class GameApi private constructor(
 
                 val updatedAttacker = attacker.copy(
                     actionPoint = false,
-                    conquerState = ConquerState.NONE
+                    conquerState = ConquerState.None
                 )
                 units[action.coordinates] = updatedAttacker
                 triggerEvent(
@@ -538,8 +538,7 @@ class GameApi private constructor(
                 val updatedUnit = it.copy(
                     movementLeft = CivUnit.speedToMovement(it.speed),
                     actionPoint = true,
-                    //todo town, castle +1 required occupying time
-                    conquerState = if (it.conquerState == ConquerState.OCCUPYING) ConquerState.CAN_CONQUER else it.conquerState
+                    conquerState = it.conquerState.onTurnPassed(),
                 )
                 units.put(it.coordinates, updatedUnit)
                 triggerEvent(

@@ -104,6 +104,10 @@ export class Unit extends Phaser.GameObjects.Image {
         const duration = positions.length * Unit.MOVE_ANIMATION_LENGTH
         const positionsX = [this.x, ...positions.map(it => it.x)]
         const positionsY = [this.y, ...positions.map(it => it.y)]
+
+        this.targetX = positionsX[positionsX.length - 1]
+        this.targetY = positionsY[positionsY.length - 1]
+
         this.positionTween = this.scene.tweens.addCounter({
             ease: 'Cubic',
             duration: duration,
@@ -116,7 +120,7 @@ export class Unit extends Phaser.GameObjects.Image {
             const newX = Phaser.Math.Interpolation.Linear(positionsX, current)
             const newY = Phaser.Math.Interpolation.Linear(positionsY, current)
 
-            const newStepIndex = Math.floor(current * positions.length) - 1
+            const newStepIndex = Math.floor(current * positions.length)
             if (newStepIndex > currentStepIndex) {
                 currentStepIndex = newStepIndex
                 onCheckPoint(newStepIndex)
@@ -131,6 +135,7 @@ export class Unit extends Phaser.GameObjects.Image {
             self.heathBar?.setPosition(barX, barY)
             self.setPosition(newX, newY)
         })
+        onCheckPoint(-1)
     }
 
     updateUnitHp(hp: number, delay: number = 0) {
@@ -218,8 +223,11 @@ export class Unit extends Phaser.GameObjects.Image {
 
             const newHp = sourceHp + (self.targetHp - sourceHp) * current
             const percent = newHp / self.unitType.maxHp
-
             self.heathLeftover.setSize(64 * percent, 10)
+
+            if (self.targetHp == 0) {
+                self.alpha = 1 - current
+            }
         })
 
         this.hpTween.on(Phaser.Tweens.Events.TWEEN_COMPLETE, function() {
