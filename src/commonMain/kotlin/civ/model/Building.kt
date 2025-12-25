@@ -13,9 +13,7 @@ sealed interface TileBonus
 data class OverrideMovementCost(val movementCost: Int) : TileBonus
 data class StockCollectBonus(val amount: Stockpiles) : TileBonus
 data class DefenseBonus(val amount: Int) : TileBonus
-
-//todo
-data class UnitVisionBonus(val amount: Int) : TileBonus
+data class VisionUpgrade(val amount: Int) : TileBonus
 
 @OptIn(ExperimentalJsExport::class)
 @JsExport
@@ -64,76 +62,74 @@ enum class Building(
         bonus = OverrideMovementCost(5)
     ),
     WATCH_TOWER(
-        tileRequirement = { false }, //todo { it is Grass && it.isNotACity() },
+        tileRequirement = { it is Grass && it.isNotACity() },
         cost = Stockpiles(wood = 10, gold = 5),
-        bonus = UnitVisionBonus(3)
+        bonus = VisionUpgrade(3)
     ),
-
-    //FIXME powinno sie bardziej opłacać budować droższe budynki
 
     FISH_TRAP(
         tileRequirement = { it is Water },
-        cost = Stockpiles(wood = 10),
-        bonus = StockCollectBonus(Stockpiles(food = 2))
+        cost = Stockpiles(wood = 5),
+        bonus = StockCollectBonus(Stockpiles(food = 1))
     ),
     FISHING_SHIP(
         tileRequirement = { it is Water },
-        cost = Stockpiles(wood = 30),
+        cost = Stockpiles(wood = 20),
         bonus = StockCollectBonus(Stockpiles(food = 3))
     ),
 
     FISHING_HUT(
         tileRequirement = { it.isNotACity() && it is Grass && it.coast },
-        cost = Stockpiles(wood = 20),
-        bonus = StockCollectBonus(Stockpiles(food = 2))
+        cost = Stockpiles(wood = 10),
+        bonus = StockCollectBonus(Stockpiles(food = 1))
     ),
     PORT(
         tileRequirement = { FISHING_HUT.tileRequirement(it) },
         buildingRequirements = setOf(FISHING_HUT),
-        cost = Stockpiles(wood = 40),
+        cost = Stockpiles(wood = 35),
         bonus = StockCollectBonus(Stockpiles(food = 2, gold = 3))
     ),
 
     LUMBERCAMP(
         tileRequirement = { it.isNotACity() && it is Grass && it.forest },
         cost = Stockpiles(wood = 10),
-        bonus = StockCollectBonus(Stockpiles(wood = 2))
+        bonus = StockCollectBonus(Stockpiles(wood = 1))
     ),
     SAWMILL(
         tileRequirement = { LUMBERCAMP.tileRequirement(it) },
         buildingRequirements = setOf(LUMBERCAMP),
-        cost = Stockpiles(wood = 30),
+        cost = Stockpiles(wood = 20),
         bonus = StockCollectBonus(Stockpiles(wood = 3))
     ),
 
     FARM(
         tileRequirement = { it.isNotACity() && it is Grass && !it.forest && !it.river },
         cost = Stockpiles(wood = 10),
-        bonus = StockCollectBonus(Stockpiles(food = 2))
+        bonus = StockCollectBonus(Stockpiles(food = 1))
     ),
     WINDMILL(
         tileRequirement = { FARM.tileRequirement(it) },
         buildingRequirements = setOf(FARM),
-        cost = Stockpiles(wood = 30),
+        cost = Stockpiles(wood = 25),
         bonus = StockCollectBonus(Stockpiles(food = 3))
     ),
 
     RIVERLAND_FARM(
         tileRequirement = { it.isNotACity() && it is Grass && it.river && !it.forest },
         cost = Stockpiles(wood = 10),
-        bonus = StockCollectBonus(Stockpiles(food = 3))
+        bonus = StockCollectBonus(Stockpiles(food = 2))
     ),
     WATERMILL(
         tileRequirement = { RIVERLAND_FARM.tileRequirement(it) },
         buildingRequirements = setOf(RIVERLAND_FARM),
-        cost = Stockpiles(wood = 30),
-        bonus = StockCollectBonus(Stockpiles(food = 3))
+        cost = Stockpiles(wood = 25),
+        bonus = StockCollectBonus(Stockpiles(food = 4))
     ),
 
     HUNTERS_CAMP(
         tileRequirement = { it.isNotACity() && it is Grass && it.animals },
         cost = Stockpiles(wood = 10),
-        bonus = StockCollectBonus(Stockpiles(food = 2, gold = 1))
+        bonus = StockCollectBonus(Stockpiles(food = 1, gold = 1))
     ),
     BUTCHERY(
         tileRequirement = { HUNTERS_CAMP.tileRequirement(it) },
@@ -155,7 +151,7 @@ enum class Building(
     MARKET(
         tileRequirement = { it.isACity() },
         buildingRequirements = setOf(TOWN_HALL),
-        cost = Stockpiles(wood = 30, gold = 10),
+        cost = Stockpiles(wood = 20, gold = 5),
         bonus = StockCollectBonus(Stockpiles(gold = 3))
     ),
 

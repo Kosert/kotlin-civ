@@ -43,7 +43,7 @@ class GameApi private constructor(
     private val combatCalculator = CombatCalculator()
 
     private val stocksManager = StockpilesManager(hexMap, eventListeners, stocks)
-    private val statCounter = StatisticsCounter(statistics, hexMap.tiles.size)
+    private val statCounter = StatisticsCounter(statistics, hexMap)
 
     private val cities = cities.associateBy { it.coordinates }.toMutableMap()
     private val units = units.associateBy { it.coordinates }.toMutableMap()
@@ -64,8 +64,8 @@ class GameApi private constructor(
         it.playerId to it.aiType?.create(this, it.playerId)
     }
 
-    private fun triggerEvent(recipientIds: List<String>, event: GameEvent) {
-        eventListeners.filter { it.playerId in recipientIds }.forEach { it.listener(event) }
+    private fun triggerEvent(recipientIds: List<String>, eventCreator: (playerId: String) -> GameEvent) {
+        eventListeners.filter { it.playerId in recipientIds }.forEach { it.listener(eventCreator(it.playerId)) }
     }
 
     private fun recalculateVision(sendEvents: Boolean = true) {
@@ -78,12 +78,20 @@ class GameApi private constructor(
         }
         borderCalculator.recalculate(turns, cities.values)
         statCounter.onVisionChanged(visionCalculator.getDiscoveredCount())
+        recalculateScore()
 
         if (sendEvents) {
             eventListeners.forEach {
                 val tiles = tilesForPlayer(playerId = it.playerId)
                 it.listener(VisionChanged(tiles))
             }
+        }
+    }
+
+    private fun recalculateScore() {
+        val points = statCounter.recalculatePoints(::unitsFor, ::citiesFor)
+        eventListeners.forEach {
+            it.listener(ScoreChanged(points))
         }
     }
 
@@ -117,22 +125,23 @@ class GameApi private constructor(
 
     fun unregisterEventListeners(playerId: String) = eventListeners.removeAll { it.playerId == playerId }
 
-    fun tilesForPlayer(playerId: String): List<PlayerTileData> {
+    private fun Tile.toPlayerTileData(playerId: String): PlayerTileData {
         val vision = visionCalculator.getVisionFor(playerId)
         val cheats = cheatEngine.getFor(playerId)
+        val isDiscovered = vision.discovered.contains(this.coords) || cheats.contains(Cheat.MARCO)
+        val isVisible = vision.visible.contains(this.coords) || (cheats.contains(Cheat.POLO) && isDiscovered)
+        return PlayerTileData(
+            coordinates = this.coords,
+            isVisible = isVisible,
+            tile = this.takeIf { isDiscovered },
+            unit = units[this.coords].takeIf { isVisible },
+            city = cities[this.coords].takeIf { isDiscovered },
+            cityRange = borderCalculator.forTile(this.coords).takeIf { isVisible }
+        )
+    }
 
-        return hexMap.tiles.values.map {
-            val isDiscovered = vision.discovered.contains(it.coords) || cheats.contains(Cheat.MARCO)
-            val isVisible = vision.visible.contains(it.coords) || (cheats.contains(Cheat.POLO) && isDiscovered)
-            PlayerTileData(
-                coordinates = it.coords,
-                isVisible = isVisible,
-                tile = it.takeIf { isDiscovered },
-                unit = units[it.coords].takeIf { isVisible },
-                city = cities[it.coords].takeIf { isDiscovered },
-                cityRange = borderCalculator.forTile(it.coords).takeIf { isVisible }
-            )
-        }
+    fun tilesForPlayer(playerId: String): List<PlayerTileData> {
+        return hexMap.tiles.values.map { it.toPlayerTileData(playerId) }
     }
 
     fun canBuild(coordinates: Coordinates, playerId: String): Boolean {
@@ -221,6 +230,7 @@ class GameApi private constructor(
             if (updatedAttacker.hp <= 0) {
                 hexMap.markBusy(updatedAttacker.coordinates, false)
                 units.remove(updatedAttacker.coordinates)
+                statCounter.onUnitKilled(defender.playerId, attacker.playerId)
             } else {
                 units[updatedAttacker.coordinates] = updatedAttacker.copy(actionPoint = false)
             }
@@ -229,6 +239,7 @@ class GameApi private constructor(
         if (updatedDefender.hp <= 0) {
             hexMap.markBusy(updatedDefender.coordinates, false)
             units.remove(updatedDefender.coordinates)
+            statCounter.onUnitKilled(attacker.playerId, defender.playerId)
         } else {
             units[updatedDefender.coordinates] = updatedDefender
         }
@@ -254,6 +265,7 @@ class GameApi private constructor(
             playerCities = citiesFor(currentPlayer.playerId),
             allUnits = units.values
         )
+        recalculateScore()
         log.write(currentPlayer, attacker, "attacked", defender, "units after battle:", updatedAttacker, updatedDefender)
     }
 
@@ -345,13 +357,15 @@ class GameApi private constructor(
                 )
                 triggerEvent(
                     visionCalculator.getPlayersThatCanSee(unit.coordinates),
-                    UnitEvent.Vanish(unit)
+                    { UnitEvent.Vanish(unit) }
                 )
                 recalculateVision()
+                statCounter.onCityFound(unit.playerId)
                 stocksManager.recalculateIncome(
                     playerCities = citiesFor(currentPlayer.playerId),
                     allUnits = units.values
                 )
+                recalculateScore()
                 log.write(currentPlayer, "Settlement created", cities[unit.coordinates])
             }
             is Build -> {
@@ -390,6 +404,8 @@ class GameApi private constructor(
                 }
                 //fixme only update the updated tile?
                 recalculateVision()
+                statCounter.onBuildingBuilt(currentPlayer.playerId, action.building)
+                recalculateScore()
                 stocksManager.recalculateIncome(
                     playerCities = citiesFor(currentPlayer.playerId),
                     allUnits = units.values
@@ -425,9 +441,11 @@ class GameApi private constructor(
                 hexMap.markBusy(action.coordinates, true)
                 triggerEvent(
                     visionCalculator.getPlayersThatCanSee(newUnit.coordinates),
-                    UnitEvent.Created(newUnit)
+                    { UnitEvent.Created(newUnit) }
                 )
                 recalculateVision()
+                statCounter.onUnitRecruited(currentPlayer.playerId)
+                recalculateScore()
                 log.write(currentPlayer, "Recruited", newUnit, "at", newUnit.coordinates)
             }
             is Attack -> {
@@ -482,15 +500,21 @@ class GameApi private constructor(
                     conquerState = ConquerState.None
                 )
                 units[action.coordinates] = updatedAttacker
+
                 triggerEvent(
-                    visionCalculator.getPlayersThatCanSee(updatedAttacker.coordinates),
-                    UnitEvent.Updated(updatedAttacker)
-                )
+                    visionCalculator.getPlayersThatCanSee(updatedAttacker.coordinates)
+                ) { eventPlayerId ->
+                    TileUpdated(
+                        hexMap.tiles.getValue(updatedAttacker.coordinates).toPlayerTileData(eventPlayerId)
+                    )
+                }
                 recalculateVision()
+                statCounter.onCityConquered(currentPlayer.playerId)
                 stocksManager.recalculateIncome(
                     playerCities = citiesFor(currentPlayer.playerId),
                     allUnits = units.values
                 )
+                recalculateScore()
                 log.write(currentPlayer, updatedAttacker, "conquered", cities[action.coordinates])
             }
         }
@@ -506,8 +530,7 @@ class GameApi private constructor(
         val removed = turns.removeAt(0)
         turns.add(removed)
         log.write(removed, "ended turn")
-        statCounter.onTurnEnded(removed.playerId)
-        //todo record turn as list of events/commands, send to ui to handle them sequentially, filter not visible events
+        statCounter.onTurnEnded(removed.playerId, stocksManager.incomeFor(playerId))
 
         //todo extract to some class
         turns.sortedBy { it.color.ordinal }.forEach { player ->
@@ -542,9 +565,12 @@ class GameApi private constructor(
                 )
                 units.put(it.coordinates, updatedUnit)
                 triggerEvent(
-                    visionCalculator.getPlayersThatCanSee(updatedUnit.coordinates),
-                    UnitEvent.Updated(updatedUnit)
-                )
+                    visionCalculator.getPlayersThatCanSee(updatedUnit.coordinates)
+                ) { eventPlayerId ->
+                    TileUpdated(
+                        hexMap.tiles.getValue(updatedUnit.coordinates).toPlayerTileData(eventPlayerId)
+                    )
+                }
             }
 
         stocksManager.collect(

@@ -180,13 +180,15 @@ data class CivUnit(
 @JsExport
 @Serializable
 sealed class ConquerState {
+    @Serializable
     data object None: ConquerState()
-    open class Occupying(val turnsLeft: Int): ConquerState()
+    @Serializable
     data object CanConquer: Occupying(turnsLeft = 0)
-
-    fun onTurnPassed() = when {
-        this is Occupying && this.turnsLeft == 1 -> CanConquer
-        this is Occupying -> Occupying(turnsLeft - 1)
-        else -> this
+    @Serializable
+    open class Occupying(val turnsLeft: Int): ConquerState() {
+        override fun onTurnPassed(): ConquerState = if (turnsLeft == 1) CanConquer else Occupying(turnsLeft - 1)
+        override fun toString(): String = "Occupying($turnsLeft)"
     }
+
+    open fun onTurnPassed(): ConquerState = this
 }

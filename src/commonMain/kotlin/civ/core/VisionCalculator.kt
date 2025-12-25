@@ -7,6 +7,7 @@ import civ.model.CivUnit
 import civ.hex.Coordinates
 import civ.hex.HexMap
 import kotlin.collections.emptySet
+import kotlin.math.max
 
 
 class VisionCalculator(
@@ -32,8 +33,13 @@ class VisionCalculator(
     }
 
     fun recalculate(playerId: String, units: Collection<CivUnit>, cities: Collection<City>) {
+
         val visionPoints = units.map { it.coordinates to it.visionRange }
             .plus(cities.map { it.coordinates to it.visionRange })
+            .map { (coordinates, baseVisionRange) ->
+                val tileVision = hexMap.tiles[coordinates]?.tileVision() ?: 0
+                coordinates to max(baseVisionRange, tileVision)
+            }
 
         val visible = visionPoints.flatMapTo(mutableSetOf()) { (coordinates, range) ->
             hexMap.range(coordinates, range)

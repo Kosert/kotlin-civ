@@ -4,9 +4,7 @@ package civ.tile
 
 import civ.hex.Coordinates
 import civ.hex.HexEdge
-import civ.model.Building
-import civ.model.DefenseBonus
-import civ.model.OverrideMovementCost
+import civ.model.*
 import kotlinx.serialization.Serializable
 import kotlin.js.ExperimentalJsExport
 import kotlin.js.JsExport
@@ -38,6 +36,10 @@ sealed class Tile {
                 ?: baseMovementCost
         }
     }
+
+    fun tileVision(): Int = buildings.flatMap { it.bonuses }
+        .filterIsInstance<VisionUpgrade>()
+        .maxOf { it.amount }
 
     fun defenseBonus(): Int = baseDefenseBonus + buildings.flatMap { it.bonuses }
         .filterIsInstance<DefenseBonus>()

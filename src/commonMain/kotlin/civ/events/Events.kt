@@ -33,6 +33,16 @@ data class AttackEvent(
 ): GameEvent
 
 @JsExport
+data class TileUpdated(
+    val tileData: PlayerTileData,
+): GameEvent
+
+@JsExport
+data class ScoreChanged(
+    val score: Map<String, Int>,
+): GameEvent
+
+@JsExport
 sealed class UnitEvent(
     val unitId: String,
 ): GameEvent {
@@ -51,8 +61,6 @@ sealed class UnitEvent(
         val visionEvents: List<VisionChanged>,
         val movedEvents: List<Moved>,
     ) : UnitEvent(unit.unitId)
-
-    class Updated(val unit: CivUnit) : UnitEvent(unit.unitId)
 
     class Vanish(unit: CivUnit) : UnitEvent(unit.unitId)
 

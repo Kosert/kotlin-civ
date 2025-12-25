@@ -312,7 +312,7 @@ export class MainScene extends Phaser.Scene {
                 if (index + 1 >= event.movedEvents.asJsReadonlyArrayView().length) 
                     return
 
-                const visionEvent = event.visionEvents.asJsReadonlyArrayView()[index + 1]//[Phaser.Math.Clamp(index + 1, 0, event.visionEvents.asJsReadonlyArrayView().length - 1)]
+                const visionEvent = event.visionEvents.asJsReadonlyArrayView()[index + 1]
                 visionEvent.tiles.asJsReadonlyArrayView().forEach((data, index) => {
                     const tile = self.tiles[index]
                     tile.updateTileData(data)
@@ -325,8 +325,9 @@ export class MainScene extends Phaser.Scene {
 
             this.eventTimeout = event.movedEvents.asJsReadonlyArrayView().length * Unit.MOVE_ANIMATION_LENGTH
 
-        } else if (event instanceof civ.events.UnitEvent.Updated) {
-            //noop
+        } else if (event instanceof civ.events.TileUpdated) {
+            const tile = this.tiles.find(it => it.coordinates.equals(event.tileData.coordinates))
+            tile.updateTileData(event.tileData)
 
         } else if (event instanceof civ.events.UnitEvent.Vanish) {
             const unit = this.units.get(event.unitId)
@@ -334,7 +335,6 @@ export class MainScene extends Phaser.Scene {
             this.units.delete(unit.unitId)
 
         } else if (event instanceof civ.events.AttackEvent) {
-            //todo prevent visionChanged events until animations finish
             const tileFrom = this.tiles.find(tile => tile.coordinates.equals(event.from))
             const tileTo = this.tiles.find(tile => tile.coordinates.equals(event.to))
             if (!this.isTileVisible(event.from)) {

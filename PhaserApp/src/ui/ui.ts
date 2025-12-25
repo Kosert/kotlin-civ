@@ -326,7 +326,7 @@ export class Ui {
 
             if (entity.conquerState instanceof civ.model.ConquerState.Occupying) {
                 this.buttonConquer.setVisible(true)
-                const turnsLeftText = entity.conquerState.turnsLeft > 0 ? ` (${entity.conquerState.turnsLeft} turns left)` : ""
+                const turnsLeftText = entity.conquerState.turnsLeft > 0 ? ` (${entity.conquerState.turnsLeft})` : ""
                 this.buttonConquer.setText("Conquer" + turnsLeftText)
                 this.buttonConquer.setDisabled(!entity.actionPoint || entity.conquerState.turnsLeft > 0)
             } else {

@@ -193,11 +193,13 @@ sealed class OneTrickPonyAi(
                 if (unit.conquerState == ConquerState.CanConquer) {
                     execute(Conquer(unit.coordinates))
                 }
+                val shouldNotMove = unit.conquerState is ConquerState.Occupying && unit.conquerState.turnsLeft > 0
 
                 val actions = gameApi.actionsForUnit(playerId, unit.unitId)
                 val tiles = gameApi.tilesForPlayer(playerId)
 
                 val attackTarget = actions.attackTargets.asSequence()
+                    .filter { !(shouldNotMove && it.value != unit.coordinates) }
                     .map { target -> tiles.first { it.coordinates == target.key }.unit }
                     .minByOrNull {
                         if (it?.conquerState is ConquerState.Occupying)
@@ -222,6 +224,10 @@ sealed class OneTrickPonyAi(
                 else if (attackTarget != null) {
                     execute(Attack(unit.unitId, attackTarget.coordinates))
                     println("Attacking executed - returning (${unit.unitId}")
+                    return@forEach
+                }
+
+                if (shouldNotMove) {
                     return@forEach
                 }
 

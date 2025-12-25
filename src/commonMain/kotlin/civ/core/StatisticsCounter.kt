@@ -1,6 +1,7 @@
 package civ.core
 
-import civ.model.CivUnit
+import civ.hex.HexMap
+import civ.model.*
 import kotlinx.serialization.Serializable
 import kotlin.js.ExperimentalJsExport
 import kotlin.js.JsExport
@@ -11,48 +12,68 @@ fun<K, V> MutableMap<K, V>.edit(key: K, block: (V) -> V) {
 
 class StatisticsCounter(
     initial: Map<String, GameStatistics>,
-    private val totalTileCount: Int,
+    private val hexMap: HexMap,
 ) {
     private val stats = initial.toMutableMap()
 
-    fun onTurnEnded(playerId: String) {
-        stats.edit(playerId) {
-            it.copy(turnNumber = it.turnNumber + 1)
-        }
+    fun onTurnEnded(playerId: String, stockCollected: Stockpiles) {
+        stats.edit(playerId) { it.copy(turnNumber = it.turnNumber + 1, stockCollected = it.stockCollected + stockCollected) }
     }
 
     fun onVisionChanged(discoveredCounts: Map<String, Int>) {
         discoveredCounts.forEach { (playerId, count) ->
-            stats.edit(playerId) {
-                it.copy(tilesDiscovered = count)
-            }
+            stats.edit(playerId) { it.copy(tilesDiscovered = count) }
         }
     }
 
-    fun calculatePoints(
-        unitsFor: (String) -> Collection<CivUnit>,
-    ): Map<String, Int> {
-        return stats.mapValues { (playerId, stats) ->
-            val unitScore = unitsFor(playerId)
-                .sumOf { it.unitType.cost.total } * 0.2
+    fun onUnitRecruited(playerId: String) {
+        stats.edit(playerId) { it.copy(unitsTrained = it.unitsTrained + 1) }
+    }
 
-            val buildingScore = 0
-            //todo
-//            val buildingScore = citiesFor(playerId).sumOf { city ->
-//                hexMap.range(city.coordinates, city.borderRange)
-//                    .mapNotNull { hexMap.get(it) }
-//                    .flatMap { it.buildings.toList() }
-//                    .sumOf {
-//                        if (it == Building.VILLAGE_HALL)
-//                            UnitType.SETTLERS.cost.total
-//                        else it.cost.total
-//                    }
-//            } * 0.2
+    fun onUnitKilled(killerPlayerId: String, killedPlayerId: String) {
+        stats.edit(killerPlayerId) { it.copy(unitsKilled = it.unitsKilled + 1) }
+        stats.edit(killedPlayerId) { it.copy(unitsLost = it.unitsLost + 1) }
+    }
 
-            val discoveredPercent = stats.tilesDiscovered / totalTileCount.toDouble()
-            val visionScore = discoveredPercent * 100
-            (unitScore + buildingScore + visionScore).toInt()
+    fun onBuildingBuilt(playerId: String, building: Building) {
+        stats.edit(playerId) {
+            it.copy(
+                buildingsBuilt = it.buildingsBuilt + if (building == Building.ROAD) 0 else 1,
+                roadsBuilt = it.roadsBuilt + if (building == Building.ROAD) 1 else 0
+            )
         }
+    }
+
+    fun onCityFound(playerId: String) {
+        stats.edit(playerId) { it.copy(citiesFound = it.citiesFound + 1) }
+    }
+
+    fun onCityConquered(playerId: String) {
+        stats.edit(playerId) { it.copy(citiesConquered = it.citiesConquered + 1) }
+    }
+
+    fun recalculatePoints(
+        unitsFor: (String) -> Collection<CivUnit>,
+        citiesFor: (String) -> Collection<City>,
+    ): Map<String, Int> = stats.mapValues { (playerId, stats) ->
+        val unitScore = unitsFor(playerId)
+            .sumOf { it.unitType.cost.total } * 0.2
+
+        val buildingScore = citiesFor(playerId).sumOf { city ->
+            hexMap.range(city.coordinates, city.borderRange)
+                .mapNotNull { hexMap.get(it) }
+                .flatMap { it.buildings.toList() }
+                .sumOf {
+                    if (it == Building.VILLAGE_HALL)
+                        UnitType.SETTLERS.cost.total
+                    else
+                        it.cost.total
+                }
+        } * 0.2
+
+        val discoveredPercent = stats.tilesDiscovered / hexMap.tiles.size.toDouble()
+        val visionScore = discoveredPercent * 100
+        (unitScore + buildingScore + visionScore).toInt()
     }
 
     fun exportData(): Map<String, GameStatistics> = stats
@@ -67,9 +88,19 @@ data class GameStatistics(
     // vision
     val tilesDiscovered: Int = 0,
 
-    //todo
-    // units - trained, killed, lost
-    // buildings - built, roads built
-    // resources - collected
-    // cities - found, conquered
+    //units
+    val unitsTrained: Int = 0,
+    val unitsKilled: Int = 0,
+    val unitsLost: Int = 0,
+
+    // buildings
+    val buildingsBuilt: Int = 0,
+    val roadsBuilt: Int = 0,
+
+    // stock
+    val stockCollected: Stockpiles = Stockpiles(),
+
+    // cities
+    val citiesFound: Int = 0,
+    val citiesConquered: Int = 0,
 )
