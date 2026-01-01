@@ -12,8 +12,8 @@ export class Menu {
     static mainTopY = 200
     static mainHeight = 240
     static bigWidth = 500
-    static bigTopY = 100
-    static bigHeight = 550
+    static bigTopY = 80
+    static bigHeight = 600
 
     private state: "none" | "main" | "new" | "save" | "load" = "none"
 
@@ -38,6 +38,7 @@ export class Menu {
     private startButton: Button
 
     //save/load game menu
+    private autoSaveSlotButton: SaveSlotView
     private saveSlotButtons: SaveSlotView[] = []
 
     private gameApi: civ.core.GameApi
@@ -129,29 +130,42 @@ export class Menu {
         }).setFixedWidth(150).setDepth(101).setVisible(false)
 
 
+        this.autoSaveSlotButton = new SaveSlotView(scene, bigStartX + 25, Menu.bigTopY + 25, NaN, function() {
+            const json = localStorage.getItem(StorageItem.AUTO_SAVE_SLOT)
+            const gameState = civ.core.GameState.Companion.fromJson(json)
+            self.scene.events.emit(UiActionEvent, UiAction.LOAD_GAME_STATE, gameState)
+            self.state = "none"
+            self.setupState()
+        }, function() {
+            if (confirm("Are you sure want to delete this save?")) {
+                localStorage.removeItem(StorageItem.AUTO_SAVE_SLOT)
+                self.refreshGameStates()
+            }
+        }).setVisible(false).setDepth(101)
+
         for (let i = 0; i < 5; i++) {
             const prev = this.saveSlotButtons[i - 1]
-            const y = prev ? prev.y() + prev.height() + 10 : Menu.bigTopY + 50
+            const y = prev ? prev.y() + prev.height() + 10 : this.autoSaveSlotButton.y() + this.autoSaveSlotButton.height() + 10
+            const slot = StorageItem.getSaveSlot(i + 1)
             const saveSlot = new SaveSlotView(scene, bigStartX + 25, y, i + 1, function() {
-                const slot = StorageItem.getSaveSlot(i + 1)
-
                 if (self.state == "save") {
-                    console.log("save", slot)
                     const isOverWrite = localStorage.getItem(slot)
-                    // if (isOverWrite)
-                    // const confirmed = confirm("Do you want to overwrite Save Slot #"+ (i + 1) + "?")
                     if (!isOverWrite || confirm("Do you want to overwrite Save Slot #"+ (i + 1) + "?")) {
                         const gameState = self.gameApi.generateGameState()
                         localStorage.setItem(slot, gameState.toJson())
                         self.refreshGameStates()
                     }
                 } else {
-                    console.log("load", slot)
                     const json = localStorage.getItem(slot)
                     const gameState = civ.core.GameState.Companion.fromJson(json)
                     self.scene.events.emit(UiActionEvent, UiAction.LOAD_GAME_STATE, gameState)
                     self.state = "none"
                     self.setupState()
+                }
+            }, function() {
+                if (confirm("Are you sure want to delete this save?")) {
+                    localStorage.removeItem(slot)
+                    self.refreshGameStates()
                 }
             }).setVisible(false).setDepth(101)
             this.saveSlotButtons.push(saveSlot)
@@ -162,13 +176,21 @@ export class Menu {
     }
 
     private refreshGameStates() {
+        const autoSaveJson = localStorage.getItem(StorageItem.AUTO_SAVE_SLOT)
+        let gameState
+        if (autoSaveJson) {
+            gameState = civ.core.GameState.Companion.fromJson(autoSaveJson)
+        }
+        this.autoSaveSlotButton.setGameState(gameState)
+
         for (let i = 0; i < 5; i++) {
             const storageItem = StorageItem.getSaveSlot(i + 1)
             const json = localStorage.getItem(storageItem)
+            let gameState
             if (json) {
-                const gameState = civ.core.GameState.Companion.fromJson(json)
-                this.saveSlotButtons[i].setGameState(gameState)
+                gameState = civ.core.GameState.Companion.fromJson(json)
             }
+            this.saveSlotButtons[i].setGameState(gameState)
         }
     }
 
@@ -195,11 +217,13 @@ export class Menu {
                 this.setMainVisible(false)
                 this.setNewGameVisible(false)
                 this.setSaveLoadGameVisible(true, this.state)
+                this.refreshGameStates()
                 break
             case "load":
                 this.setMainVisible(false)
                 this.setNewGameVisible(false)
                 this.setSaveLoadGameVisible(true, this.state)
+                this.refreshGameStates()
                 break
         }
     }
@@ -244,6 +268,10 @@ export class Menu {
 
     private setSaveLoadGameVisible(visible: boolean, mode?: "save" | "load") {
         this.bigBackground.setVisible(visible)
+        this.autoSaveSlotButton.setVisible(visible)
+        if (mode) {
+            this.autoSaveSlotButton.setMode(mode)
+        }
         this.saveSlotButtons.forEach(it => { 
             it.setVisible(visible)
             if (mode) it.setMode(mode)
@@ -287,6 +315,7 @@ class SaveSlotView {
     private turnText: Phaser.GameObjects.Text
     private description: Phaser.GameObjects.BitmapText
     private button: Button
+    private deleteButton: Button
 
     constructor(
         private scene: Scene,
@@ -294,13 +323,14 @@ class SaveSlotView {
         y: number,
         private slotNumber: number,
         private onActionClicked: () => void,
+        private onDeleteClicked: () => void,
         private gameState?: civ.core.GameState,
         private mode: "save" | "load" = "save"
     ) {
         const width = Menu.bigWidth - 50
         const height = 80
 
-        this.outline = scene.add.rectangle(x ,y, width, height, 0x000000, 0)
+        this.outline = scene.add.rectangle(x, y, width, height, 0x000000, 0)
         .setOrigin(0, 0).setStrokeStyle(1, Ui.colorAccent.color, 1).setScrollFactor(0)
         this.slotTitle = scene.add.text(x + 10, y + 10, "", { font: "bold 16px Arial", color: "#FFFFFF" }).setDepth(91).setScrollFactor(0)
         this.turnText = scene.add.text(x + 10, this.slotTitle.getBottomLeft().y + 5, "", { font: "bold 16px Arial", color: "#FFFFFF" }).setDepth(91).setScrollFactor(0)
@@ -308,21 +338,26 @@ class SaveSlotView {
 
         const self = this
         this.button = new Button(scene, x + width - 125, y + height - 40, "", function() { self.onActionClicked() }).setFixedWidth(120).setDepth(101)
+        this.deleteButton = new Button(scene, x + width - 25, y + 5, "X", function() { self.onDeleteClicked() }).setFixedWidth(20).setDepth(101)
 
         this.setGameState(gameState)
-
-        //todo show: turn number, list players, map type and size, save timestapm
     }
 
     setGameState(gameState?: civ.core.GameState) {
         this.gameState = gameState
-        this.button.setDisabled(this.mode == "load" && !gameState)
+        this.button.setDisabled((this.mode == "load" && !this.gameState) || (this.mode == "save" && Number.isNaN(this.slotNumber)))
+        this.deleteButton.setDisabled(!this.gameState)
 
-        this.slotTitle.text = (gameState ? "Save slot" : "Empty slot") + " #" + this.slotNumber
+        const dateString = gameState ? " - " + new Date(Number(gameState.timestamp.toString())).toLocaleString() : ""
+        if (Number.isNaN(this.slotNumber)) {
+            this.slotTitle.text = "Autosave" + dateString
+        } else {
+            this.slotTitle.text = (gameState ? "Save slot" : "Empty slot") + " #" + this.slotNumber + dateString
+        }
 
         if (!gameState) {
             this.turnText.setText("")
-            this.description.setText("")
+            this.description.setText("Empty").setCharacterTint(0, 5)
             return
         }
 
@@ -331,7 +366,7 @@ class SaveSlotView {
         this.turnText.setText("Turn " + (stats.turnNumber + 1))
 
         const playerNames = gameState.players.asJsReadonlyArrayView().map(it => it.name)
-        this.description.setText(playerNames.join(", ")).setCharacterTint(0)
+        this.description.setText(playerNames.join(", ")).setCharacterTint(0, this.description.text.length)
 
         let pointer = 0
         gameState.players.asJsReadonlyArrayView().forEach(it => {
@@ -357,9 +392,10 @@ class SaveSlotView {
     }
 
     setMode(mode: "save" | "load") {
+        this.mode = mode
         this.button
             .setText(mode == "save" ? "Save game" : "Load game")
-            .setDisabled(mode == "load" && !this.gameState)
+            .setDisabled((mode == "load" && !this.gameState) || (mode == "save" && Number.isNaN(this.slotNumber)))
     }
 
     y(): number {
@@ -374,6 +410,7 @@ class SaveSlotView {
         this.outline.setDepth(depth)
         this.slotTitle.setDepth(depth)
         this.button.setDepth(depth)
+        this.deleteButton.setDepth(depth)
         this.turnText.setDepth(depth)
         this.description.setDepth(depth)
         return this
@@ -385,6 +422,7 @@ class SaveSlotView {
         this.turnText.setVisible(value)
         this.description.setVisible(value)
         this.button.setVisible(value)
+        this.deleteButton.setVisible(value)
         return this
     }
 
@@ -394,5 +432,6 @@ class SaveSlotView {
         this.turnText.destroy()
         this.description.destroy()
         this.button.destroy()
+        this.deleteButton.destroy()
     }
 }

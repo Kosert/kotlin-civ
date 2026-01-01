@@ -13,7 +13,10 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlin.js.ExperimentalJsExport
 import kotlin.js.JsExport
+import kotlin.time.Clock
+import kotlin.time.ExperimentalTime
 
+@OptIn(ExperimentalTime::class)
 @JsExport
 @Serializable
 data class GameState(
@@ -26,14 +29,14 @@ data class GameState(
     val visionData: Map<String, GameStateVisionData>? = null,
     val statistics: Map<String, GameStatistics>? = null,
     val gameVersion: String = "0.1",
+    val timestamp: LongWrapper = LongWrapper.fromLong(Clock.System.now().toEpochMilliseconds())
 ) {
     fun toJson(): String = Json.encodeToString(this)
 
     companion object {
         fun fromJson(json: String): GameState? = runCatching {
             Json.decodeFromString<GameState>(json)
-        }.onFailure { println("Failed to load game state: $it") }
-            .getOrNull()
+        }.onFailure { println("Failed to load game state: $it") }.getOrNull()
     }
 }
 

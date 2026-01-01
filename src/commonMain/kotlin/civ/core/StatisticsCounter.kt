@@ -16,6 +16,8 @@ class StatisticsCounter(
 ) {
     private val stats = initial.toMutableMap()
 
+    fun getTurnNumber(playerId: String) = stats.getValue(playerId).turnNumber
+
     fun onTurnEnded(playerId: String, stockCollected: Stockpiles) {
         stats.edit(playerId) { it.copy(turnNumber = it.turnNumber + 1, stockCollected = it.stockCollected + stockCollected) }
     }

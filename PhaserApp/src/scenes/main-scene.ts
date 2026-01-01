@@ -8,6 +8,7 @@ import { UiAction, UiActionEvent } from "../ui/ui-actions"
 import MultiKey from "../util/multi-key"
 import { civ } from "kotlin-civ"
 import { Menu } from "../ui/menu"
+import { StorageItem } from "../const"
 
 export class MainScene extends Phaser.Scene {
     constructor() {
@@ -229,7 +230,7 @@ export class MainScene extends Phaser.Scene {
         this.units.clear()
         this.playersMap.clear()
         this.player = null
-        this.ui.gameApi = null
+        this.ui.setGameApi(null)
         this.menu.setGameApi(null)
 
         if (!gameState)
@@ -245,11 +246,14 @@ export class MainScene extends Phaser.Scene {
             this.tiles.push(new Tile(this, it, this.playersMap))
         })
         this.tiles.forEach(it => this.add.existing(it))
-        this.ui.gameApi = this.gameApi
+        this.ui.setGameApi(this.gameApi)
         this.menu.setGameApi(this.gameApi)
         const self = this
         this.gameApi.registerEventListener(this.player.playerId, function (event) { self.eventQueue.push(event) })
         this.ui.setStockpiles(this.gameApi.stocksFor(this.player.playerId),  this.gameApi.incomeFor(this.player.playerId))
+
+        const turnNumber = gameState.statistics.asJsReadonlyMapView().get(this.player.playerId).turnNumber + 1
+        this.ui.setTurnData(this.gameApi.currentPlayer.playerId != this.player.playerId, turnNumber)
         this.updateUnitsFromTiles()
 
         const firstCity = this.gameApi.citiesFor(this.player.playerId).asJsReadonlyArrayView().values().next().value
@@ -292,13 +296,9 @@ export class MainScene extends Phaser.Scene {
             this.units.set(event.unitId, new Unit(this, event.unit, unitColor, tile.x, tile.y))
             this.scrollToTile(tile.coordinates)
 
-        } else if (event instanceof civ.events.UnitEvent.Moved) {
-
-            // const tile = this.tiles.find(tile => tile.coordinates.equals(event.newCoordinates))
-            // const unit = this.units.get(event.unitId)
-            // unit.updateUnitPosition(tile.x, tile.y, tile.coordinates)
-            // this.scrollToTile(tile.coordinates)
-            // this.eventTimeout = 500
+        } else if (event instanceof civ.events.ScoreChanged) {
+            this.ui.setScores(event.score.asJsReadonlyMapView())
+            
         } else if (event instanceof civ.events.UnitEvent.CombinedMove) {
             const self = this
             let finalCoordinates: civ.hex.Coordinates
@@ -345,8 +345,12 @@ export class MainScene extends Phaser.Scene {
 
         } else if (event instanceof civ.events.TurnEndedEvent) {
             //todo disable when menu is active
-            this.ui.disableEndTurn(event.newCurrentPlayerId != this.player.playerId)
+            this.ui.setTurnData(event.newCurrentPlayerId != this.player.playerId, event.turnNumber)
 
+            if (event.newCurrentPlayerId == this.player.playerId) {
+                const gameState = this.gameApi.generateGameState()
+                localStorage.setItem(StorageItem.AUTO_SAVE_SLOT, gameState.toJson())
+            }
         } else if (event instanceof civ.events.AttackEvent) {
             const tileFrom = this.tiles.find(tile => tile.coordinates.equals(event.from))
             const tileTo = this.tiles.find(tile => tile.coordinates.equals(event.to))

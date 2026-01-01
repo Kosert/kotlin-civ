@@ -180,14 +180,17 @@ data class CivUnit(
 @Serializable
 sealed class ConquerState {
     @Serializable
-    data object None: ConquerState()
-    @Serializable
-    data object CanConquer: Occupying(turnsLeft = 0)
+    data object None: ConquerState() {
+        override val canConquer: Boolean = false
+    }
+
     @Serializable
     open class Occupying(val turnsLeft: Int): ConquerState() {
-        override fun onTurnPassed(): ConquerState = if (turnsLeft == 1) CanConquer else Occupying(turnsLeft - 1)
+        override val canConquer: Boolean = this.turnsLeft == 0
+        override fun onTurnPassed(): ConquerState = Occupying((turnsLeft - 1).coerceAtLeast(0))
         override fun toString(): String = "Occupying($turnsLeft)"
     }
 
+    abstract val canConquer: Boolean
     open fun onTurnPassed(): ConquerState = this
 }

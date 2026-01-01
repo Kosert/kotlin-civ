@@ -1,5 +1,6 @@
 export const StorageItem = {
 
+    AUTO_SAVE_SLOT: "AUTO_SAVE_SLOT",
     SAVE_SLOT_1: "SAVE_SLOT_1",
     SAVE_SLOT_2: "SAVE_SLOT_2",
     SAVE_SLOT_3: "SAVE_SLOT_3",

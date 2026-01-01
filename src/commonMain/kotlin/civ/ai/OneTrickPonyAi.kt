@@ -188,7 +188,7 @@ sealed class OneTrickPonyAi(
         // military units - conquer > attack > move to enemy > scout
         myUnits.filterNot { it.unitType == UnitType.SETTLERS }
             .forEach { unit ->
-                if (unit.conquerState == ConquerState.CanConquer) {
+                if ((unit.conquerState as? ConquerState.Occupying)?.canConquer == true) {
                     execute(Conquer(unit.coordinates))
                 }
                 val shouldNotMove = unit.conquerState is ConquerState.Occupying && unit.conquerState.turnsLeft > 0
@@ -347,7 +347,6 @@ class ScoutAi(gameApi: GameApi, playerId: String) : OneTrickPonyAi(gameApi, play
 
 //todo
 // victory/lose - endgame conditions
-// autosave co ture
 // AI nie robi attack move czasami?
 // log filter recipients
 // ai activate/deactive

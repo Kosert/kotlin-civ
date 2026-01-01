@@ -38,7 +38,10 @@ export class Ui {
     private goldIcon: Phaser.GameObjects.Image
     private goldText: Phaser.GameObjects.Text
     private stocksTween: Phaser.Tweens.Tween
+    private turnCounter: Phaser.GameObjects.Text
     private endTurnButton: Button
+
+    private scoreTexts = new Map<string, Phaser.GameObjects.BitmapText>()
 
     private selectedBackground: Phaser.GameObjects.Rectangle
     private selectedTile: UiTile
@@ -77,7 +80,7 @@ export class Ui {
         .set(civ.model.Building.TOWN_HALL, civ.model.Building.VILLAGE_HALL)
         .set(civ.model.Building.CASTLE, civ.model.Building.TOWN_HALL)
 
-    public gameApi: civ.core.GameApi
+    private gameApi: civ.core.GameApi
     //todo if gameApi == null hide everything
 
     constructor(
@@ -92,7 +95,7 @@ export class Ui {
             .setScrollFactor(0)
 
         this.foodIcon = scene.add.image(stockX + 10, stockY + 10, "food_icon").setOrigin(0, 0).setDepth(91).setScrollFactor(0)
-        this.foodText = scene.add.text(stockX + 45, stockY + 12, "1234", { font: "bold 20px Arial", color: Ui.colorText.rgba }).setDepth(91).setScrollFactor(0)
+        this.foodText = scene.add.text(stockX + 45, stockY + 12, "0", { font: "bold 20px Arial", color: Ui.colorText.rgba }).setDepth(91).setScrollFactor(0)
 
         this.woodIcon = scene.add.image(stockX + 10, stockY + 50, "wood_icon").setOrigin(0, 0).setDepth(91).setScrollFactor(0)
         this.woodText = scene.add.text(stockX + 45, stockY + 52, "0", { font: "bold 20px Arial", color: "#FFFFFF" }).setDepth(91).setScrollFactor(0)
@@ -100,10 +103,11 @@ export class Ui {
         this.goldIcon = scene.add.image(stockX + 10, stockY + 90, "gold_coin").setOrigin(0, 0).setDepth(91).setScrollFactor(0)
         this.goldText = scene.add.text(stockX + 45, stockY + 92, "0", { font: "bold 20px Arial", color: "#FFFFFF" }).setDepth(91).setScrollFactor(0)
 
+        this.turnCounter = scene.add.text(stockX + 8, stockY + 128, "Turn 123", { font: "16px Arial", color: "#FFFFFF" }).setDepth(91).setScrollFactor(0)
         this.endTurnButton = new Button(scene, 0, 0, "End turn", function() { 
             scene.events.emit(UiActionEvent, UiAction.END_TURN) 
         })
-        this.endTurnButton.setPosition(stockX + 10, stockY + Ui.uiHeight - this.endTurnButton.height() - 16)
+        this.endTurnButton.setPosition(stockX + 8, scene.cameras.main.height - this.endTurnButton.height() - 8)
 
         const selectedY = stockY
         const stocksSeparator = scene.add.line(Ui.uiMainStart, selectedY, 0, 0, 0, Ui.uiHeight, Ui.colorAccent.color).setOrigin(0, 0).setDepth(91).setScrollFactor(0)
@@ -183,6 +187,34 @@ export class Ui {
         this.setSelection(null)
     }
 
+    setGameApi(gameApi: civ.core.GameApi) {
+        this.gameApi = gameApi
+        this.scoreTexts.forEach(it => it.destroy())
+        this.scoreTexts.clear()
+
+        this.gameApi?.allPlayers().asJsReadonlyArrayView().forEach((it, index, array) => {
+            let color = 0x000000
+            switch (it.color) {
+                case civ.model.PlayerColor.BLUE:
+                    color = 0x0000ff
+                    break
+                case civ.model.PlayerColor.RED:
+                    color = 0xFF0000
+                    break
+                case civ.model.PlayerColor.GREEN:
+                    color = 0x00ff00
+                    break;
+                case civ.model.PlayerColor.YELLOW:
+                    color = 0xffea00
+                    break;
+                default:
+                    break;
+            }
+            const text = this.scene.add.bitmapText(4, 4 + index * 20, "civ_font", "", 16).setDepth(91).setScrollFactor(0).setTint(color)
+            this.scoreTexts.set(it.playerId, text)
+        })
+    }
+
     postAlert(alertText: string) {
         this.errorAlertDisappear?.remove()
         this.errorAlert.setText(alertText).setAlpha(1).setX(this.scene.cameras.main.width / 2)
@@ -223,7 +255,6 @@ export class Ui {
         }
         return pointer.x <= constraintX
     }
-
 
     setSelection(entity?: civ.model.PlayerTileData | civ.model.CivUnit) {
         this.buildingButtons.forEach(button => button.hide())
@@ -396,7 +427,18 @@ export class Ui {
         this.currentStock = newStocks
     }
 
-    disableEndTurn(disabled: boolean) {
-        this.endTurnButton.setDisabled(disabled)
+    setTurnData(endTurnDisabled: boolean, turnNumber: number) {
+        this.endTurnButton.setDisabled(endTurnDisabled)
+        this.turnCounter.setText(Number.isNaN(turnNumber) ? "" : "Turn " + turnNumber)
+    }
+
+    setScores(scores: ReadonlyMap<string, number>) {
+        const players = this.gameApi.allPlayers().asJsReadonlyArrayView()
+
+        //todo sort
+        for (let [playerId, points] of scores.entries()) {
+            const player = players.find(it => it.playerId == playerId)
+            this.scoreTexts.get(playerId).text = player.name + ": " + points
+        }
     }
 }

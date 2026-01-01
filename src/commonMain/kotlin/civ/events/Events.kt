@@ -69,5 +69,6 @@ sealed class UnitEvent(
 
 @JsExport
 data class TurnEndedEvent(
-    val newCurrentPlayerId: String
+    val newCurrentPlayerId: String,
+    val turnNumber: Int,
 ): GameEvent

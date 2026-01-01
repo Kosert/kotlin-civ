@@ -531,29 +531,11 @@ class GameApi private constructor(
         log.write(removed, "ended turn")
         statCounter.onTurnEnded(removed.playerId, stocksManager.incomeFor(playerId))
 
-        //todo extract to some class
-//        turns.sortedBy { it.color.ordinal }.forEach { player ->
-//            val unitScore = unitsFor(player.playerId)
-//                .sumOf { it.unitType.cost.total } * 0.2
-//
-//            val buildingScore = citiesFor(player.playerId).sumOf { city ->
-//                hexMap.range(city.coordinates, city.borderRange)
-//                    .mapNotNull { hexMap.get(it) }
-//                    .flatMap { it.buildings.toList() }
-//                    .sumOf {
-//                        if (it == Building.VILLAGE_HALL)
-//                            UnitType.SETTLERS.cost.total
-//                        else it.cost.total
-//                    }
-//            } * 0.2
-//
-//            val discoveredHexes = visionCalculator.getVisionFor(player.playerId).discovered.size
-//            val discoveredPercent = discoveredHexes / hexMap.tiles.size.toDouble()
-//            val visionScore = discoveredPercent * 100
-//            val totalScore = unitScore + buildingScore + visionScore
-//
-//            log.write("Player ${player.color}, score: $unitScore + $buildingScore + $visionScore = $totalScore")
-//        }
+        if (units.values.count { it.playerId == currentPlayer.playerId } + cities.values.count { it.playerId == currentPlayer.playerId } == 0) {
+            println("Player $currentPlayer is defeated, skipping turn")
+            endTurn(currentPlayer.playerId)
+            return
+        }
 
         unitsFor(currentPlayer.playerId)
             .forEach {
@@ -577,7 +559,12 @@ class GameApi private constructor(
             allUnits = units.values
         )
         eventListeners.forEach {
-            it.listener(TurnEndedEvent(newCurrentPlayerId = currentPlayer.playerId))
+            it.listener(
+                TurnEndedEvent(
+                    newCurrentPlayerId = currentPlayer.playerId,
+                    turnNumber = statCounter.getTurnNumber(currentPlayer.playerId)
+                )
+            )
         }
 
         ais.get(currentPlayer.playerId)?.takeTurn()
