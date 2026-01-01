@@ -51,7 +51,7 @@ enum class Building(
         bonuses = listOf(
             OverrideMovementCost(5),
             StockCollectBonus(Stockpiles(gold = 5)),
-            DefenseBonus(2),
+            DefenseBonus(1),
         )
     ),
 
@@ -234,6 +234,14 @@ enum class Building(
     fun unlockRequirement(tile: Tile): Boolean = buildingRequirements.all { requiredBuilding ->
         tile.buildings.any { it == requiredBuilding || requiredBuilding in it.getAllReplacements() }
     }
+
+    fun production(): Stockpiles = bonuses
+        .filterIsInstance<StockCollectBonus>()
+        .fold(Stockpiles()) { acc, bonus -> acc + bonus.amount }
+
+    fun defenseBonus(): Int = bonuses
+        .filterIsInstance<DefenseBonus>()
+        .sumOf { it.amount }
 
     companion object {
         val cityMainBuildings: Array<Building>

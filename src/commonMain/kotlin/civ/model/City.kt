@@ -32,10 +32,10 @@ enum class CityLevel(
     ),
 
     CITY(
-        borderRange = 1, //todo 2, need to implement handling border range overlaps
-        visionRange = 4,
+        borderRange = 1, // if 2+ is needed then need to implement handling border range overlaps
+        visionRange = 3,
         attack = 4,
-        attackRange = 3,
+        attackRange = 2,
         occupationTime = 3,
     ),
 }

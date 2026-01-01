@@ -37,9 +37,9 @@ sealed class Tile {
         }
     }
 
-    fun tileVision(): Int = buildings.flatMap { it.bonuses }
+    fun tileVision(): Int? = buildings.flatMap { it.bonuses }
         .filterIsInstance<VisionUpgrade>()
-        .maxOf { it.amount }
+        .maxOfOrNull { it.amount }
 
     fun defenseBonus(): Int = baseDefenseBonus + buildings.flatMap { it.bonuses }
         .filterIsInstance<DefenseBonus>()

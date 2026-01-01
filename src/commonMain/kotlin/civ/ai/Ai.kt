@@ -9,7 +9,6 @@ import civ.hex.Coordinates
 import civ.model.Building
 import civ.model.Stockpiles
 import civ.model.UnitType
-import kotlinx.coroutines.delay
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 
@@ -17,12 +16,12 @@ abstract class Ai(
     protected val gameApi: GameApi,
     protected val playerId: String,
 ) {
-    private val actionDelay: Duration = 1.seconds
+    private val actionDelay: Duration = 0.seconds
 
-    protected suspend fun execute(action: Action): ActionResult {
+    protected fun execute(action: Action): ActionResult {
         val result = gameApi.execute(playerId, action)
         if (result.isSuccess) {
-//            delay(actionDelay)
+            //delay(actionDelay)
         }
         return result
     }
@@ -31,17 +30,17 @@ abstract class Ai(
         return this.gameApi.stocksFor(playerId).canSubstract(cost)
     }
 
-    protected suspend fun buildIfPossible(coordinates: Coordinates, building: Building): ActionResult? {
+    protected fun buildIfPossible(coordinates: Coordinates, building: Building): ActionResult? {
         return if (canAfford(building.cost)) {
             execute(Build(coordinates, building))
         } else null
     }
 
-    protected suspend fun recruitIfPossible(coordinates: Coordinates, unit: UnitType): ActionResult? {
+    protected fun recruitIfPossible(coordinates: Coordinates, unit: UnitType): ActionResult? {
         return if (canAfford(unit.cost)) {
             execute(Recruit(coordinates, unit))
         } else null
     }
 
-    abstract suspend fun takeTurn()
+    abstract fun takeTurn()
 }

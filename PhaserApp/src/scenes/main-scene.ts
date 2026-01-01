@@ -33,6 +33,7 @@ export class MainScene extends Phaser.Scene {
     private pathHighlights: civ.hex.Coordinates[] = []
     private moveHighlights: civ.hex.Coordinates[] = []
     private justAttackedUnit?: civ.model.CivUnit
+    private shouldReselectAttacker: boolean = false
 
     private tiles: Tile[] = []
     private units = new Map<string, Unit>()
@@ -246,9 +247,9 @@ export class MainScene extends Phaser.Scene {
         this.tiles.forEach(it => this.add.existing(it))
         this.ui.gameApi = this.gameApi
         this.menu.setGameApi(this.gameApi)
-        this.ui.setStockpiles(this.gameApi.stocksFor(this.player.playerId), this.gameApi.incomeFor(this.player.playerId))
         const self = this
         this.gameApi.registerEventListener(this.player.playerId, function (event) { self.eventQueue.push(event) })
+        this.ui.setStockpiles(this.gameApi.stocksFor(this.player.playerId),  this.gameApi.incomeFor(this.player.playerId))
         this.updateUnitsFromTiles()
 
         const firstCity = this.gameApi.citiesFor(this.player.playerId).asJsReadonlyArrayView().values().next().value
@@ -302,12 +303,20 @@ export class MainScene extends Phaser.Scene {
             const self = this
             let finalCoordinates: civ.hex.Coordinates
             const positions = event.movedEvents.asJsReadonlyArrayView().map(move => {
-                const tile = self.tiles.find(tile => tile.coordinates == move.newCoordinates)
+                const tile = self.tiles.find(tile => tile.coordinates.equals(move.newCoordinates))
                 finalCoordinates = move.newCoordinates
                 return { x: tile.x, y: tile.y }
             })
             
-            const unit = this.units.get(event.unitId)
+            let unit = this.units.get(event.unitId)
+            if (!unit) {
+                const eventWithUnit = event.visionEvents.asJsReadonlyArrayView()
+                .find(it => it.tiles.asJsReadonlyArrayView()
+                .some(tile => tile.unit?.unitId == event.unitId))
+                this.updateUnitsFromTiles(eventWithUnit.tiles.asJsReadonlyArrayView())
+                unit = this.units.get(event.unitId)
+            }
+            //todo hide unit if moved to invisible tile?
             unit.updatePositionByPath(positions, finalCoordinates, function(index: number) {
                 if (index + 1 >= event.movedEvents.asJsReadonlyArrayView().length) 
                     return
@@ -334,14 +343,20 @@ export class MainScene extends Phaser.Scene {
             unit.destroy()
             this.units.delete(unit.unitId)
 
+        } else if (event instanceof civ.events.TurnEndedEvent) {
+            //todo disable when menu is active
+            this.ui.disableEndTurn(event.newCurrentPlayerId != this.player.playerId)
+
         } else if (event instanceof civ.events.AttackEvent) {
             const tileFrom = this.tiles.find(tile => tile.coordinates.equals(event.from))
             const tileTo = this.tiles.find(tile => tile.coordinates.equals(event.to))
+            let scrolling = false
             if (!this.isTileVisible(event.from)) {
-                this.scrollToTile(event.from)
+                scrolling = this.scrollToTile(event.from)
             } else {
-                this.scrollToTile(event.to)
+                scrolling = this.scrollToTile(event.to)
             }
+            //todo if scrolling delay?
 
             const attacker = event.updatedAttacker
 
@@ -349,9 +364,8 @@ export class MainScene extends Phaser.Scene {
             const attackerUnit: Unit = localUnits.find(it => it.getCoordinates().equals(event.from))
             const defenderUnit: Unit = localUnits.find(it => it.getCoordinates().equals(event.to))
 
-            let shouldReselect = false
             if (this.justAttackedUnit && attacker?.unitId == this.justAttackedUnit?.unitId) {
-                shouldReselect = true
+                this.shouldReselectAttacker = true
                 this.justAttackedUnit = null
             }
 
@@ -360,7 +374,7 @@ export class MainScene extends Phaser.Scene {
                 const angleFrom = Phaser.Math.Angle.BetweenPoints(tileFrom, tileTo)
                 defenderUnit?.updateUnitHp(event.updatedDefender.hp, Projectile.FLIGHT_DURATION)
                 const projectile = new Projectile(this, tileFrom.x, tileFrom.y, angleFrom, tileTo.x, tileTo.y, () => {
-                    if (shouldReselect) {
+                    if (this.shouldReselectAttacker) {
                         self.select(attacker)
                     }
                 })
@@ -382,7 +396,8 @@ export class MainScene extends Phaser.Scene {
                     const counterAttackDelay = 100 + Unit.BUMP_ANIMATION_LENGTH * 2 + 100
                     attackerUnit?.updateUnitHp(event.updatedAttacker.hp, counterAttackDelay + Unit.BUMP_ANIMATION_LENGTH)
                     defenderUnit.bump(angleTo, counterAttackDelay, () => {
-                        if (shouldReselect) {
+                        this.shouldReselectAttacker = false
+                        if (this.shouldReselectAttacker && event.updatedAttacker.hp > 0) {
                             this.select(attacker)
                         }
                     })
@@ -390,7 +405,8 @@ export class MainScene extends Phaser.Scene {
                 } else {
                     //todo not needed?
                     // attackerUnit?.updateUnitHp(event.updatedAttacker.hp)
-                    if (shouldReselect) {
+                    this.shouldReselectAttacker = false
+                    if (this.shouldReselectAttacker && event.updatedAttacker.hp > 0) {
                         this.select(attacker)
                     }
                 }
@@ -455,9 +471,9 @@ export class MainScene extends Phaser.Scene {
         return viewport.contains(tile.x, tile.y)
     }
 
-    private scrollToTile(coordinates: civ.hex.Coordinates, force: boolean = false) {
+    private scrollToTile(coordinates: civ.hex.Coordinates, force: boolean = false): boolean {
         if (this.isTileVisible(coordinates) && !force)
-            return
+            return false
 
         const startCameraX = this.cameras.main.scrollX
         const startCameraY = this.cameras.main.scrollY
@@ -466,7 +482,7 @@ export class MainScene extends Phaser.Scene {
         const targetX = tile.x - this.cameras.main.width / 2
         const targetY = tile.y - this.cameras.main.height / 2
 
-        this.scrollingTween?.destroy()
+        this.scrollingTween?.remove()
         this.scrollingTween = this.tweens.addCounter({
             ease: 'Cubic',
             duration: 300,
@@ -477,6 +493,7 @@ export class MainScene extends Phaser.Scene {
             self.cameras.main.scrollY = startCameraY + (targetY - startCameraY) * current
             self.input.activePointer.updateWorldPoint(self.cameras.main)
         })
+        return true
     }
 
     select(entity: civ.model.PlayerTileData | civ.model.CivUnit) {
@@ -485,6 +502,7 @@ export class MainScene extends Phaser.Scene {
         this.moveHighlights = []
         this.pathHighlights = []
         this.ui.setSelection(entity)
+        this.shouldReselectAttacker = false
         console.log("Select", entity)
 
         if (entity instanceof civ.model.CivUnit) {
@@ -537,7 +555,8 @@ export class MainScene extends Phaser.Scene {
         }
 
         if (horizontalMove != 0 || verticalMove != 0) {
-            this.scrollingTween?.destroy()
+            this.scrollingTween?.remove()
+            this.scrollingTween = null
             this.cameras.main.scrollX += horizontalMove * delta
             this.cameras.main.scrollY += verticalMove * delta
             this.input.activePointer.updateWorldPoint(this.cameras.main)
@@ -627,8 +646,5 @@ export class MainScene extends Phaser.Scene {
                 }
             }
         }
-
-        //todo migrate to TurnChangedEvent
-        this.ui.disableEndTurn(this.gameApi.currentPlayer.playerId != this.player.playerId || this.menu.isVisible())
     }
 }

@@ -131,7 +131,6 @@ enum class UnitType(
         requiredBuildings = setOf(Building.KNIGHTS_HALL)
     ),
 
-    //todo ballista?
     TREBUCHET(
         value = "trebuchet",
         attack = 10,

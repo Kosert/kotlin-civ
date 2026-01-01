@@ -27,7 +27,7 @@ export class Projectile extends Phaser.GameObjects.Image {
             y: targetY,
             ease: 'Sine',
             duration: Projectile.FLIGHT_DURATION,
-            repeat: 0,            // -1: infinity
+            repeat: 0,
             yoyo: false,
             "onComplete": () => {
                 onComplete()

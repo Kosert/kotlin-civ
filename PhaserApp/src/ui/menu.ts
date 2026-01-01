@@ -137,9 +137,14 @@ export class Menu {
 
                 if (self.state == "save") {
                     console.log("save", slot)
-                    const gameState = self.gameApi.generateGameState()
-                    localStorage.setItem(slot, gameState.toJson())
-                    self.refreshGameStates()
+                    const isOverWrite = localStorage.getItem(slot)
+                    // if (isOverWrite)
+                    // const confirmed = confirm("Do you want to overwrite Save Slot #"+ (i + 1) + "?")
+                    if (!isOverWrite || confirm("Do you want to overwrite Save Slot #"+ (i + 1) + "?")) {
+                        const gameState = self.gameApi.generateGameState()
+                        localStorage.setItem(slot, gameState.toJson())
+                        self.refreshGameStates()
+                    }
                 } else {
                     console.log("load", slot)
                     const json = localStorage.getItem(slot)

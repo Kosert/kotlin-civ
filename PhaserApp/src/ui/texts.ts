@@ -104,75 +104,73 @@ export class Texts {
         } else {
             return this.buildingDescription(building) + "\nRequires " + requiredBuildings
         }
-    
     }
 
-    //TODO update texts with actual values
+    static bonusDescription(building: civ.model.Building): string {
+        const income = building.production()
+        const production = [
+            (income.food > 0 ? `${income.food}{` : ""),
+            (income.wood > 0 ? `${income.wood}}` : ""),
+            (income.gold > 0 ? `${income.gold}$` : "")
+        ].filter(it => it != "").join(", ")
+        const productionString = production.length > 0 ? `Produces ${production} each turn.` : ""
+        const defString = building.defenseBonus() > 0 ? `Ally units have +${building.defenseBonus()} defense.` : ""
+        return [productionString, defString].filter(it => it != "").join("\n")
+    }
+
     static buildingDescription(building: civ.model.Building): string {
+        let base: string
         switch (building) {
             case civ.model.Building.VILLAGE_HALL:
-                return "Main building of a village.\nProduces 1$ each turn."
+                base = "Main building of a village."
+                break
             case civ.model.Building.TOWN_HALL:
-                return "Town Hall\nProduces 3$ each turn."
+                base = "Town Hall"
+                break
             case civ.model.Building.CASTLE:
-                return "Castle\nProduces 5$ each turn."
+                base = "Castle"
+                break
             case civ.model.Building.ROAD:
-                return "Units move faster through tiles with roads."
+                base = "Units move faster through tiles with roads."
+                break
             case civ.model.Building.WATCH_TOWER:
-                return "Units can see 3 tiles away from tiles with a Watch Tower."
-            case civ.model.Building.MARKET:
-                return "Produces 3$ each turn."
-            case civ.model.Building.FISH_TRAP:
-                return "Produces 2{ each turn."
-            case civ.model.Building.FISHING_SHIP:
-                return "Produces 3{ each turn."
-            case civ.model.Building.FISHING_HUT:
-                return "Produces 2{ each turn."
-            case civ.model.Building.PORT:
-                return "Produces 2{ and 3$ each turn."
-            case civ.model.Building.LUMBERCAMP:
-                return "Produces 2} each turn."
-            case civ.model.Building.SAWMILL:
-                return "Produces 3} each turn."
-            case civ.model.Building.FARM:
-                return "Produces 2{ each turn."
-            case civ.model.Building.WINDMILL:
-                return "Produces 3{ each turn."
-            case civ.model.Building.RIVERLAND_FARM:
-                return "Produces 3{ each turn."
-            case civ.model.Building.WATERMILL:
-                return "Produces 3{ each turn."
-             case civ.model.Building.HUNTERS_CAMP:
-                return "Produces 2{ and 1$ each turn."
-            case civ.model.Building.BUTCHERY:
-                return "Produces 3{ and 1$ each turn."
+                base = "Units can see 3 tiles away from tiles with a Watch Tower."
+                break
             case civ.model.Building.MINE:
-                return "Produces 5$ each turn. Can only be built on a mountain with gold."
-            case civ.model.Building.GUARD_TOWERS:
-                return "Ally units have +1 to defense stat."
-            case civ.model.Building.WALLS:
-                return "Ally units have +2 to defense stat."
+                base = "Can only be built on a mountain with gold."
+                break
             case civ.model.Building.BARRACKS:
-                return "Barracks"
+                base = "Barracks"
+                break
             case civ.model.Building.BLACKSMITH:
-                return "Blacksmith"
+                base = "Blacksmith"
+                break
             case civ.model.Building.ARMORERS_WORKSHOP:
-                return "Armorer's Workshop"
+                base = "Armorer's Workshop"
+                break
             case civ.model.Building.STABLE:
-                return "Stable"
+                base = "Stable"
+                break
             case civ.model.Building.WARHORSE_STABLES:
-                return "Warhorse Stables"
+                base = "Warhorse Stables"
+                break
             case civ.model.Building.KNIGHTS_HALL:
-                return "Knights Hall"
+                base = "Knights Hall"
+                break
             case civ.model.Building.ARCHERY_RANGE:
-                return "Archery Range"
+                base = "Archery Range"
+                break
             case civ.model.Building.ARBALEST_GUILD:
-                return "Arbalest Guild"
+                base = "Arbalest Guild"
+                break
             case civ.model.Building.SIEGE_WORKSHOP:
-                return "Siege Workshop"
+                base = "Siege Workshop"
+                break
             default:
-                throw new Error(`Unhandled building: ${building.name}`);
+                base = ""
+                break
         }
+        return [base, this.bonusDescription(building)].filter(it => it != "").join("\n")
     }
 
     static unitName(unitType: civ.model.UnitType): string {

@@ -208,7 +208,7 @@ export class Tile extends Phaser.GameObjects.Polygon {
 
     private animateOverlayAlpha(targetAlpha: number) {
         if (this.mainOverlay.fillAlpha == targetAlpha) return
-        this.overlayTween?.destroy()
+        this.overlayTween?.remove()
         this.overlayTween = this.scene.tweens.add({
             targets: this.mainOverlay,
             props: { fillAlpha: targetAlpha },

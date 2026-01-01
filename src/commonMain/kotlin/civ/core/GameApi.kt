@@ -10,9 +10,6 @@ import civ.hex.*
 import civ.model.*
 import civ.tile.Grass
 import civ.tile.Tile
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 import kotlin.js.ExperimentalJsExport
 import kotlin.js.JsExport
 
@@ -108,12 +105,8 @@ class GameApi private constructor(
 
         log.write("GameApi initialised - starting")
         recalculateVision()
-        ais[currentPlayer.playerId]?.let { ai ->
-            //fixme
-            GlobalScope.launch {
-                ai.takeTurn()
-            }
-        }
+
+        ais[currentPlayer.playerId]?.takeTurn()
     }
 
     val currentPlayer
@@ -331,6 +324,14 @@ class GameApi private constructor(
                         )
                         eventListeners.first { it.playerId == playerId }.listener(combinedEvent)
                     }
+
+                //todo dont recalculate for everyone
+                turns.forEach {
+                    stocksManager.recalculateIncome(
+                        playerCities = citiesFor(it.playerId),
+                        allUnits = units.values
+                    )
+                }
             }
             is Settle -> {
                 val unit = units.values.firstOrNull { it.unitId == action.settlersId }
@@ -472,16 +473,9 @@ class GameApi private constructor(
                     ?: return ActionResult.exception("No valid attack path for ${action.targetCoordinates}")
 
                 path.dropLast(1).lastOrNull()?.let {
-                    //fixme prevents scheduling another attack during the delay
-                    units[attacker.coordinates] = attacker.copy(actionPoint = false)
-
                     execute(playerId, Move(attacker.unitId, it.coordinates))
-//                    GlobalScope.launch {
-                        //fixme should be fine to remove the delay, scope and above hax
-//                        delay(500)
-                        val movedAttacker = units.values.first { it.unitId == attacker.unitId }
-                        executeAttack(movedAttacker, defender)
-//                    }
+                    val movedAttacker = units.values.first { it.unitId == attacker.unitId }
+                    executeAttack(movedAttacker, defender)
                 } ?: run {
                     executeAttack(attacker, defender)
                 }
@@ -491,9 +485,10 @@ class GameApi private constructor(
                     ?.takeIf { it.playerId == currentPlayer.playerId }
                     ?: return ActionResult.exception("Unit not found for current player")
 
-                cities[action.coordinates] = cities[action.coordinates]!!.copy(
-                    playerId = attacker.playerId
-                )
+                val originalCity = cities[action.coordinates]
+                    ?: return ActionResult.exception("City not found at ${action.coordinates}")
+
+                cities[action.coordinates] = originalCity.copy(playerId = attacker.playerId)
 
                 val updatedAttacker = attacker.copy(
                     actionPoint = false,
@@ -510,6 +505,10 @@ class GameApi private constructor(
                 }
                 recalculateVision()
                 statCounter.onCityConquered(currentPlayer.playerId)
+                stocksManager.recalculateIncome(
+                    playerCities = citiesFor(originalCity.playerId),
+                    allUnits = units.values
+                )
                 stocksManager.recalculateIncome(
                     playerCities = citiesFor(currentPlayer.playerId),
                     allUnits = units.values
@@ -533,28 +532,28 @@ class GameApi private constructor(
         statCounter.onTurnEnded(removed.playerId, stocksManager.incomeFor(playerId))
 
         //todo extract to some class
-        turns.sortedBy { it.color.ordinal }.forEach { player ->
-            val unitScore = unitsFor(player.playerId)
-                .sumOf { it.unitType.cost.total } * 0.2
-
-            val buildingScore = citiesFor(player.playerId).sumOf { city ->
-                hexMap.range(city.coordinates, city.borderRange)
-                    .mapNotNull { hexMap.get(it) }
-                    .flatMap { it.buildings.toList() }
-                    .sumOf {
-                        if (it == Building.VILLAGE_HALL)
-                            UnitType.SETTLERS.cost.total
-                        else it.cost.total
-                    }
-            } * 0.2
-
-            val discoveredHexes = visionCalculator.getVisionFor(player.playerId).discovered.size
-            val discoveredPercent = discoveredHexes / hexMap.tiles.size.toDouble()
-            val visionScore = discoveredPercent * 100
-            val totalScore = unitScore + buildingScore + visionScore
-
-            log.write("Player ${player.color}, score: $unitScore + $buildingScore + $visionScore = $totalScore")
-        }
+//        turns.sortedBy { it.color.ordinal }.forEach { player ->
+//            val unitScore = unitsFor(player.playerId)
+//                .sumOf { it.unitType.cost.total } * 0.2
+//
+//            val buildingScore = citiesFor(player.playerId).sumOf { city ->
+//                hexMap.range(city.coordinates, city.borderRange)
+//                    .mapNotNull { hexMap.get(it) }
+//                    .flatMap { it.buildings.toList() }
+//                    .sumOf {
+//                        if (it == Building.VILLAGE_HALL)
+//                            UnitType.SETTLERS.cost.total
+//                        else it.cost.total
+//                    }
+//            } * 0.2
+//
+//            val discoveredHexes = visionCalculator.getVisionFor(player.playerId).discovered.size
+//            val discoveredPercent = discoveredHexes / hexMap.tiles.size.toDouble()
+//            val visionScore = discoveredPercent * 100
+//            val totalScore = unitScore + buildingScore + visionScore
+//
+//            log.write("Player ${player.color}, score: $unitScore + $buildingScore + $visionScore = $totalScore")
+//        }
 
         unitsFor(currentPlayer.playerId)
             .forEach {
@@ -581,12 +580,7 @@ class GameApi private constructor(
             it.listener(TurnEndedEvent(newCurrentPlayerId = currentPlayer.playerId))
         }
 
-        ais.get(currentPlayer.playerId)?.let { ai ->
-            //fixme
-            GlobalScope.launch {
-                ai.takeTurn()
-            }
-        }
+        ais.get(currentPlayer.playerId)?.takeTurn()
     }
 
     private fun verifyIntegrity() {

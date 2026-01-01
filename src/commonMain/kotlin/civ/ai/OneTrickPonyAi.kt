@@ -15,7 +15,6 @@ import civ.onFailure
 import civ.onSuccess
 import civ.tile.Grass
 import civ.tile.IMPASSABLE_COST
-import kotlinx.coroutines.delay
 
 sealed class OneTrickPonyAi(
     gameApi: GameApi,
@@ -110,8 +109,7 @@ sealed class OneTrickPonyAi(
     //fixme only for debugging
     var aiActive = true
 
-    override suspend fun takeTurn() {
-        delay(500)
+    override fun takeTurn() {
 
         if (!aiActive)
             return
@@ -304,7 +302,7 @@ sealed class OneTrickPonyAi(
         })
     }
 
-    private suspend fun processQueueItem(
+    private fun processQueueItem(
         tiles: List<PlayerTileData>,
         item: PriorityQueueItem.BuildingItem
     ) {
@@ -323,7 +321,7 @@ sealed class OneTrickPonyAi(
             }
     }
 
-    private suspend fun processQueueItem(
+    private fun processQueueItem(
         tiles: List<PlayerTileData>,
         cities: List<City>,
         item: PriorityQueueItem.UnitItem
@@ -348,14 +346,16 @@ class ScoutAi(gameApi: GameApi, playerId: String) : OneTrickPonyAi(gameApi, play
 
 
 //todo
+// victory/lose - endgame conditions
+// autosave co ture
+// AI nie robi attack move czasami?
 // log filter recipients
 // ai activate/deactive
 // better ais
 // stats - scoreboard? turn counter
-// victory/lose - endgame conditions
 // replays
 
 //todo ui improvements:
+// visible score
 // unit move/action available indicator
-// dont show attack move for ranged units?
 // button states: not unlocked yet, unlocked but tile is busy/not enough res, can be bought

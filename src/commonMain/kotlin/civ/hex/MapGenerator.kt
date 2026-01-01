@@ -19,7 +19,7 @@ class MapGenerator(
     val forestsPercent = 0.35
     val mountainsPercent = 0.09
     val goldPercent = 0.5
-    val lakesPercent = 0.1
+    val lakesPercent = 0.05
     val animalsPercent = 0.05
     val minRiverPercent = 0.1
 

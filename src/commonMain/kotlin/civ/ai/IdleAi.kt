@@ -6,7 +6,7 @@ class IdleAi(
     gameApi: GameApi, playerId: String
 ) : Ai(gameApi, playerId) {
 
-    override suspend fun takeTurn() {
+    override fun takeTurn() {
         gameApi.endTurn(playerId)
     }
 }

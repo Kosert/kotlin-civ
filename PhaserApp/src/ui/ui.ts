@@ -184,7 +184,7 @@ export class Ui {
     }
 
     postAlert(alertText: string) {
-        this.errorAlertDisappear?.destroy()
+        this.errorAlertDisappear?.remove()
         this.errorAlert.setText(alertText).setAlpha(1).setX(this.scene.cameras.main.width / 2)
         this.errorAlertBackground.setSize(this.errorAlert.width + 32, this.errorAlert.height + 16).setAlpha(1).setX(this.scene.cameras.main.width / 2)
         this.scene.tweens.add({
@@ -359,7 +359,7 @@ export class Ui {
         // }
 
         if (this.currentStock) {
-            this.stocksTween?.destroy()
+            this.stocksTween?.remove()
             this.stocksTween = this.scene.tweens.addCounter({
                 ease: 'Cubic',
                 duration: 500,

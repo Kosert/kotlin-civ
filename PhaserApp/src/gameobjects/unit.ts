@@ -35,9 +35,8 @@ export class Unit extends Phaser.GameObjects.Image {
         y: number,
         hp: number = unit.unitType.maxHp
     ) {
-        //todo icon vs tile graphic?
         super(scene, x, y, UnitIcons.get(unit.unitType))
-        this.setDepth(7) //todo 6
+        this.setDepth(7)
         scene.add.existing(this)
 
         this.coordinates = unit.coordinates
@@ -98,8 +97,9 @@ export class Unit extends Phaser.GameObjects.Image {
         this.coordinates = finalCoordinates
 
         const self = this
-        this.bumpTween?.destroy()
-        this.positionTween?.destroy()
+        this.bumpTween?.remove()
+        this.bumpTween = null
+        this.positionTween?.remove()
 
         const duration = positions.length * Unit.MOVE_ANIMATION_LENGTH
         const positionsX = [this.x, ...positions.map(it => it.x)]
@@ -154,7 +154,9 @@ export class Unit extends Phaser.GameObjects.Image {
         }
 
         const self = this
-        this.positionTween?.destroy()
+        this.positionTween?.remove()
+        this.positionTween = null
+        this.bumpTween?.remove()
         this.bumpTween = this.scene.tweens.addCounter({
             delay: delay,
             ease: 'Cubic',       // 'Cubic', 'Elastic', 'Bounce', 'Back'
@@ -177,8 +179,9 @@ export class Unit extends Phaser.GameObjects.Image {
         this.targetY = y
 
         const self = this
-        this.bumpTween?.destroy()
-        this.positionTween?.destroy()
+        this.bumpTween?.remove()
+        this.bumpTween = null
+        this.positionTween?.remove()
         this.positionTween = this.scene.tweens.addCounter({
             ease: 'Linear',       // 'Cubic', 'Elastic', 'Bounce', 'Back'
             duration: Unit.MOVE_ANIMATION_LENGTH,
@@ -186,6 +189,7 @@ export class Unit extends Phaser.GameObjects.Image {
             yoyo: false,
         })
 
+        // this.positionTween.
         this.positionTween.on(Phaser.Tweens.Events.TWEEN_UPDATE, function(tween, key, target, current: number, previous) {
             const newX = sourceX + (self.targetX - sourceX) * current
             const newY = sourceY + (self.targetY - sourceY) * current
@@ -205,7 +209,7 @@ export class Unit extends Phaser.GameObjects.Image {
         const startPercent = this.targetHp / this.unitType.maxHp
 
         const self = this
-        this.hpTween?.destroy()
+        this.hpTween?.remove()
         this.hpTween = this.scene.tweens.addCounter({
             delay: delay,
             ease: 'Cubic',       // 'Cubic', 'Elastic', 'Bounce', 'Back'
