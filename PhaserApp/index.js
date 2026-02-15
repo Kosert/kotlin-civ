@@ -25,6 +25,7 @@ app.use(function(err, req, res, next) {
     res.status(500).send({ error: "INTERNAL_SERVER_ERROR" })
 })
 
-server.listen(3000, () => {
-    console.log("Server started")
+const PORT = 2138
+server.listen(PORT, () => {
+    console.log("Server started on " + PORT)
 })
