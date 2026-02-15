@@ -5,7 +5,8 @@
 
 #General
 #-------------------------------------------------------------------------------
-dist
+# dist allowed on deployment branch
+#dist
 node_modules
 *.tsx
 .vscode

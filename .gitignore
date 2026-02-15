@@ -44,5 +44,6 @@ bin/
 ### Mac OS ###
 .DS_Store
 
-output/
+# output/ allowed on deployment branch
+# output/
 kotlin-js-store/

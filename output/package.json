@@ -1,0 +1,13 @@
+{
+  "name": "kotlin-civ",
+  "version": "1.0.0-SNAPSHOT",
+  "main": "kotlin-civ.js",
+  "types": "kotlin-civ.d.ts",
+  "devDependencies": {
+    "typescript": "5.5.4"
+  },
+  "dependencies": {},
+  "peerDependencies": {},
+  "optionalDependencies": {},
+  "bundledDependencies": []
+}
