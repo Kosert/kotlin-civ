@@ -2,6 +2,7 @@ package civ.creator
 
 import civ.LongWrapper
 import civ.core.GameState
+import civ.core.GameStatistics
 import civ.hex.MapGenerator
 import civ.model.CivUnit
 import civ.model.Player
@@ -43,6 +44,7 @@ object GameCreator {
             },
             stock = players.associate { it.playerId to startingStock },
             mapSeed = seed,
+            statistics = players.associate { it.playerId to GameStatistics() }
         )
     }
 }

@@ -95,15 +95,15 @@ export class Ui {
             .setScrollFactor(0)
 
         this.foodIcon = scene.add.image(stockX + 10, stockY + 10, "food_icon").setOrigin(0, 0).setDepth(91).setScrollFactor(0)
-        this.foodText = scene.add.text(stockX + 45, stockY + 12, "0", { font: "bold 20px Arial", color: Ui.colorText.rgba }).setDepth(91).setScrollFactor(0)
+        this.foodText = scene.add.text(stockX + 45, stockY + 12, "", { font: "bold 20px Arial", color: Ui.colorText.rgba }).setDepth(91).setScrollFactor(0)
 
         this.woodIcon = scene.add.image(stockX + 10, stockY + 50, "wood_icon").setOrigin(0, 0).setDepth(91).setScrollFactor(0)
-        this.woodText = scene.add.text(stockX + 45, stockY + 52, "0", { font: "bold 20px Arial", color: "#FFFFFF" }).setDepth(91).setScrollFactor(0)
+        this.woodText = scene.add.text(stockX + 45, stockY + 52, "", { font: "bold 20px Arial", color: "#FFFFFF" }).setDepth(91).setScrollFactor(0)
 
         this.goldIcon = scene.add.image(stockX + 10, stockY + 90, "gold_coin").setOrigin(0, 0).setDepth(91).setScrollFactor(0)
-        this.goldText = scene.add.text(stockX + 45, stockY + 92, "0", { font: "bold 20px Arial", color: "#FFFFFF" }).setDepth(91).setScrollFactor(0)
+        this.goldText = scene.add.text(stockX + 45, stockY + 92, "", { font: "bold 20px Arial", color: "#FFFFFF" }).setDepth(91).setScrollFactor(0)
 
-        this.turnCounter = scene.add.text(stockX + 8, stockY + 128, "Turn 123", { font: "16px Arial", color: "#FFFFFF" }).setDepth(91).setScrollFactor(0)
+        this.turnCounter = scene.add.text(stockX + 8, stockY + 128, "", { font: "16px Arial", color: "#FFFFFF" }).setDepth(91).setScrollFactor(0)
         this.endTurnButton = new Button(scene, 0, 0, "End turn", function() { 
             scene.events.emit(UiActionEvent, UiAction.END_TURN) 
         })
