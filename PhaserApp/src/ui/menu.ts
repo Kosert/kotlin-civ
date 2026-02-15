@@ -82,25 +82,30 @@ export class Menu {
             .setOrigin(0, 0).setDepth(101).setScrollFactor(0).setVisible(false)
 
         const playerOptions = [
-            { id: "none", name: "Empty slot" },
-            { id: "player", name: "Player" },
-            { id: civ.ai.AiType.OTP_WARRIOR.value, name: "AI (Warrior)" },
-            { id: civ.ai.AiType.OTP_SCOUT.value, name: "AI (Scout)" },
-            { id: civ.ai.AiType.OTP_ARCHER.value, name: "AI (Archer)" },
-            { id: civ.ai.AiType.IDLE.value, name: "AI (Idle)" },
+            { id: "none", text: "Empty slot" },
+            { id: "player", text: "Player" },
+            { id: civ.ai.AiType.OTP_WARRIOR.value, text: "AI (Warrior)" },
+            { id: civ.ai.AiType.OTP_SCOUT.value, text: "AI (Scout)" },
+            { id: civ.ai.AiType.OTP_ARCHER.value, text: "AI (Archer)" },
+            { id: civ.ai.AiType.IDLE.value, text: "AI (Idle)" },
         ]
+
+        const defaultPlayersIds = ["player", civ.ai.AiType.OTP_WARRIOR.value]
         for (let i = 0; i < 4; i++) {
             const chooserButton = new ChooserButton(scene, bigStartX + 30, 0, playerOptions, function(id: string) {
                 self.colorChoosers[i].setDisabled(id == "none")
-            }).setFixedWidth(200).setDepth(101).setVisible(false)
+            }, defaultPlayersIds[i] ?? playerOptions[0].id).setFixedWidth(200).setDepth(101).setVisible(false)
             this.playerChoosers.push(chooserButton)
         }
 
-        const colorOptions = civ.model.PlayerColor.values().map(it => { return { id: it.name, name: "██" } })
+        const colorOptions = civ.model.PlayerColor.values().map(it => { return { id: it.name, text: "██" } })
+
         const colorsStartX = this.playerChoosers[0].x() + 210
         for (let i = 0; i < 4; i++) {
-            const chooserButton = new ChooserButton(scene, colorsStartX, 0, colorOptions)
-                .setDepth(101).setDisabled(true).setVisible(false)
+            const chooserButton = new ChooserButton(scene, colorsStartX, 0, colorOptions, undefined, colorOptions[i].id)
+                .setDepth(101)
+                .setDisabled(!defaultPlayersIds[i])
+                .setVisible(false)
             this.colorChoosers.push(chooserButton)
         }
 
@@ -113,7 +118,7 @@ export class Menu {
                 const ai = civ.ai.AiType.values().find(it => {
                     return it.value == player.getSelected().id
                 })
-                return new civ.model.Player(player.getSelected().name, color, ai)
+                return new civ.model.Player(player.getSelected().text, color, ai)
             })
 
             //todo show progress?

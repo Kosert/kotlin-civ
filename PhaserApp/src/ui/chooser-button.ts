@@ -6,14 +6,15 @@ import { Ui } from "./ui";
 export class ChooserButton {
 
     private button: Button
-    private selectedValue: { id: string, name: string }
+    private selectedValue: { id: string, text: string }
 
     constructor(
         scene: Scene,
         x: number,
         y: number,
-        private values: { id: string, name: string }[],
-        private onChanged?: (id: string) => void
+        private values: { id: string, text: string }[],
+        private onChanged?: (id: string) => void,
+        initialSelectedId: string = values[0].id
     ) {
         const self = this
         this.button = new Button(scene, x, y, "", function() {
@@ -22,14 +23,15 @@ export class ChooserButton {
             self.switchToPrevious()
         })
 
-        this.selectedValue = values[0]
-        this.selectValue(values[0])
+        console.log("Values: ", values, "selectedID: ", initialSelectedId)
+        this.selectedValue = values.find(it => it.id == initialSelectedId)
+        this.selectValue(this.selectedValue)
     }
 
-    private selectValue(value: { id: string, name: string }) {
+    private selectValue(value: { id: string, text: string }) {
         const changed = this.selectedValue.id != value.id
         this.selectedValue = value
-        this.button.setText(value.name)
+        this.button.setText(value.text)
 
         switch (value.id) {
             case civ.model.PlayerColor.BLUE.name:
@@ -54,11 +56,11 @@ export class ChooserButton {
         }
     }
 
-    getSelected(): { id: string, name: string } {
+    getSelected(): { id: string, text: string } {
         return this.selectedValue
     }
 
-    setValues(values: { id: string, name: string }[]) {
+    setValues(values: { id: string, text: string }[]) {
         this.values = values
         //todo handle removed value
     }
