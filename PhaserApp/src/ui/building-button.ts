@@ -44,27 +44,27 @@ export class BuildingButton {
                 self.tooltip.show(null)
             })
             .on(Phaser.Input.Events.POINTER_DOWN, function (pointer: Phaser.Input.Pointer) {
-                if (pointer.leftButtonDown() && self.state == "clickable") {
+                if ((pointer.leftButtonDown() || pointer.wasTouch) && self.state == "clickable") {
                     self.image.setPosition(self.image.x - 1, self.image.y - 1)
                     self.button.strokeColor = Ui.colorAccentDark.color;
                     self.frontLines.forEach(it => it.strokeColor = Ui.colorAccent.color)
                 }
             })
             .on(Phaser.Input.Events.POINTER_UP, function (pointer: Phaser.Input.Pointer) {
-                if (pointer.leftButtonReleased() && self.state == "clickable") {
+                if ((pointer.leftButtonReleased() || pointer.wasTouch) && self.state == "clickable") {
                     self.clickListener()
                 }
             });
             scene.input.on(Phaser.Input.Events.POINTER_UP, function (pointer: Phaser.Input.Pointer) {
-                if (pointer.leftButtonReleased() && self.state == "clickable") {
+                if ((pointer.leftButtonReleased() || pointer.wasTouch) && self.state == "clickable") {
                     self.image.setPosition(self.x, self.y)
                     self.button.strokeColor = Ui.colorAccent.color;
                     self.frontLines.forEach(it => it.strokeColor = Ui.colorAccentDark.color)
                 }
             });
             scene.input.on(Phaser.Input.Events.POINTER_UP_OUTSIDE, function (pointer: Phaser.Input.Pointer) {
-                if (pointer.leftButtonReleased() && self.state == "clickable") {
-        
+                if ((pointer.leftButtonReleased() || pointer.wasTouch) && self.state == "clickable") {
+
                     self.image.setPosition(self.x, self.y)
                     self.button.strokeColor = Ui.colorAccent.color;
                     self.frontLines.forEach(it => it.strokeColor = Ui.colorAccentDark.color)

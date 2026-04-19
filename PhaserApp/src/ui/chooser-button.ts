@@ -23,7 +23,6 @@ export class ChooserButton {
             self.switchToPrevious()
         })
 
-        console.log("Values: ", values, "selectedID: ", initialSelectedId)
         this.selectedValue = values.find(it => it.id == initialSelectedId)
         this.selectValue(this.selectedValue)
     }

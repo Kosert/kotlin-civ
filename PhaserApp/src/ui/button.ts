@@ -58,7 +58,7 @@ export class Button {
 
         const self = this;
         this.background.on(Phaser.Input.Events.POINTER_DOWN, function (pointer: Phaser.Input.Pointer) {
-            if (!self.disabled && pointer.leftButtonDown() || (pointer.rightButtonDown() && rightClickListener)) {
+            if (!self.disabled && (pointer.leftButtonDown() || pointer.wasTouch || (pointer.rightButtonDown() && rightClickListener))) {
                 self.background.fillColor = Ui.colorDarkest;
                 self.background.strokeColor = Ui.colorAccentDark.color;
                 self.frontLines.forEach(it => it.strokeColor = Ui.colorAccent.color)
@@ -66,7 +66,7 @@ export class Button {
         });
         this.background.on(Phaser.Input.Events.POINTER_UP, function (pointer: Phaser.Input.Pointer) {
             if (!self.disabled) {
-                if (pointer.leftButtonReleased()) {
+                if (pointer.leftButtonReleased() || pointer.wasTouch) {
                     self.clickListener()
                 } else if (pointer.rightButtonReleased() && rightClickListener) {
                     self.rightClickListener()
@@ -74,14 +74,14 @@ export class Button {
             }
         });
         scene.input.on(Phaser.Input.Events.POINTER_UP, function (pointer: Phaser.Input.Pointer) {
-            if (!self.disabled && pointer.leftButtonReleased() || (pointer.rightButtonReleased() && rightClickListener)) {
+            if (!self.disabled && (pointer.leftButtonReleased() || pointer.wasTouch || (pointer.rightButtonReleased() && rightClickListener))) {
                 self.background.fillColor = Ui.colorLightest;
                 self.background.strokeColor = Ui.colorAccent.color;
                 self.frontLines.forEach(it => it.strokeColor = Ui.colorAccentDark.color)
             }
         });
         scene.input.on(Phaser.Input.Events.POINTER_UP_OUTSIDE, function (pointer: Phaser.Input.Pointer) {
-            if (!self.disabled && pointer.leftButtonReleased() || (pointer.rightButtonReleased() && rightClickListener)) {
+            if (!self.disabled && (pointer.leftButtonReleased() || pointer.wasTouch || (pointer.rightButtonReleased() && rightClickListener))) {
                 self.background.fillColor = Ui.colorLightest;
                 self.background.strokeColor = Ui.colorAccent.color;
                 self.frontLines.forEach(it => it.strokeColor = Ui.colorAccentDark.color)

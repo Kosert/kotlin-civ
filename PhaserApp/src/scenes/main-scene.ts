@@ -43,6 +43,12 @@ export class MainScene extends Phaser.Scene {
     private scrollingTween: Phaser.Tweens.Tween
     private menu: Menu
 
+    private isDragging: boolean = false
+    private dragStartX: number = 0
+    private dragStartY: number = 0
+    private cameraStartX: number = 0
+    private cameraStartY: number = 0
+
     private playerSwitchingEnabled: boolean = false//true
 
     preload(): void {
@@ -108,63 +114,61 @@ export class MainScene extends Phaser.Scene {
 
         this.input.mouse.disableContextMenu()
 
-
-        // this.gameApi.allPlayers().asJsReadonlyArrayView().forEach(it => {
-        //     this.playersMap.set(it.playerId, it)
-        // })
-
         this.input.on(Phaser.Input.Events.POINTER_DOWN, function (pointer: Phaser.Input.Pointer) {
             if (self.ui.isPointerInside(pointer)) {
                 return
             }
 
+            if (pointer.wasTouch) {
+                self.isDragging = false
+                self.dragStartX = pointer.x
+                self.dragStartY = pointer.y
+                self.cameraStartX = self.cameras.main.scrollX
+                self.cameraStartY = self.cameras.main.scrollY
+                return
+            }
+
             if (pointer.leftButtonDown()) {
-                if (self.selected instanceof civ.model.CivUnit && self.selected.coordinates.equals(self.hovered?.coordinates)) {
-                    self.select(self.hovered)
-                } else if (self.hovered?.unit) {
-                    self.select(self.hovered.unit)
-                } else {
-                    self.select(self.hovered)
-                }
+                self.handleLeftClick()
             }
 
             if (pointer.rightButtonDown()) {
-                const target = self.hovered
+                self.handleRightClick()
+            }
+        })
 
-                if (self.selected instanceof civ.model.CivUnit) {
-
-                    if (self.selected.playerId == self.player.playerId) {
-                        const selectedUnitId = self.selected.unitId
-                        if (target.unit) {
-                            const targetUnitCoords = target.unit.coordinates
-                            const gameAction = new civ.action.Attack(selectedUnitId, targetUnitCoords)
-                            self.justAttackedUnit = self.selected
-                            if (self.tryExecute(gameAction)) {
-                                self.select(null)
-                            }
-                        } else {
-                            self.gameApi.execute(self.player.playerId, new civ.action.Move(selectedUnitId, target.coordinates))
-                            const updatedUnit = self.gameApi.unitsFor(self.player.playerId).asJsReadonlyArrayView().find(it => it.unitId == selectedUnitId)
-                            self.select(updatedUnit)
-                        }
-                    } else {
-                        //selected enemy unit
-                    }
-
+        this.input.on(Phaser.Input.Events.POINTER_MOVE, function (pointer: Phaser.Input.Pointer) {
+            if (pointer.wasTouch && pointer.isDown) {
+                const dx = pointer.x - self.dragStartX
+                const dy = pointer.y - self.dragStartY
+                if (Math.sqrt(dx * dx + dy * dy) > 10) {
+                    self.isDragging = true
+                    self.scrollingTween?.remove()
+                    self.scrollingTween = null
+                    const scaleX = self.cameras.main.width / self.scale.displaySize.width
+                    const scaleY = self.cameras.main.height / self.scale.displaySize.height
+                    self.cameras.main.scrollX = self.cameraStartX - dx * scaleX
+                    self.cameras.main.scrollY = self.cameraStartY - dy * scaleY
+                    self.input.activePointer.updateWorldPoint(self.cameras.main)
                 }
             }
         })
 
-        //fixme player that should be the player, not current
-        // this.player = this.gameApi.currentPlayer //civ.TestData.generated.players.asJsReadonlyArrayView()[0]
-        // this.gameApi.tilesForPlayer(this.player.playerId).asJsReadonlyArrayView().map(it => {
-        //     this.tiles.push(new Tile(this, it, this.playersMap))
-        //     // this.tiles.set(it.coordinates, new Tile(this, it, this.playersMap))
-        // })
+        this.input.on(Phaser.Input.Events.POINTER_UP, function (pointer: Phaser.Input.Pointer) {
+            if (!pointer.wasTouch) return
+            if (self.isDragging) {
+                self.isDragging = false
+                return
+            }
+            if (self.ui.isPointerInside(pointer) || self.menu.isVisible()) return
 
-        // this.tiles.forEach(it =>
-        //     this.add.existing(it)
-        // )
+            const target = self.hovered
+            if (target && self.moveHighlights.some(c => c.equals(target.coordinates))) {
+                self.handleRightClick()
+            } else {
+                self.handleLeftClick()
+            }
+        })
 
         this.events.on(UiActionEvent, function (action: UiAction, arg) {
             const seletedCoordinates = self.selected?.coordinates
@@ -209,14 +213,35 @@ export class MainScene extends Phaser.Scene {
             }
         })
 
-        // @ts-ignore fixme
-        // this.player = { playerId: "" }
-        // this.gameApi.registerEventListener(this.player.playerId, function(event) { self.onGameEvent(event) })
-        // this.ui.setStockpiles(this.gameApi.stocksFor(this.player.playerId), this.gameApi.incomeFor(this.player.playerId))
-        // this.updateUnitsFromTiles()
-
-        // this.initGameApi(civ.core.GameState.Companion.fromJson(new TestJson().json))
         this.menu.onEscClicked()
+    }
+
+        private handleLeftClick() {
+        if (this.selected instanceof civ.model.CivUnit && this.selected.coordinates.equals(this.hovered?.coordinates)) {
+            this.select(this.hovered)
+        } else if (this.hovered?.unit) {
+            this.select(this.hovered.unit)
+        } else {
+            this.select(this.hovered)
+        }
+    }
+
+    private handleRightClick() {
+        const target = this.hovered
+        if (this.selected instanceof civ.model.CivUnit && this.selected.playerId == this.player.playerId) {
+            const selectedUnitId = this.selected.unitId
+            if (target.unit) {
+                const gameAction = new civ.action.Attack(selectedUnitId, target.unit.coordinates)
+                this.justAttackedUnit = this.selected
+                if (this.tryExecute(gameAction)) {
+                    this.select(null)
+                }
+            } else {
+                this.gameApi.execute(this.player.playerId, new civ.action.Move(selectedUnitId, target.coordinates))
+                const updatedUnit = this.gameApi.unitsFor(this.player.playerId).asJsReadonlyArrayView().find(it => it.unitId == selectedUnitId)
+                this.select(updatedUnit)
+            }
+        }
     }
 
     private initGameApi(gameState: civ.core.GameState) {
@@ -561,7 +586,7 @@ export class MainScene extends Phaser.Scene {
             }
         }
 
-        if (!this.ui.isPointerInside(this.input.activePointer) && !this.menu.isVisible()) {
+        if (!this.isDragging && !this.ui.isPointerInside(this.input.activePointer) && !this.menu.isVisible()) {
             const x = (this.input.activePointer.worldX - Tile.HEX_OFFSET) / Tile.HEX_SIZE
             const y = (this.input.activePointer.worldY - Tile.HEX_OFFSET) / Tile.HEX_SIZE
             const q = (Tile.SQRT3 / 3 * x - 1.0 / 3 * y)
