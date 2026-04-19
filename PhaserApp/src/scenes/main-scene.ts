@@ -423,20 +423,6 @@ export class MainScene extends Phaser.Scene {
         const tilesFromApi = tiles ?? this.gameApi.tilesForPlayer(this.player.playerId).asJsReadonlyArrayView()
 
         tilesFromApi.forEach((data, index) => {
-            // const tile = this.tiles[index]
-            // tile.updateTileData(data)
-            // tile.setHighlight(
-            // this.moveHighlights.some(it => it.equals(data.coordinates)),
-            // this.pathHighlights.some(it => it.equals(data.coordinates)),
-            // data.unit && data.unit.playerId != this.player.playerId,
-            // )
-            // const isHovered = tile.coordinates.equals(hoveredCoordinates)
-            // const isSelected = tile.coordinates.equals(this.selected?.coordinates)
-            // tile.setStates(isHovered, isSelected)
-            // if (isHovered) {
-            // this.hovered = data
-            // }
-
             if (data.unit) {
                 unitsFromApi.push(data.unit)
             }
@@ -445,6 +431,7 @@ export class MainScene extends Phaser.Scene {
         this.units.forEach(it => {
             const updated = unitsFromApi.find(unit => unit.unitId == it.unitId)
             if (updated) {
+                //todo remove? should be handled by events
                 // const tile = this.tiles.find(tile => tile.coordinates.equals(updated.coordinates))
                 // it.updateUnitData(tile.x, tile.y, updated.hp)
             } else {

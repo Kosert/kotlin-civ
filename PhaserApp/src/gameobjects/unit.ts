@@ -159,9 +159,9 @@ export class Unit extends Phaser.GameObjects.Image {
         this.bumpTween?.remove()
         this.bumpTween = this.scene.tweens.addCounter({
             delay: delay,
-            ease: 'Cubic',       // 'Cubic', 'Elastic', 'Bounce', 'Back'
+            ease: 'Cubic', 
             duration: Unit.BUMP_ANIMATION_LENGTH,
-            repeat: 0,            // -1: infinity
+            repeat: 0,
             yoyo: true,
             "onComplete": onComplete
         })
@@ -183,13 +183,12 @@ export class Unit extends Phaser.GameObjects.Image {
         this.bumpTween = null
         this.positionTween?.remove()
         this.positionTween = this.scene.tweens.addCounter({
-            ease: 'Linear',       // 'Cubic', 'Elastic', 'Bounce', 'Back'
+            ease: 'Linear',
             duration: Unit.MOVE_ANIMATION_LENGTH,
-            repeat: 0,            // -1: infinity
+            repeat: 0,
             yoyo: false,
         })
 
-        // this.positionTween.
         this.positionTween.on(Phaser.Tweens.Events.TWEEN_UPDATE, function(tween, key, target, current: number, previous) {
             const newX = sourceX + (self.targetX - sourceX) * current
             const newY = sourceY + (self.targetY - sourceY) * current
@@ -250,9 +249,12 @@ export class Unit extends Phaser.GameObjects.Image {
     }
 
     destroy() {
-        this.positionTween?.destroy()
-        this.hpTween?.destroy()
-        this.bumpTween?.destroy()
+        this.positionTween?.removeAllListeners()
+        this.positionTween?.stop()
+        this.hpTween?.removeAllListeners()
+        this.hpTween?.stop()
+        this.bumpTween?.removeAllListeners()
+        this.bumpTween?.stop()
         this.heathBar.destroy()
         this.heathLeftover.destroy()
         this.heathBarBorder.destroy()
