@@ -8,7 +8,7 @@ import { UiAction, UiActionEvent } from "./ui-actions"
 import { Texts } from "./texts"
 import { RecruitButton } from "./recruit-button"
 import { UnitIcons } from "./icons"
-import {StrikethroughText} from "./strikethrough-text";
+import { StrikethroughText } from "./strikethrough-text";
 
 export class Ui {
 
@@ -214,9 +214,6 @@ export class Ui {
             const text = new StrikethroughText(this.scene, 4, 4 + index * 20, "civ_font", "", 16)
                 .setDepth(91).setScrollFactor(0).setTint(color)
             this.scene.add.existing(text)
-            // const text = this.scene.add.bitmapText(4, 4 + index * 20, "civ_font", "", 16).setDepth(91).setScrollFactor(0).setTint(color)
-            // const text = this.scene.add.text(4, 4 + index * 20, "", { font: "bold 20px Arial", color: color })
-            //     .setDepth(91).setScrollFactor(0)
             this.scoreTexts.set(it.playerId, text)
         })
     }

@@ -26,6 +26,7 @@ data class GameState(
     val units: Set<CivUnit>,
     val stock: Map<String, Stockpiles>,
     val mapSeed: LongWrapper,
+    val focusedTile: Coordinates? = null,
     val visionData: Map<String, GameStateVisionData>? = null,
     val statistics: Map<String, GameStatistics>? = null,
     val gameVersion: String = "0.1",

@@ -53,7 +53,8 @@ export class Menu {
     private gameApi: civ.core.GameApi
 
     constructor(
-        private scene: Scene
+        private scene: Scene,
+        private generateGameState: () => civ.core.GameState,
     ) {
         const screenWidth = scene.cameras.main.width
         const screenHeight = scene.cameras.main.height
@@ -243,7 +244,7 @@ export class Menu {
                 () => {
                     const isOverWrite = localStorage.getItem(slot)
                     if (!isOverWrite || confirm("Do you want to overwrite Save Slot #" + (i + 1) + "?")) {
-                        const gameState = this.gameApi.generateGameState()
+                        const gameState = this.generateGameState()
                         localStorage.setItem(slot, gameState.toJson())
                         this.refreshGameStates()
                     }

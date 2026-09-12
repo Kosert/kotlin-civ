@@ -9,6 +9,7 @@ import MultiKey from "../util/multi-key"
 import { civ } from "kotlin-civ"
 import { Menu } from "../ui/menu"
 import { StorageItem } from "../const"
+import { HexMath } from "../util/hex-math";
 
 export class MainScene extends Phaser.Scene {
     constructor() {
@@ -103,12 +104,12 @@ export class MainScene extends Phaser.Scene {
         const self = this
         // @ts-expect-error
         window.generateGameState = () => {
-            return self.gameApi.generateGameState().toJson()
+            return self.generateGameState()
         }
 
         this.fpsText = new FpsText(this)
         this.ui = new Ui(this)
-        this.menu = new Menu(this)
+        this.menu = new Menu(this, () => self.generateGameState())
         const { LEFT, RIGHT, UP, DOWN, S, A, D, W, ESC } = Phaser.Input.Keyboard.KeyCodes
         this.escKey = new MultiKey(this, ESC)
         this.leftKey = new MultiKey(this, LEFT, A)
@@ -222,7 +223,7 @@ export class MainScene extends Phaser.Scene {
         this.menu.onEscClicked()
     }
 
-        private handleLeftClick() {
+    private handleLeftClick() {
         if (this.selected instanceof civ.model.CivUnit && this.selected.coordinates.equals(this.hovered?.coordinates)) {
             this.select(this.hovered)
         } else if (this.hovered?.unit) {
@@ -248,6 +249,13 @@ export class MainScene extends Phaser.Scene {
                 this.select(updatedUnit)
             }
         }
+    }
+
+    private generateGameState() {
+        const baseState = this.gameApi.generateGameState()
+        const camera = this.cameras.main
+        const focused = HexMath.pixelToHex(camera.scrollX + camera.width / 2, camera.scrollY + camera.height / 2)
+        return baseState.copy(undefined, undefined, undefined, undefined, undefined, undefined, focused)
     }
 
     private initGameApi(gameState: civ.core.GameState) {
@@ -289,14 +297,12 @@ export class MainScene extends Phaser.Scene {
         this.ui.setTurnData(this.gameApi.currentPlayer.playerId != this.player.playerId, turnNumber)
         this.updateUnitsFromTiles()
 
-        const firstCity = this.gameApi.citiesFor(this.player.playerId).asJsReadonlyArrayView().values().next().value
-        if (firstCity) {
-            this.scrollToTile(firstCity.coordinates)
-        } else {
-            const firstUnit = this.gameApi.unitsFor(this.player.playerId).asJsReadonlyArrayView().values().next().value
-            if (firstUnit) {
-                this.scrollToTile(firstUnit.coordinates)
-            }
+        let scrollTarget = gameState.focusedTile
+            ?? this.gameApi.citiesFor(this.player.playerId).asJsReadonlyArrayView().values().next().value?.coordinates
+            ?? this.gameApi.unitsFor(this.player.playerId).asJsReadonlyArrayView().values().next().value?.coordinates
+
+        if (scrollTarget) {
+            this.scrollToTile(scrollTarget, true)
         }
     }
 
@@ -382,7 +388,7 @@ export class MainScene extends Phaser.Scene {
             this.eventBasedCurrentPlayerId = event.newCurrentPlayerId
 
             if (event.newCurrentPlayerId == this.player.playerId) {
-                const gameState = this.gameApi.generateGameState()
+                const gameState = this.generateGameState()
                 localStorage.setItem(StorageItem.AUTO_SAVE_SLOT, gameState.toJson())
             }
 
@@ -600,12 +606,7 @@ export class MainScene extends Phaser.Scene {
         }
 
         if (!this.isDragging && !this.ui.isPointerInside(this.input.activePointer) && !this.menu.isVisible()) {
-            const x = (this.input.activePointer.worldX - Tile.HEX_OFFSET) / Tile.HEX_SIZE
-            const y = (this.input.activePointer.worldY - Tile.HEX_OFFSET) / Tile.HEX_SIZE
-            const q = (Tile.SQRT3 / 3 * x - 1.0 / 3 * y)
-            const r = (2.0 / 3.0 * y)
-            const s = -q - r
-            this.hoveredCoordinates = civ.hex.Coordinates.Companion.fromDoubles(q, r, s)
+            this.hoveredCoordinates = HexMath.pixelToHex(this.input.activePointer.worldX, this.input.activePointer.worldY)
         } else {
             this.hoveredCoordinates = null
         }
