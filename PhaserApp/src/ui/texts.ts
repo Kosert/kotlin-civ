@@ -242,7 +242,7 @@ export class Texts {
             case civ.model.UnitType.ARCHER:
                 return "Ranged combat unit that can attack from distance.\n" + this.unitStats(unitType)
             case civ.model.UnitType.RIDER:
-                return "Fast mounted unit offensive unit.\n" + this.unitStats(unitType)
+                return "Fast mounted offensive unit.\n" + this.unitStats(unitType)
             case civ.model.UnitType.SWORDSMAN:
                 return "Advanced melee unit with iron weapons.\n" + this.unitStats(unitType)
             case civ.model.UnitType.CROSSBOWMAN:

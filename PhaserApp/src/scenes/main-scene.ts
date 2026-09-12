@@ -35,6 +35,7 @@ export class MainScene extends Phaser.Scene {
     private moveHighlights: civ.hex.Coordinates[] = []
     private justAttackedUnit?: civ.model.CivUnit
     private shouldReselectAttacker: boolean = false
+    private eventBasedCurrentPlayerId: string
 
     private tiles: Tile[] = []
     private units = new Map<string, Unit>()
@@ -258,6 +259,7 @@ export class MainScene extends Phaser.Scene {
         this.units.clear()
         this.playersMap.clear()
         this.player = null
+        this.eventBasedCurrentPlayerId = null
         this.ui.setGameApi(null)
         this.menu.setGameApi(null)
 
@@ -269,6 +271,7 @@ export class MainScene extends Phaser.Scene {
             this.playersMap.set(it.playerId, it)
         })
         this.player = this.gameApi.allPlayers().asJsReadonlyArrayView().find(it => !it.aiType)
+        this.eventBasedCurrentPlayerId = this.player.playerId
 
         this.gameApi.tilesForPlayer(this.player.playerId).asJsReadonlyArrayView().map(it => {
             this.tiles.push(new Tile(this, it, this.playersMap))
@@ -280,7 +283,7 @@ export class MainScene extends Phaser.Scene {
         this.gameApi.registerEventListener(this.player.playerId, function (event) { self.eventQueue.push(event) })
         this.ui.setStockpiles(this.gameApi.stocksFor(this.player.playerId),  this.gameApi.incomeFor(this.player.playerId))
 
-        const turnNumber = gameState.statistics.asJsReadonlyMapView().get(this.player.playerId).turnNumber + 1
+        const turnNumber = gameState.statistics.asJsReadonlyMapView().get(this.player.playerId).turnNumber
         this.ui.setTurnData(this.gameApi.currentPlayer.playerId != this.player.playerId, turnNumber)
         this.updateUnitsFromTiles()
 
@@ -374,10 +377,15 @@ export class MainScene extends Phaser.Scene {
         } else if (event instanceof civ.events.TurnEndedEvent) {
             //todo disable when menu is active
             this.ui.setTurnData(event.newCurrentPlayerId != this.player.playerId, event.turnNumber)
+            this.eventBasedCurrentPlayerId = event.newCurrentPlayerId
 
             if (event.newCurrentPlayerId == this.player.playerId) {
                 const gameState = this.gameApi.generateGameState()
                 localStorage.setItem(StorageItem.AUTO_SAVE_SLOT, gameState.toJson())
+            }
+
+            if (this.selected) {
+                this.select(this.selected)
             }
         } else if (event instanceof civ.events.AttackEvent) {
             const tileFrom = this.tiles.find(tile => tile.coordinates.equals(event.from))
@@ -525,7 +533,7 @@ export class MainScene extends Phaser.Scene {
         console.log("Select", entity)
 
         if (entity instanceof civ.model.CivUnit) {
-            if (entity.playerId == this.player.playerId) {
+            if (entity.playerId == this.player.playerId && this.eventBasedCurrentPlayerId == this.player.playerId) {
                 this.selectedUnitPaths = this.gameApi.actionsForUnit(this.player.playerId, entity.unitId)
                 this.moveHighlights = Array.from(this.selectedUnitPaths.possibleTargets.asJsReadonlySetView())
             }
@@ -646,6 +654,7 @@ export class MainScene extends Phaser.Scene {
         }
 
         // PLAYER SWAPPING
+        // eventBasedCurrentPlayerId?
         if (this.playerSwitchingEnabled && this.player.playerId != this.gameApi.currentPlayer.playerId) {
             this.gameApi.unregisterEventListeners(this.player.playerId)
             this.player = this.gameApi.currentPlayer

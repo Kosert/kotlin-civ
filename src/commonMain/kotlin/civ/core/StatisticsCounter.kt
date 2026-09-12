@@ -57,11 +57,12 @@ class StatisticsCounter(
     fun recalculatePoints(
         unitsFor: (String) -> Collection<CivUnit>,
         citiesFor: (String) -> Collection<City>,
-    ): Map<String, Int> = stats.mapValues { (playerId, stats) ->
-        val unitScore = unitsFor(playerId)
-            .sumOf { it.unitType.cost.total } * 0.2
+    ): Map<String, SimpleStats> = stats.mapValues { (playerId, stats) ->
+        val units = unitsFor(playerId)
+        val unitScore = units.sumOf { it.unitType.cost.total } * 0.2
 
-        val buildingScore = citiesFor(playerId).sumOf { city ->
+        val cities = citiesFor(playerId)
+        val buildingScore = cities.sumOf { city ->
             hexMap.range(city.coordinates, city.borderRange)
                 .mapNotNull { hexMap.get(it) }
                 .flatMap { it.buildings.toList() }
@@ -75,11 +76,21 @@ class StatisticsCounter(
 
         val discoveredPercent = stats.tilesDiscovered / hexMap.tiles.size.toDouble()
         val visionScore = discoveredPercent * 100
-        (unitScore + buildingScore + visionScore).toInt()
+        SimpleStats(
+            points = (unitScore + buildingScore + visionScore).toInt(),
+            isDefeated = units.isEmpty() && cities.isEmpty(),
+        )
     }
 
     fun exportData(): Map<String, GameStatistics> = stats
 }
+
+@OptIn(ExperimentalJsExport::class)
+@JsExport
+data class SimpleStats(
+    val points: Int,
+    val isDefeated: Boolean,
+)
 
 @OptIn(ExperimentalJsExport::class)
 @JsExport

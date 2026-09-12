@@ -86,9 +86,9 @@ class GameApi private constructor(
     }
 
     private fun recalculateScore() {
-        val points = statCounter.recalculatePoints(::unitsFor, ::citiesFor)
+        val stats = statCounter.recalculatePoints(::unitsFor, ::citiesFor)
         eventListeners.forEach {
-            it.listener(ScoreChanged(points))
+            it.listener(ScoreChanged(stats))
         }
     }
 

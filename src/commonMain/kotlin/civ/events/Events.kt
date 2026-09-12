@@ -2,6 +2,7 @@
 
 package civ.events
 
+import civ.core.SimpleStats
 import civ.hex.Coordinates
 import civ.model.CivUnit
 import civ.model.PlayerTileData
@@ -39,7 +40,7 @@ data class TileUpdated(
 
 @JsExport
 data class ScoreChanged(
-    val score: Map<String, Int>,
+    val score: Map<String, SimpleStats>,
 ): GameEvent
 
 @JsExport

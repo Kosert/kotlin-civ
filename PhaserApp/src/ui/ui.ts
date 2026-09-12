@@ -4,11 +4,11 @@ import { civ } from "kotlin-civ"
 import { Button } from "./button"
 import { BuildingButton } from "./building-button"
 import { Tooltip } from "./building-tooltip"
-import { MainScene } from "../scenes/main-scene"
 import { UiAction, UiActionEvent } from "./ui-actions"
 import { Texts } from "./texts"
 import { RecruitButton } from "./recruit-button"
 import { UnitIcons } from "./icons"
+import {StrikethroughText} from "./strikethrough-text";
 
 export class Ui {
 
@@ -41,7 +41,7 @@ export class Ui {
     private turnCounter: Phaser.GameObjects.Text
     private endTurnButton: Button
 
-    private scoreTexts = new Map<string, Phaser.GameObjects.BitmapText>()
+    private scoreTexts = new Map<string, StrikethroughText>()
 
     private selectedBackground: Phaser.GameObjects.Rectangle
     private selectedTile: UiTile
@@ -210,7 +210,13 @@ export class Ui {
                 default:
                     break;
             }
-            const text = this.scene.add.bitmapText(4, 4 + index * 20, "civ_font", "", 16).setDepth(91).setScrollFactor(0).setTint(color)
+
+            const text = new StrikethroughText(this.scene, 4, 4 + index * 20, "civ_font", "", 16)
+                .setDepth(91).setScrollFactor(0).setTint(color)
+            this.scene.add.existing(text)
+            // const text = this.scene.add.bitmapText(4, 4 + index * 20, "civ_font", "", 16).setDepth(91).setScrollFactor(0).setTint(color)
+            // const text = this.scene.add.text(4, 4 + index * 20, "", { font: "bold 20px Arial", color: color })
+            //     .setDepth(91).setScrollFactor(0)
             this.scoreTexts.set(it.playerId, text)
         })
     }
@@ -429,16 +435,21 @@ export class Ui {
 
     setTurnData(endTurnDisabled: boolean, turnNumber: number) {
         this.endTurnButton.setDisabled(endTurnDisabled)
-        this.turnCounter.setText(Number.isNaN(turnNumber) ? "" : "Turn " + turnNumber)
+        this.turnCounter.setText(Number.isNaN(turnNumber) ? "" : "Turn " + (turnNumber + 1))
     }
 
-    setScores(scores: ReadonlyMap<string, number>) {
+    setScores(scores: ReadonlyMap<string, civ.core.SimpleStats>) {
         const players = this.gameApi.allPlayers().asJsReadonlyArrayView()
 
-        //todo sort
-        for (let [playerId, points] of scores.entries()) {
+        const sorted = [...scores.entries()]
+            .sort((a, b) => b[1].points - a[1].points)
+
+        sorted.forEach(([playerId, stats], index) => {
             const player = players.find(it => it.playerId == playerId)
-            this.scoreTexts.get(playerId).text = player.name + ": " + points
-        }
+            const textObject = this.scoreTexts.get(playerId)
+            textObject.setY(4 + index * 20)
+            textObject.setStrikethrough(stats.isDefeated)
+            textObject.text = player.name + ": " + stats.points
+        })
     }
 }
