@@ -1,4 +1,5 @@
 import { Scene, Tweens } from "phaser";
+import { civ } from "kotlin-civ";
 
 export class Projectile extends Phaser.GameObjects.Image {
 
@@ -8,6 +9,7 @@ export class Projectile extends Phaser.GameObjects.Image {
 
     constructor(
         readonly scene: Scene,
+        shooter: civ.model.UnitType,
         x: number,
         y: number,
         rotation: number,
@@ -15,8 +17,13 @@ export class Projectile extends Phaser.GameObjects.Image {
         targetY: number,
         onComplete: () => void
     ) {
-        //fixme icon
-        super(scene, x, y, "wood_icon")
+        let textureName: string
+        if (shooter == civ.model.UnitType.TREBUCHET) {
+            textureName = "projectile_rock"
+        } else {
+            textureName = "projectile_arrow"
+        }
+        super(scene, x, y, textureName)
         this.setRotation(rotation)
         this.setDepth(10)
 

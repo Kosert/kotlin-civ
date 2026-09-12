@@ -62,6 +62,9 @@ export class MainScene extends Phaser.Scene {
         this.load.image("speed", "assets/icons/speed.png")
         this.load.image("locked", "assets/icons/locked.png")
 
+        this.load.image("projectile_arrow", "assets/projectile_arrow.png")
+        this.load.image("projectile_rock", "assets/projectile_rock.png")
+
         this.load.image("river_bottom_left", "assets/river_bottom_left.png")
         this.load.image("river_left", "assets/river_left.png")
         this.load.image("river_top_left", "assets/river_top_left.png")
@@ -400,9 +403,9 @@ export class MainScene extends Phaser.Scene {
 
             const self = this
             if (event.isRanged) {
-                const angleFrom = Phaser.Math.Angle.BetweenPoints(tileFrom, tileTo)
+                const angleFrom = Phaser.Math.Angle.BetweenPoints(tileTo, tileFrom)
                 defenderUnit?.updateUnitHp(event.updatedDefender.hp, Projectile.FLIGHT_DURATION)
-                const projectile = new Projectile(this, tileFrom.x, tileFrom.y, angleFrom, tileTo.x, tileTo.y, () => {
+                const projectile = new Projectile(this, attacker.unitType, tileFrom.x, tileFrom.y, angleFrom, tileTo.x, tileTo.y, () => {
                     if (this.shouldReselectAttacker) {
                         self.select(attacker)
                     }
