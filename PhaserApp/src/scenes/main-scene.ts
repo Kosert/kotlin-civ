@@ -205,6 +205,7 @@ export class MainScene extends Phaser.Scene {
                     break
                 case UiAction.DISBAND:
                     //todo
+                    self.ui.postAlert("Not implemented yet")
                     break
                 case UiAction.END_TURN:
                     self.gameApi.endTurn(self.player.playerId)
@@ -212,8 +213,9 @@ export class MainScene extends Phaser.Scene {
                     break
                 case UiAction.LOAD_GAME_STATE:
                     self.initGameApi(arg as civ.core.GameState)
+                    break
                 default:
-                    break;
+                    break
             }
         })
 
@@ -654,7 +656,7 @@ export class MainScene extends Phaser.Scene {
         }
 
         // PLAYER SWAPPING
-        // eventBasedCurrentPlayerId?
+        // todo eventBasedCurrentPlayerId?
         if (this.playerSwitchingEnabled && this.player.playerId != this.gameApi.currentPlayer.playerId) {
             this.gameApi.unregisterEventListeners(this.player.playerId)
             this.player = this.gameApi.currentPlayer
