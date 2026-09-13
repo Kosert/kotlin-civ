@@ -7,8 +7,8 @@ export enum UiAction {
     END_TURN,
     SETTLE,
     BUILD,  // arg: Building
-    RECRUIT,
-    CONQUER,// arg: UnitType
+    RECRUIT,// arg: UnitType
+    CONQUER,
     DISBAND,
 
     LOAD_GAME_STATE, //arg: GameState

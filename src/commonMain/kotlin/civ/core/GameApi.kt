@@ -114,6 +114,7 @@ class GameApi private constructor(
 
     fun registerEventListener(playerId: String, listener: (GameEvent) -> Unit) {
         eventListeners.add(EventListener(playerId, listener))
+        recalculateVision()
     }
 
     fun unregisterEventListeners(playerId: String) = eventListeners.removeAll { it.playerId == playerId }
@@ -515,6 +516,30 @@ class GameApi private constructor(
                 )
                 recalculateScore()
                 log.write(currentPlayer, updatedAttacker, "conquered", cities[action.coordinates])
+            }
+            is Disband -> {
+                val unit = units.values.firstOrNull { it.unitId == action.unitId }
+                    ?.takeIf { it.playerId == currentPlayer.playerId }
+                    ?: return ActionResult.exception("Unit not found for current player")
+
+                units.remove(unit.coordinates)
+                hexMap.markBusy(unit.coordinates, false)
+
+                recalculateVision()
+                stocksManager.recalculateIncome(
+                    playerCities = citiesFor(currentPlayer.playerId),
+                    allUnits = units.values
+                )
+                recalculateScore()
+
+                triggerEvent(
+                    visionCalculator.getPlayersThatCanSee(unit.coordinates)
+                ) { eventPlayerId ->
+                    TileUpdated(
+                        hexMap.tiles.getValue(unit.coordinates).toPlayerTileData(eventPlayerId)
+                    )
+                }
+                log.write(currentPlayer, "disbanded", unit)
             }
         }
         return ActionResult.success()

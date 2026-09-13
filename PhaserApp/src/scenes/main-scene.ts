@@ -205,8 +205,11 @@ export class MainScene extends Phaser.Scene {
                     }
                     break
                 case UiAction.DISBAND:
-                    //todo
-                    self.ui.postAlert("Not implemented yet")
+                    const selectedUnit = self.selected as civ.model.CivUnit
+                    gameAction = new civ.action.Disband(selectedUnit.unitId)
+                    if (self.tryExecute(gameAction)) {
+                        self.select(null)
+                    }
                     break
                 case UiAction.END_TURN:
                     self.gameApi.endTurn(self.player.playerId)
