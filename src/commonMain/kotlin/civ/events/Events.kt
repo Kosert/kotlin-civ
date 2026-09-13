@@ -2,6 +2,7 @@
 
 package civ.events
 
+import civ.core.GameStatistics
 import civ.core.SimpleStats
 import civ.hex.Coordinates
 import civ.model.CivUnit
@@ -69,4 +70,9 @@ sealed class UnitEvent(
 data class TurnEndedEvent(
     val newCurrentPlayerId: String,
     val turnNumber: Int,
+): GameEvent
+
+@JsExport
+data class GameOverEvent(
+    val finalStats: Map<String, GameStatistics>,
 ): GameEvent

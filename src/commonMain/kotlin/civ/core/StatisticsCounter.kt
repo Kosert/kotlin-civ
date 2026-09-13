@@ -57,7 +57,7 @@ class StatisticsCounter(
     fun recalculatePoints(
         unitsFor: (String) -> Collection<CivUnit>,
         citiesFor: (String) -> Collection<City>,
-    ): Map<String, SimpleStats> = stats.mapValues { (playerId, stats) ->
+    ): Map<String, SimpleStats> = stats.mapValues { (playerId, playerStats) ->
         val units = unitsFor(playerId)
         val unitScore = units.sumOf { it.unitType.cost.total } * 0.2
 
@@ -74,11 +74,14 @@ class StatisticsCounter(
                 }
         } * 0.2
 
-        val discoveredPercent = stats.tilesDiscovered / hexMap.tiles.size.toDouble()
+        val isDefeated = units.isEmpty() && cities.isEmpty()
+        stats.edit(playerId) { it.copy(isDefeated = isDefeated) }
+
+        val discoveredPercent = playerStats.tilesDiscovered / hexMap.tiles.size.toDouble()
         val visionScore = discoveredPercent * 100
         SimpleStats(
             points = (unitScore + buildingScore + visionScore).toInt(),
-            isDefeated = units.isEmpty() && cities.isEmpty(),
+            isDefeated = isDefeated,
         )
     }
 
@@ -116,4 +119,6 @@ data class GameStatistics(
     // cities
     val citiesFound: Int = 0,
     val citiesConquered: Int = 0,
+
+    val isDefeated: Boolean = false,
 )

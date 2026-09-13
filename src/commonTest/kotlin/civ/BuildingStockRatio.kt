@@ -6,6 +6,7 @@ import kotlin.test.Test
 
 class BuildingStockRatio {
 
+    //todo test - buildings with higher cost should have better ratios
     @Test
     fun printRatios() {
         Building.entries

@@ -90,6 +90,12 @@ class GameApi private constructor(
         eventListeners.forEach {
             it.listener(ScoreChanged(stats))
         }
+
+        if (stats.count { !it.value.isDefeated } < 2) {
+            eventListeners.forEach {
+                it.listener(GameOverEvent(statCounter.exportData()))
+            }
+        }
     }
 
     private fun isTileVisible(playerId: String, coordinates: Coordinates): Boolean {
