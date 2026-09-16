@@ -177,10 +177,10 @@ export class Ui {
         })
 
         this.errorAlertBackground = scene.add.rectangle(scene.cameras.main.width / 2, scene.cameras.main.height / 2, 0, 0, 0x000000, 0.8)
-        .setDepth(95).setScrollFactor(0).setOrigin(0.5, 0.5)
+        .setDepth(101).setScrollFactor(0).setOrigin(0.5, 0.5)
         .setStrokeStyle(1, Ui.colorAccent.color)
         this.errorAlert = scene.add.text(scene.cameras.main.width / 2, scene.cameras.main.height / 2, "", { font: "bold 20px Arial", color: "#FF0000" })
-        .setDepth(95)
+        .setDepth(101)
         .setOrigin(0.5, 0.5)
         .setScrollFactor(0)
 
