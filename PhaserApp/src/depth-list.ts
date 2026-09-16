@@ -18,9 +18,10 @@
 // 
 // ui background        = 90
 // ui elements          = 91
-// error alert          = 95
+// ui tile              = 92
 //
 // menu overlay         = 100
+// error alert          = 101
 // menu background      = 101
 // menu buttons         = 102
 
